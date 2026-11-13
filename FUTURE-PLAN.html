@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AanganOS — Future Plan & Roadmap</title>
+<style>
+  :root{
+    --green:#05b872; --greenDark:#0b261d; --ink:#0f172a; --muted:#64748b;
+    --border:#e2e8f0; --bg:#f4f6f8; --card:#ffffff; --amber:#d97706; --blue:#0ea5e9; --violet:#8250df; --red:#dc2626;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5}
+  a{color:var(--green)}
+  header{background:linear-gradient(135deg,var(--greenDark),#0f382a);color:#fff;padding:32px 24px}
+  header h1{margin:0 0 6px;font-size:26px}
+  header p{margin:0;opacity:.85}
+  .wrap{max-width:1080px;margin:0 auto;padding:24px}
+  .status-bar{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0 0}
+  .pill{background:rgba(255,255,255,.14);color:#fff;border-radius:999px;padding:5px 12px;font-size:12px;font-weight:700}
+  h2{font-size:20px;margin:28px 0 10px;display:flex;align-items:center;gap:10px}
+  h2 .n{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:8px;background:var(--green);color:#fff;font-size:13px}
+  h3{font-size:15px;margin:18px 0 8px;color:var(--greenDark)}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px 20px;margin:12px 0;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+  .tag{display:inline-block;font-size:11px;font-weight:800;border-radius:999px;padding:3px 9px;letter-spacing:.3px;text-transform:uppercase}
+  .t-done{background:#dcfce7;color:#166534}
+  .t-next{background:#dbeafe;color:#1e40af}
+  .t-planned{background:#fef3c7;color:#92400e}
+  .t-decide{background:#fee2e2;color:#991b1b}
+  .t-major{background:#ede9fe;color:#5b21b6}
+  ul{margin:8px 0;padding-left:20px}
+  li{margin:4px 0}
+  code{background:#eef2f6;border-radius:6px;padding:1px 6px;font-size:13px;font-family:ui-monospace,Menlo,Consolas,monospace}
+  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:14px}
+  th,td{text-align:left;border-bottom:1px solid var(--border);padding:8px 10px;vertical-align:top}
+  th{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.3px}
+  .muted{color:var(--muted)}
+  .callout{border-left:4px solid var(--green);background:#ecfdf5;border-radius:0 12px 12px 0;padding:12px 16px;margin:12px 0}
+  .callout.warn{border-color:var(--amber);background:#fffbeb}
+  .callout.decide{border-color:var(--red);background:#fef2f2}
+  .steps{counter-reset:step;list-style:none;padding:0}
+  .steps li{counter-increment:step;position:relative;padding-left:34px;margin:10px 0}
+  .steps li::before{content:counter(step);position:absolute;left:0;top:0;width:24px;height:24px;border-radius:50%;background:var(--green);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+  .mini{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px}
+  .mini b{display:block;margin-bottom:3px}
+  footer{color:var(--muted);font-size:12px;text-align:center;padding:24px}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap" style="padding:0">
+    <h1>AanganOS — Future Plan &amp; Roadmap</h1>
+    <p>Resident + Admin single app (React + Capacitor, shadcn/Tailwind). Backed by the .NET API &amp; shared menu/permission model.</p>
+    <div class="status-bar">
+      <span class="pill">One codebase: <code>packages/app</code> (mobile) + <code>packages/admin</code> (web) + <code>packages/shared</code></span>
+      <span class="pill">Permission hook: usePermission(key)</span>
+      <span class="pill">Backend menu: surface-filtered &amp; permission-filtered</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- ============ Q: single app for both? ============ -->
+  <div class="callout">
+    <b>Decision already answered — yes, one single app works for both resident &amp; admin personas.</b>
+    <ul>
+      <li>App &amp; admin already share one <code>AuthContext</code>, API clients, permission model and i18n.</li>
+      <li>Backend <b>aggregates ALL of a user's roles</b> and their combined permissions into one token at login (<code>ResolveAuthorizationAsync</code>). There is no per-role token today.</li>
+      <li>So screens adapt from <code>usePermission()</code> + the backend menu. Admin screens that already exist (announcements, helpdesk, visitors, amenities, maintenance billing, residents, towers/units) can be surfaced in-app without a second app.</li>
+    </ul>
+  </div>
+
+  <!-- ============ 1. Backend-menu-driven Home/Services ============ -->
+  <h2><span class="n">1</span> Home &amp; Services from the backend menu <span class="tag t-next">NEXT</span></h2>
+  <div class="card">
+    <h3>Goal</h3>
+    <p>Stop hardcoding Home quick-tiles and Services tiles. Each tile comes from the backend menu (<code>GET /api/v1/menu</code>, <code>Surface.App</code>), already <b>permission-filtered server-side</b>. Layout stays the same (3 bottom tabs: Home · Services · Profile); only the tile <b>contents</b> become dynamic.</p>
+
+    <h3>What already exists</h3>
+    <ul>
+      <li><code>GET /api/v1/menu</code> returns a permission-filtered, surface-aware tree (<code>MenuService.GetMenuAsync</code>).</li>
+      <li><code>useMenu()</code> hook in shared already fetches it.</li>
+      <li>10 <code>Surface.App</code> menu items are seeded (home, services, invite-visitor, my-visitors, approvals, parcels, helpdesk, announcements, profile, visitors group).</li>
+    </ul>
+
+    <h3>Work to do</h3>
+    <ol class="steps">
+      <li><b>Render Home tiles + Services from <code>useMenu()</code></b> instead of the hardcoded arrays in <code>DashboardTab</code> / <code>ServicesTab</code>.</li>
+      <li>Add two small app-side maps: <code>ROUTE_MAP</code> (menu route-name → web path, e.g. <code>inviteVisitor → /invite-visitor</code>) and <code>ICON_MAP</code> (menu icon name → lucide icon). Unmapped routes are skipped gracefully.</li>
+      <li><b>Seed missing default App menu items</b> in the DB so residents get: My Profile, My Household, Maintenance, Daily Help (recurring). These carry <code>RequiredPermissionResource</code> + actions so they only show when permitted.</li>
+      <li>Keep bottom tabs fixed; group menu nodes under Home vs Services by parent key (<code>app.home</code> children vs <code>app.services</code> children).</li>
+    </ol>
+    <div class="callout warn"><b>Note:</b> per-role defaults live in <b>menu seed data</b> (backend <code>MenuItems</code>), not hardcoded in the app. "Security" defaults can be seeded, but their screens aren't built in this web app yet (see §3).</div>
+  </div>
+
+  <!-- ============ 2. Multi-role + role switch ============ -->
+  <h2><span class="n">2</span> Multi-role per user + in-app role switch <span class="tag t-major">MAJOR</span></h2>
+  <div class="card">
+    <h3>Requirement</h3>
+    <p>One resident can hold multiple roles (Resident, Security, CommunityAdmin, OrganizationAdmin). They log in with their <b>default role</b>; in Profile they can <b>switch role</b>, and the switched role reveals extra screens/actions. Resident features stay as-is; everything else is layered on by role.</p>
+
+    <h3>Backend reality (important)</h3>
+    <ul>
+      <li>Login already returns <b>all</b> role names + the <b>union</b> of all their permissions in one token. There is <b>no</b> switch-role / active-role endpoint today.</li>
+      <li>So "switch role" is, by default, a <b>client-side active-role filter</b> over menu + <code>usePermission</code> — not a backend re-auth.</li>
+    </ul>
+
+    <div class="callout decide">
+      <b>Decision needed before building:</b>
+      <ul>
+        <li><b>Option A — client-side active role (fast):</b> store a chosen "active role" locally; filter the menu/tiles and the permission hook to that role's scope. Token unchanged. Quick, no backend change. Weakness: not a hard security boundary (token still holds union of permissions).</li>
+        <li><b>Option B — server-issued per-role token (strict):</b> add a <code>POST /api/v1/auth/switch-role</code> that re-issues a token scoped to the selected role. Proper isolation; needs backend work + refresh wiring.</li>
+      </ul>
+      Recommendation: start with <b>A</b> for UX now, move to <b>B</b> if strict isolation is required.
+    </div>
+
+    <h3>Work to do</h3>
+    <ol class="steps">
+      <li>Add an <b>active-role</b> concept in <code>AuthContext</code> (default = the user's primary role); persist the choice.</li>
+      <li>Profile → a <b>"Switch role"</b> picker listing the user's roles (from <code>user.roles</code>).</li>
+      <li>Make <code>usePermission()</code> and the menu render respect the active role (filter to that role's granted permissions for Option A).</li>
+      <li>Default-role mapping: Resident → resident tabs; Admin roles → admin screens surfaced in-app.</li>
+      <li>(If Option B) backend switch-role endpoint + token refresh.</li>
+    </ol>
+  </div>
+
+  <!-- ============ 3. Admin-in-app ============ -->
+  <h2><span class="n">3</span> Admin personas inside the app (CommunityAdmin / SocietyAdmin) <span class="tag t-major">MAJOR</span></h2>
+  <div class="card">
+    <h3>Requirement</h3>
+    <p>Community/Society admins use the same app. Their screens: Announcements, Help Desk, Visitor list + add, Amenities, Maintenance Billing, Residents, Towers &amp; Units. Most already exist (resident versions or admin web). In every page, show <b>Add / Edit / Delete</b> buttons gated by the permission hook.</p>
+
+    <h3>Screen inventory</h3>
+    <table>
+      <tr><th>Screen</th><th>Status</th><th>Action</th></tr>
+      <tr><td>Announcements</td><td><span class="tag t-done">built</span></td><td>Already permission-gated add/edit/delete.</td></tr>
+      <tr><td>Help Desk (tickets)</td><td><span class="tag t-done">built</span></td><td>Raise + list exist; add admin list/manage + status actions.</td></tr>
+      <tr><td>Visitor list + add</td><td><span class="tag t-done">built</span></td><td>Invite form + list exist (shared component).</td></tr>
+      <tr><td>Maintenance Billing</td><td><span class="tag t-planned">partial</span></td><td>Resident bills view exists; add admin bills/charges/expenses.</td></tr>
+      <tr><td>Residents</td><td><span class="tag t-planned">planned</span></td><td>Admin list + verify/approve + add; exists in admin web.</td></tr>
+      <tr><td>Towers &amp; Units</td><td><span class="tag t-planned">planned</span></td><td>Admin unit list + add/edit; exists in admin web.</td></tr>
+      <tr><td>Amenities</td><td><span class="tag t-planned">planned</span></td><td>List + booking admin; exists in admin web.</td></tr>
+    </table>
+
+    <h3>Approach</h3>
+    <ul>
+      <li>Reuse the <b>permission hook</b> everywhere: <code>const { canView, canAdd, canEdit, canDelete } = usePermission('key')</code> → conditionally render Add/Edit/Delete buttons.</li>
+      <li>Prefer <b>shared components</b> (packages/shared) so the same list/form serves both admin-web and the app (as done for the Invite Visitor form and the Notification inbox).</li>
+      <li>Admin screens appear in-app via the backend <b>App-surface menu</b> items seeded for admin roles (§1 + §2).</li>
+    </ul>
+  </div>
+
+  <!-- ============ Foundations already done ============ -->
+  <h2><span class="n">✓</span> Foundations already in place <span class="tag t-done">DONE</span></h2>
+  <div class="grid">
+    <div class="mini"><b>Permission hook</b><span class="muted">usePermission(key) → canView/Add/Edit/Delete/Approve/Export/Assign, isAdmin.</span></div>
+    <div class="mini"><b>Shared components</b><span class="muted">InviteVisitorForm, NotificationInbox, PageLayout, BottomSheet, Field/Select/TextField.</span></div>
+    <div class="mini"><b>Resident screens</b><span class="muted">Home, Services, Profile, Announcements, Notifications, My Profile, My Household (+family/vehicle/pet), Help Desk, My Tickets, Maintenance, Visitors + Invite, Approvals, Parcels, Daily Help, My Tasks.</span></div>
+    <div class="mini"><b>Native</b><span class="muted">Capacitor APK, FCM/OneSignal push, status-bar overlay, portrait lock, back-button, remember-me.</span></div>
+  </div>
+
+  <!-- ============ Suggested sequence ============ -->
+  <h2><span class="n">▶</span> Suggested build sequence</h2>
+  <div class="card">
+    <ol class="steps">
+      <li>Confirm <b>Option A vs B</b> for role switching (§2).</li>
+      <li>Render Home/Services from backend menu + seed missing resident App menu items (§1).</li>
+      <li>Add active-role switch in Profile (§2, Option A).</li>
+      <li>Surface admin screens in-app one by one, each with permission-gated Add/Edit/Delete, reusing shared components (§3): Residents → Units → Maintenance Billing → Amenities.</li>
+      <li>Optional: Option B server-side role isolation + security-role screens.</li>
+    </ol>
+  </div>
+
+</div>
+  <!-- ============ Resident Notices wall (Option C) ============ -->
+  <h2><span class="n">§4</span> Resident Notices wall (community wall, resident-writable)</h2>
+  <div class="card">
+    <p>A separate, resident-writable notices board (distinct from the admin Announcements board). A
+    resident posts a short notice (e.g. "water off tomorrow due to tank cleaning"). Chosen approach:
+    <b>Option C</b>.</p>
+    <p><b>Approval:</b> a per-community config flag decides whether resident notices need admin
+    approval. If approval is ON: a new notice is <i>pending</i> (visible only to its author) until an
+    admin approves; once approved it is visible to <b>all residents of that community</b>. If OFF:
+    the notice is visible community-wide immediately.</p>
+    <p><b>Open decisions (confirm before building):</b></p>
+    <ul>
+      <li>Backend support: no resident-authored-notice entity/endpoint exists yet (not verified in
+      depth). Needs a new <code>ResidentNotice</code> entity + migration + controller + permission
+      resource (e.g. <code>ResidentNotice</code> with View/Create and Approve for admins). This is a
+      DB/schema + API change — needs explicit go-ahead.</li>
+      <li>Approval source: per-community config flag vs always-on vs always-instant.</li>
+      <li>Rejected notice: hidden with a reason shown to the author?</li>
+      <li>UI home: new tile/route <code>/resident-notices</code>, separate from admin Announcements.</li>
+      <li>Who posts/moderates: any verified resident posts; admins approve/reject.</li>
+    </ul>
+  </div>
+
+  <footer>AanganOS — living roadmap. Generated plan; update as scope is confirmed.</footer>
+</body>
+</html>

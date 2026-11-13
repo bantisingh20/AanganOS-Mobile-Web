@@ -1,0 +1,30 @@
+{
+  "name": "aanganos",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "workspaces": [
+    "packages/shared",
+    "packages/app",
+    "packages/admin"
+  ],
+  "scripts": {
+    "dev:app": "npm run dev -w @aanganos/app",
+    "dev:admin": "npm run dev -w @aanganos/admin",
+    "build:app": "npm run build -w @aanganos/app",
+    "build:admin": "npm run build -w @aanganos/admin",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.15",
+    "tailwindcss-animate": "^1.0.7",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.11"
+  }
+}
