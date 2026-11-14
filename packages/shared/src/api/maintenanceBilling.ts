@@ -66,6 +66,7 @@ export interface BillListFilters {
   status?: string;
   unitId?: string;
   communityId?: string;
+  organizationId?: string;
   periodYear?: number;
   periodMonth?: number;
 }
@@ -93,6 +94,8 @@ export interface MaintenanceCharge {
   label: string;
   isActive: boolean;
   unitNumber?: string | null;
+  communityName?: string | null;
+  organizationName?: string | null;
 }
 
 export interface SetChargeBody {
@@ -128,6 +131,8 @@ export interface MaintenanceExpense {
   spentOnUtc: string;
   vendor: string;
   notes: string;
+  communityName?: string | null;
+  organizationName?: string | null;
 }
 
 export interface MaintenanceExpenseBody {
@@ -164,6 +169,7 @@ export class MaintenanceBillingClient {
       status: filters.status,
       unitId: filters.unitId,
       communityId: filters.communityId,
+      organizationId: filters.organizationId,
       periodYear: filters.periodYear,
       periodMonth: filters.periodMonth,
     });
@@ -199,13 +205,13 @@ export class MaintenanceBillingClient {
     return this.api.post<MaintenancePayment>('/api/v1/maintenance-payments/submit', { body });
   }
 
-  collectionSummary(communityId?: string, options?: { signal?: AbortSignal }): Promise<MaintenanceCollectionSummary> {
-    const qs = buildQuery({ communityId });
+  collectionSummary(communityId?: string, organizationId?: string, options?: { signal?: AbortSignal }): Promise<MaintenanceCollectionSummary> {
+    const qs = buildQuery({ communityId, organizationId });
     return this.api.get<MaintenanceCollectionSummary>(`/api/v1/maintenance-bills/collection-summary${qs}`, options);
   }
 
-  listCharges(communityId: string, options?: { signal?: AbortSignal }): Promise<MaintenanceCharge[]> {
-    const qs = buildQuery({ communityId });
+  listCharges(communityId?: string, organizationId?: string, options?: { signal?: AbortSignal }): Promise<MaintenanceCharge[]> {
+    const qs = buildQuery({ communityId, organizationId });
     return this.api.get<MaintenanceCharge[]>(`/api/v1/maintenance-charges${qs}`, options);
   }
 
@@ -221,8 +227,8 @@ export class MaintenanceBillingClient {
     return this.api.delete<MaintenanceCharge>(`/api/v1/maintenance-charges/${id}`);
   }
 
-  listExpenses(communityId: string, options?: { signal?: AbortSignal }): Promise<MaintenanceExpense[]> {
-    const qs = buildQuery({ communityId });
+  listExpenses(communityId?: string, organizationId?: string, options?: { signal?: AbortSignal }): Promise<MaintenanceExpense[]> {
+    const qs = buildQuery({ communityId, organizationId });
     return this.api.get<MaintenanceExpense[]>(`/api/v1/maintenance-expenses${qs}`, options);
   }
 
@@ -238,8 +244,8 @@ export class MaintenanceBillingClient {
     return this.api.delete<{ id: string }>(`/api/v1/maintenance-expenses/${id}`);
   }
 
-  listPendingPayments(communityId: string, options?: { signal?: AbortSignal }): Promise<PendingPayment[]> {
-    const qs = buildQuery({ communityId });
+  listPendingPayments(communityId?: string, organizationId?: string, options?: { signal?: AbortSignal }): Promise<PendingPayment[]> {
+    const qs = buildQuery({ communityId, organizationId });
     return this.api.get<PendingPayment[]>(`/api/v1/maintenance-payments/pending${qs}`, options);
   }
 

@@ -27,21 +27,96 @@ const ROLE_SECURITY = 'security';
 const ROLE_COMMUNITY_ADMIN = 'CommunityAdmin';
 const ROLE_ORG_ADMIN = 'OrganizationAdmin';
 
+let cachedOrgPage: EntityPage | null = null;
+let cachedOrgPromise: Promise<EntityPage> | null = null;
+const orgNameCache = new Map<string, string>();
+const communityNameCache = new Map<string, { name: string; organizationId?: string }>();
+const communityPageCache = new Map<string, { page: EntityPage; promise: Promise<EntityPage> | null }>();
+const unitsByCommunityCache = new Map<string, any[]>();
+
 async function fetchOrgPage(search: string, page: number, pageSize: number, signal: AbortSignal): Promise<EntityPage> {
-  const d = await organizations.list({ search: search || undefined, page, pageSize }, { signal });
-  return { items: d.items.map((o) => ({ value: o.id, label: o.name })), total: d.totalCount };
+  const trimmed = search.trim();
+  if (!trimmed && page === 1 && cachedOrgPage) {
+    return cachedOrgPage;
+  }
+  if (!trimmed && page === 1 && cachedOrgPromise) {
+    return cachedOrgPromise;
+  }
+  const promise = organizations.list({ search: trimmed || undefined, page, pageSize }, { signal })
+    .then((d) => {
+      const res: EntityPage = { items: d.items.map((o) => ({ value: o.id, label: o.name })), total: d.totalCount };
+      if (!trimmed && page === 1) {
+        cachedOrgPage = res;
+        cachedOrgPromise = null;
+        res.items.forEach((item) => orgNameCache.set(item.value, item.label));
+      }
+      return res;
+    })
+    .catch((err) => {
+      if (!trimmed && page === 1) cachedOrgPromise = null;
+      throw err;
+    });
+
+  if (!trimmed && page === 1) {
+    cachedOrgPromise = promise;
+  }
+  return promise;
 }
+
 function makeCommunityFetch(organizationId?: string) {
+  const key = organizationId ?? '__all__';
   return async (search: string, page: number, pageSize: number, signal: AbortSignal): Promise<EntityPage> => {
-    const d = await communities.list({ search: search || undefined, page, pageSize }, organizationId ? { organizationId } : {}, { signal });
-    return { items: d.items.map((c) => ({ value: c.id, label: c.name })), total: d.totalCount };
+    const trimmed = search.trim();
+    const entry = communityPageCache.get(key);
+    if (!trimmed && page === 1 && entry?.page) {
+      return entry.page;
+    }
+    if (!trimmed && page === 1 && entry?.promise) {
+      return entry.promise;
+    }
+    const promise = communities.list({ search: trimmed || undefined, page, pageSize }, organizationId ? { organizationId } : {}, { signal })
+      .then((d) => {
+        const res: EntityPage = { items: d.items.map((c) => ({ value: c.id, label: c.name })), total: d.totalCount };
+        if (!trimmed && page === 1) {
+          communityPageCache.set(key, { page: res, promise: null });
+          res.items.forEach((item) => communityNameCache.set(item.value, { name: item.label, organizationId }));
+        }
+        return res;
+      })
+      .catch((err) => {
+        if (!trimmed && page === 1) communityPageCache.delete(key);
+        throw err;
+      });
+
+    if (!trimmed && page === 1) {
+      communityPageCache.set(key, { page: null as any, promise });
+    }
+    return promise;
   };
 }
+
 async function resolveCommunityLabel(id: string, signal: AbortSignal): Promise<string | null> {
-  try { const c = await communities.get(id, { signal }); return c.name; } catch { return null; }
+  const cached = communityNameCache.get(id);
+  if (cached?.name) return cached.name;
+  try {
+    const c = await communities.get(id, { signal });
+    communityNameCache.set(id, { name: c.name, organizationId: c.organizationId });
+    return c.name;
+  } catch {
+    return null;
+  }
 }
+
 async function resolveOrgLabel(id: string, signal: AbortSignal): Promise<string | null> {
-  try { const o = await organizations.get(id, { signal }); return o.name; } catch { return null; }
+  const cached = orgNameCache.get(id);
+  if (cached) return cached;
+  try {
+    const o = await organizations.get(id, { signal });
+    orgNameCache.set(id, o.name);
+    return o.name;
+  } catch {
+    return null;
+  }
 }
 
 export function UsersPage() {
@@ -81,21 +156,21 @@ export function UsersPage() {
   );
 
   const items = useMemo(() => query.data?.items ?? [], [query.data]);
+
+  useEffect(() => {
+    items.forEach((r) => {
+      if (r.communityId && r.communityName) {
+        communityNameCache.set(r.communityId, { name: r.communityName });
+      }
+    });
+  }, [items]);
+
+  const communityFetchFilter = useMemo(
+    () => makeCommunityFetch(filterOrgId ?? undefined),
+    [filterOrgId],
+  );
   const showCommunityCol = !scope.scopedCommunityId && scope.canViewCommunity;
   const reload = useCallback(() => setReloadKey((k) => k + 1), []);
-
-  const adminRolesQuery = useAsync(
-    (signal) => adminUsers.list({ pageSize: 200 }, { signal }).then((d) => d.items).catch(() => []),
-    [reloadKey],
-  );
-  const adminRoleByUserId = useMemo(() => {
-    const map: Record<string, string> = {};
-    for (const u of adminRolesQuery.data ?? []) {
-      const adminRole = u.roles.find((r) => r === ROLE_COMMUNITY_ADMIN || r === ROLE_ORG_ADMIN);
-      if (adminRole) map[u.id] = adminRole;
-    }
-    return map;
-  }, [adminRolesQuery.data]);
 
   const reportStatus = useCallback((userId: string, status: UserStatus) => {
     setStatusMap((prev) => (prev[userId] === status ? prev : { ...prev, [userId]: status }));
@@ -105,7 +180,8 @@ export function UsersPage() {
 
   const toggleLogin = async (r: Resident) => {
     if (!r.userId || togglingId) return;
-    const next: UserStatus = statusMap[r.userId] === 'Suspended' ? 'Active' : 'Suspended';
+    const currentStatus = statusMap[r.userId] ?? (r.loginStatus as UserStatus) ?? 'Active';
+    const next: UserStatus = currentStatus === 'Suspended' ? 'Active' : 'Suspended';
     setTogglingId(r.userId);
     try {
       await users.update(r.userId, { status: next });
@@ -137,24 +213,21 @@ export function UsersPage() {
   const adminRoleLabel = (role: string) => (role === ROLE_ORG_ADMIN ? t('adminUsers.roleOrg') : t('adminUsers.roleCommunity'));
 
   const RoleBadge = ({ r }: { r: Resident }) => {
-    const adminRole = r.userId ? adminRoleByUserId[r.userId] : undefined;
+    const roleName = r.roleName ?? r.roles?.[0];
+    if (!roleName) return null;
+    const isSpecialAdmin = roleName === ROLE_COMMUNITY_ADMIN || roleName === ROLE_ORG_ADMIN;
     return (
       <div className="flex flex-wrap items-center gap-1">
-        <Badge tone={r.residentType === ROLE_SECURITY ? 'info' : 'default'}>{roleLabel(r.residentType)}</Badge>
-        {adminRole ? <Badge tone="warning">{adminRoleLabel(adminRole)}</Badge> : null}
+        <Badge tone={isSpecialAdmin ? 'warning' : 'default'}>
+          {roleName === ROLE_ORG_ADMIN ? adminRoleLabel(ROLE_ORG_ADMIN) : roleName === ROLE_COMMUNITY_ADMIN ? adminRoleLabel(ROLE_COMMUNITY_ADMIN) : roleName}
+        </Badge>
       </div>
     );
   };
 
-  const LoginCell = ({ userId }: { userId: string | null }) => {
-    const status = useAsync(
-      (signal) => (userId ? users.get(userId, { signal }).then((u) => u.status).catch(() => null) : Promise.resolve(null)),
-      [userId, reloadKey],
-    );
-    useEffect(() => { if (userId && status.data) reportStatus(userId, status.data); }, [status.data, userId]);
-    if (!userId) return <span className="text-[11px] text-muted-foreground">{t('users.noLogin')}</span>;
-    const resolved = statusMap[userId] ?? status.data;
-    if (status.loading && !resolved) return <span className="text-[11px] text-muted-foreground">{t('common.loading')}</span>;
+  const LoginCell = ({ r }: { r: Resident }) => {
+    if (!r.userId) return <span className="text-[11px] text-muted-foreground">{t('users.noLogin')}</span>;
+    const resolved = statusMap[r.userId] ?? r.loginStatus;
     if (!resolved) return <span className="text-[11px] text-muted-foreground">{t('users.noLogin')}</span>;
     return (
       <Badge tone={resolved === 'Active' ? 'success' : 'danger'}>
@@ -165,7 +238,7 @@ export function UsersPage() {
   };
 
   const RowActions = ({ r }: { r: Resident }) => {
-    const status = r.userId ? statusMap[r.userId] : undefined;
+    const status = r.userId ? (statusMap[r.userId] ?? r.loginStatus) : undefined;
     return (
       <div className="flex items-center justify-end gap-1.5">
         <button type="button" onClick={() => setEditing(r)} aria-label={t('users.edit')} className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40">
@@ -233,7 +306,7 @@ export function UsersPage() {
               className="w-44"
               value={filterCommunityId}
               onChange={(v) => { setFilterCommunityId(v); setPage(1); }}
-              fetchPage={makeCommunityFetch(filterOrgId ?? undefined)}
+              fetchPage={communityFetchFilter}
               resolveLabel={resolveCommunityLabel}
               placeholder={t('users.filterCommunity')}
             />
@@ -264,7 +337,8 @@ export function UsersPage() {
             <THead>
               <TR>
                 <TH className="w-14 text-center">#</TH>
-                <TH>{t('users.colName')}</TH>
+                <TH className="w-32">{t('users.colName')}</TH>
+                <TH className="w-32">{t('users.residentType')}</TH>
                 <TH className="w-32">{t('users.colRole')}</TH>
                 {showCommunityCol ? <TH className="w-44">{t('users.colCommunity')}</TH> : null}
                 <TH className="w-32">{t('users.colLogin')}</TH>
@@ -286,9 +360,10 @@ export function UsersPage() {
                       </div>
                     </div>
                   </TD>
+                  <TD className="text-[11px] text-muted-foreground"><Badge tone={r.residentType === ROLE_SECURITY ? 'info' : 'default'}>{roleLabel(r.residentType)}</Badge></TD>
                   <TD><RoleBadge r={r} /></TD>
                   {showCommunityCol ? <TD className="text-[11px] text-muted-foreground">{r.communityName ?? '—'}</TD> : null}
-                  <TD><LoginCell userId={r.userId} /></TD>
+                  <TD><LoginCell r={r} /></TD>
                   <TD><RowActions r={r} /></TD>
                 </TR>
               ))}
@@ -309,7 +384,7 @@ export function UsersPage() {
                     {showCommunityCol ? <div className="truncate text-[11px] text-muted-foreground">{r.communityName ?? '—'}</div> : null}
                   </div>
                 </div>
-                <LoginCell userId={r.userId} />
+                <LoginCell r={r} />
               </div>
               <div className="flex flex-col gap-1 border-t border-border pt-2 text-[11px] text-muted-foreground">
                 <span className="flex items-center gap-1.5"><Phone className="h-3 w-3" />{r.phone ?? '—'}</span>
@@ -395,7 +470,8 @@ function PersonFormDialog({ open, person, onClose, onSaved }: { open: boolean; p
   useEffect(() => {
     if (!open) return;
     setResidentType(person?.residentType === ROLE_SECURITY ? ROLE_SECURITY : (person?.residentType ?? ROLE_RESIDENT));
-    setAdminRole('');
+    const initialRole = person?.roleName ?? person?.roles?.[0] ?? '';
+    setAdminRole(initialRole === ROLE_COMMUNITY_ADMIN || initialRole === ROLE_ORG_ADMIN ? initialRole : '');
     setCommunityId(person?.communityId ?? presetCommunityId ?? null);
     setOrganizationId(null);
     setName(person?.name ?? '');
@@ -406,22 +482,19 @@ function PersonFormDialog({ open, person, onClose, onSaved }: { open: boolean; p
     setPassword('');
   }, [open, person, presetCommunityId]);
 
-  const existingAdminRole = useAsync(
-    (signal) => (open && isEdit && person?.userId
-      ? adminUsers.list({ pageSize: 200 }, { signal })
-          .then((d) => d.items.find((u) => u.id === person.userId)?.roles.find((r) => r === ROLE_COMMUNITY_ADMIN || r === ROLE_ORG_ADMIN) ?? '')
-          .catch(() => '')
-      : Promise.resolve('')),
-    [open, isEdit, person?.userId],
-  );
-  useEffect(() => {
-    if (open && existingAdminRole.data) setAdminRole(existingAdminRole.data);
-  }, [open, existingAdminRole.data]);
-
   const orgOfCommunity = useAsync(
-    (signal) => (open && person?.communityId
-      ? communities.get(person.communityId, { signal }).then((c) => c.organizationId).catch(() => null)
-      : Promise.resolve(null)),
+    async (signal) => {
+      if (!open || !person?.communityId) return null;
+      const cached = communityNameCache.get(person.communityId);
+      if (cached?.organizationId) return cached.organizationId;
+      try {
+        const c = await communities.get(person.communityId, { signal });
+        communityNameCache.set(person.communityId, { name: c.name, organizationId: c.organizationId });
+        return c.organizationId;
+      } catch {
+        return null;
+      }
+    },
     [open, person?.communityId],
   );
   useEffect(() => {
@@ -446,23 +519,42 @@ function PersonFormDialog({ open, person, onClose, onSaved }: { open: boolean; p
   const loadUnits = open && (isEdit ? isResident && !!editCommunityId : !isEdit && isResident && !!effectiveCommunityId);
 
   const unitQuery = useAsync(
-    (signal) => (loadUnits && unitListCommunityId
-      ? units.list({ pageSize: 200 }, { communityId: unitListCommunityId }, { signal }).then((d) => d.items).catch(() => [])
-      : Promise.resolve([])),
+    async (signal) => {
+      if (!loadUnits || !unitListCommunityId) return [];
+      const cached = unitsByCommunityCache.get(unitListCommunityId);
+      if (cached) return cached;
+      try {
+        const d = await units.list({ pageSize: 200 }, { communityId: unitListCommunityId }, { signal });
+        unitsByCommunityCache.set(unitListCommunityId, d.items);
+        return d.items;
+      } catch {
+        return [];
+      }
+    },
     [loadUnits, unitListCommunityId],
   );
   const unitOptions = (unitQuery.data ?? []).map((u) => ({ value: u.id, label: u.floor ? `${u.unitNumber} · ${t('users.floor')} ${u.floor}` : u.unitNumber }));
 
+  const communityFetchModal = useMemo(
+    () => makeCommunityFetch(organizationId ?? undefined),
+    [organizationId],
+  );
+
   const submit = async () => {
     if (busy) return;
     if (!name.trim()) { toast.error(t('users.needName')); return; }
-    if (isEdit && !isAdminRole) {
+
+    const finalRole = isAdminRole ? adminRole : (residentType === ROLE_SECURITY ? 'Security' : 'Resident');
+
+    if (isEdit) {
       setBusy(true);
       try {
         const originalType = person!.residentType;
         const nextType = residentType === ROLE_SECURITY
           ? ROLE_SECURITY
           : (originalType && originalType !== ROLE_SECURITY ? originalType : ROLE_RESIDENT);
+
+        // 1. Update resident
         await residents.update(person!.id, {
           name: name.trim(),
           residentType: nextType,
@@ -471,69 +563,32 @@ function PersonFormDialog({ open, person, onClose, onSaved }: { open: boolean; p
           email: email.trim() || null,
           updateEmail: true,
         });
+
+        // 2. Associate unit if changed
         if (isResident && unitId && unitId !== originalUnitId) {
           await residents.associateHousehold(person!.id, { unitId, relationship: 'owner' });
         }
+
+        // 3. Update user if resident has linked user
+        if (person!.userId) {
+          await users.update(person!.userId, {
+            name: name.trim(),
+            phone: phone.trim() || null,
+            email: email.trim() || null,
+          });
+
+          if (finalRole && finalRole !== person!.roleName) {
+            await adminUsers.update(person!.userId, {
+              name: name.trim() || null,
+              roleName: finalRole,
+              status: 'Active',
+              organizationId: isOrgAdmin ? organizationId : null,
+              communityId: effectiveCommunityId ?? person!.communityId ?? null,
+            }).catch(() => undefined);
+          }
+        }
+
         toast.success(t('users.updated'));
-        onSaved();
-      } catch (err) {
-        toast.error(toFormError(err).message);
-      } finally {
-        setBusy(false);
-      }
-      return;
-    }
-    if (isEdit && isAdminRole) {
-      if (!person!.userId) { toast.error(t('users.adminPromoteNote')); return; }
-      if (isOrgAdmin && !organizationId) { toast.error(t('adminUsers.needOrg')); return; }
-      if (isCommunityAdmin && !effectiveCommunityId) { toast.error(t('adminUsers.needCommunity')); return; }
-      setBusy(true);
-      try {
-        const originalType = person!.residentType;
-        const nextType = residentType === ROLE_SECURITY
-          ? ROLE_SECURITY
-          : (originalType && originalType !== ROLE_SECURITY ? originalType : ROLE_RESIDENT);
-        await residents.update(person!.id, {
-          name: name.trim(),
-          residentType: nextType,
-          phone: phone.trim() || null,
-          updatePhone: true,
-          email: email.trim() || null,
-          updateEmail: true,
-        });
-        await adminUsers.update(person!.userId, {
-          name: name.trim() || null,
-          roleName: adminRole,
-          status: 'Active',
-          organizationId: isOrgAdmin ? organizationId : null,
-          communityId: isCommunityAdmin ? (effectiveCommunityId ?? null) : null,
-        });
-        toast.success(t('users.updated'));
-        onSaved();
-      } catch (err) {
-        toast.error(toFormError(err).message);
-      } finally {
-        setBusy(false);
-      }
-      return;
-    }
-    if (isAdminRole) {
-      const identifier = phone.trim() || email.trim();
-      if (!identifier) { toast.error(t('users.needPhone')); return; }
-      if (password.length < 8) { toast.error(t('adminUsers.needCredentials')); return; }
-      if (isOrgAdmin && !organizationId) { toast.error(t('adminUsers.needOrg')); return; }
-      if (isCommunityAdmin && !effectiveCommunityId) { toast.error(t('adminUsers.needCommunity')); return; }
-      setBusy(true);
-      try {
-        await adminUsers.create({
-          name: name.trim() || null,
-          identifier,
-          password,
-          roleName: adminRole,
-          organizationId: isOrgAdmin ? organizationId : null,
-          communityId: isCommunityAdmin ? (effectiveCommunityId ?? null) : null,
-        });
-        toast.success(t('users.created'));
         onSaved();
       } catch (err) {
         toast.error(toFormError(err).message);
@@ -543,27 +598,37 @@ function PersonFormDialog({ open, person, onClose, onSaved }: { open: boolean; p
       return;
     }
 
-    if (!effectiveCommunityId) { toast.error(t('users.needCommunity')); return; }
-    if (!phone.trim()) { toast.error(t('users.needPhone')); return; }
+    // CREATE
+    if (isResident && !effectiveCommunityId) { toast.error(t('users.needCommunity')); return; }
+    const identifier = phone.trim() || email.trim();
+    if (!identifier) { toast.error(t('users.needPhone')); return; }
     if (isResident && !unitId) { toast.error(t('users.needUnit')); return; }
     if (password.length < 4) { toast.error(t('users.needPassword')); return; }
+
     setBusy(true);
     try {
+      // 1. Create resident
       const created = await residents.create({
-        communityId: effectiveCommunityId,
+        communityId: effectiveCommunityId ?? undefined,
+        organizationId: organizationId ?? undefined,
         name: name.trim(),
         residentType,
-        phone: phone.trim(),
-        ...(email.trim() ? { email: email.trim() } : {}),
+        phone: phone.trim() || undefined,
+        email: email.trim() || undefined,
       });
+
+      // 2. Household association
       if (isResident && unitId) {
         await residents.associateHousehold(created.id, { unitId, relationship: 'owner' });
       }
+
+      // 3. Create Login (User + Role)
       await residents.createLogin(created.id, {
-        identifier: phone.trim(),
+        identifier,
         password,
-        ...(residentType === ROLE_SECURITY ? { roleName: 'Security' } : {}),
+        roleName: finalRole,
       });
+
       toast.success(t('users.created'));
       onSaved();
     } catch (err) {
@@ -598,15 +663,15 @@ function PersonFormDialog({ open, person, onClose, onSaved }: { open: boolean; p
           }}
         />
         {scope.showOrgFilter ? (
-          <div>
+          <div className={!isResident ? 'sm:col-span-2' : ''}>
             <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{t('users.society')}</label>
             <EntitySelect value={organizationId} onChange={setOrganizationId} fetchPage={fetchOrgPage} resolveLabel={resolveOrgLabel} placeholder={t('users.selectSociety')} />
           </div>
         ) : null}
-        {!presetCommunityId ? (
+        {!presetCommunityId && isResident ? (
           <div>
             <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{t('users.wingTower')}</label>
-            <EntitySelect value={communityId} onChange={(v) => { setCommunityId(v); setUnitId(null); }} fetchPage={makeCommunityFetch(organizationId ?? undefined)} resolveLabel={resolveCommunityLabel} placeholder={t('users.selectWingTower')} />
+            <EntitySelect value={communityId} onChange={(v) => { setCommunityId(v); setUnitId(null); }} fetchPage={communityFetchModal} resolveLabel={resolveCommunityLabel} placeholder={t('users.selectWingTower')} />
           </div>
         ) : null}
         <div className="sm:col-span-2">
@@ -636,11 +701,6 @@ function PersonFormDialog({ open, person, onClose, onSaved }: { open: boolean; p
             <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{t('users.password')}</label>
             <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={t('users.passwordPlaceholder')} maxLength={128} />
           </div>
-        ) : null}
-        {isEdit && isAdminRole && !person?.userId ? (
-          <p className="sm:col-span-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
-            {t('users.adminPromoteNote')}
-          </p>
         ) : null}
       </div>
       <DialogFooter>

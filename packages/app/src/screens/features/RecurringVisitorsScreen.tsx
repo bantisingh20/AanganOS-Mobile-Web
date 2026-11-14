@@ -124,9 +124,9 @@ export function RecurringVisitorsScreen() {
 
       {adding && resident ? (
         <AddRecurringDialog
-          units={units.map((u) => ({ unitId: u.unitId, unitNumber: u.unitNumber, communityId: u.communityId }))}
+          units={units.map((u) => ({ unitId: u.unitId, unitNumber: u.unitNumber, communityId: u.communityId ?? undefined }))}
           residentId={resident.id}
-          communityId={resident.communityId}
+          communityId={resident.communityId ? resident.communityId : null}
           onClose={() => setAdding(false)}
           onSaved={() => { setAdding(false); setTab('active'); list.reload(); }}
         />

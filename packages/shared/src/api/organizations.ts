@@ -7,6 +7,7 @@ export interface Organization {
   name: string;
   isArchived: boolean;
   hasActiveAdmin: boolean;
+  communityCount: number;
 }
 
 export class OrganizationsClient {

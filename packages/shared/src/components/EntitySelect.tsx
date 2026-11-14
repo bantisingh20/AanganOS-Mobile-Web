@@ -48,6 +48,18 @@ export function EntitySelect({
   const [loading, setLoading] = useState(false);
   const [scrollTop, setScrollTop] = useState(0);
   const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
+  const [hasLoaded, setHasLoaded] = useState(false);
+  const prevDebounced = useRef(debounced);
+  const prevFetchPage = useRef(fetchPage);
+
+  useEffect(() => {
+    if (prevFetchPage.current !== fetchPage) {
+      prevFetchPage.current = fetchPage;
+      setItems([]);
+      setTotal(0);
+      setHasLoaded(false);
+    }
+  }, [fetchPage]);
 
   const listRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -78,7 +90,11 @@ export function EntitySelect({
 
   useEffect(() => {
     if (!open) return;
-    void load(1, true);
+    if (hasLoaded && prevDebounced.current === debounced && items.length > 0) {
+      return;
+    }
+    prevDebounced.current = debounced;
+    void load(1, true).then(() => setHasLoaded(true));
     if (listRef.current) listRef.current.scrollTop = 0;
     setScrollTop(0);
     // eslint-disable-next-line react-hooks/exhaustive-deps

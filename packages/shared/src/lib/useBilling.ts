@@ -18,6 +18,7 @@ import type { PagedData } from '@shared/api/types';
 
 export interface BillFilters {
   communityId?: string;
+  organizationId?: string;
   status?: string;
   periodYear?: number;
   periodMonth?: number;
@@ -26,35 +27,44 @@ export interface BillFilters {
 export function useBills(query: ListQuery, filters: BillFilters, reloadKey: unknown) {
   return useAsync<PagedData<MaintenanceBill> | null>(
     (signal) => maintenanceBilling.listBills(query, filters, { signal }).catch(() => null),
-    [query.search, query.page, query.pageSize, filters.communityId, filters.status, filters.periodYear, filters.periodMonth, reloadKey],
+    [query.search, query.page, query.pageSize, filters.communityId, filters.organizationId, filters.status, filters.periodYear, filters.periodMonth, reloadKey],
   );
 }
 
-export function useCharges(communityId: string | undefined, reloadKey: unknown) {
+export function useCharges(communityId: string | undefined, organizationId: string | undefined, reloadKey: unknown) {
   return useAsync<MaintenanceCharge[]>(
-    (signal) => (communityId ? maintenanceBilling.listCharges(communityId, { signal }).catch(() => []) : Promise.resolve([])),
-    [communityId, reloadKey],
+    (signal) =>
+      communityId || organizationId
+        ? maintenanceBilling.listCharges(communityId, organizationId, { signal }).catch(() => [])
+        : Promise.resolve([]),
+    [communityId, organizationId, reloadKey],
   );
 }
 
-export function useExpenses(communityId: string | undefined, reloadKey: unknown) {
+export function useExpenses(communityId: string | undefined, organizationId: string | undefined, reloadKey: unknown) {
   return useAsync<MaintenanceExpense[]>(
-    (signal) => (communityId ? maintenanceBilling.listExpenses(communityId, { signal }).catch(() => []) : Promise.resolve([])),
-    [communityId, reloadKey],
+    (signal) =>
+      communityId || organizationId
+        ? maintenanceBilling.listExpenses(communityId, organizationId, { signal }).catch(() => [])
+        : Promise.resolve([]),
+    [communityId, organizationId, reloadKey],
   );
 }
 
-export function useCollectionSummary(communityId: string | undefined, reloadKey: unknown) {
+export function useCollectionSummary(communityId: string | undefined, organizationId: string | undefined, reloadKey: unknown) {
   return useAsync<MaintenanceCollectionSummary | null>(
-    (signal) => maintenanceBilling.collectionSummary(communityId, { signal }).catch(() => null),
-    [communityId, reloadKey],
+    (signal) => maintenanceBilling.collectionSummary(communityId, organizationId, { signal }).catch(() => null),
+    [communityId, organizationId, reloadKey],
   );
 }
 
-export function usePendingPayments(communityId: string | undefined, reloadKey: unknown) {
+export function usePendingPayments(communityId: string | undefined, organizationId: string | undefined, reloadKey: unknown) {
   return useAsync<PendingPayment[]>(
-    (signal) => (communityId ? maintenanceBilling.listPendingPayments(communityId, { signal }).catch(() => []) : Promise.resolve([])),
-    [communityId, reloadKey],
+    (signal) =>
+      communityId || organizationId
+        ? maintenanceBilling.listPendingPayments(communityId, organizationId, { signal }).catch(() => [])
+        : Promise.resolve([]),
+    [communityId, organizationId, reloadKey],
   );
 }
 

@@ -9,10 +9,14 @@ import {
   IdCard,
   Coffee,
   MessageSquare,
+  MessageCircle,
   User,
   ShieldCheck,
+  ShieldAlert,
+  Shield,
   Menu as MenuIcon,
   Settings,
+  Sliders,
   LayoutGrid,
   UserPlus,
   List,
@@ -22,13 +26,33 @@ import {
   DollarSign,
   BarChart3,
   Mail,
+  Inbox,
   UserCog,
   KeyRound,
+  Lock,
+  Wallet,
+  CreditCard,
+  Receipt,
+  Calendar,
+  Clock,
+  FileText,
+  Folder,
+  ClipboardList,
+  Car,
+  ScanLine,
+  ArrowLeftRight,
+  Repeat,
+  Siren,
+  HelpCircle,
+  CheckCircle2,
+  AlertTriangle,
+  Send,
   Dot,
   type LucideIcon,
 } from 'lucide-react';
 
 const MAP: Record<string, LucideIcon> = {
+  // Ant Design style aliases (Admin default seeds)
   AppstoreOutlined: LayoutDashboard,
   BankOutlined: Building2,
   ApartmentOutlined: Building,
@@ -49,6 +73,7 @@ const MAP: Record<string, LucideIcon> = {
   UsergroupAddOutlined: UserCog,
   KeyRound,
 
+  // App tile style aliases
   home: Home,
   grid: LayoutGrid,
   people: Users,
@@ -60,10 +85,122 @@ const MAP: Record<string, LucideIcon> = {
   megaphone: Megaphone,
   person: User,
   notifications: Bell,
-  card: DollarSign,
+  card: CreditCard,
+  scan: ScanLine,
+  swap: ArrowLeftRight,
+  car: Car,
+  shield: ShieldAlert,
+  alert: Siren,
+  wallet: Wallet,
+  mail: Mail,
+
+  // Standard Lucide icon names
+  LayoutDashboard,
+  Building2,
+  Building,
+  Home,
+  Users,
+  Megaphone,
+  Wrench,
+  IdCard,
+  Coffee,
+  MessageSquare,
+  MessageCircle,
+  User,
+  ShieldCheck,
+  ShieldAlert,
+  Shield,
+  MenuIcon,
+  Settings,
+  Sliders,
+  LayoutGrid,
+  UserPlus,
+  List,
+  CheckCheck,
+  Package,
+  Bell,
+  DollarSign,
+  BarChart3,
+  Mail,
+  Inbox,
+  UserCog,
+  Lock,
+  Wallet,
+  CreditCard,
+  Receipt,
+  Calendar,
+  Clock,
+  FileText,
+  Folder,
+  ClipboardList,
+  Car,
+  ScanLine,
+  ArrowLeftRight,
+  Repeat,
+  Siren,
+  HelpCircle,
+  CheckCircle2,
+  AlertTriangle,
+  Send,
 };
 
 export function menuIcon(name: string | null | undefined): LucideIcon {
   if (!name) return Dot;
-  return MAP[name] ?? Dot;
+  const direct = MAP[name];
+  if (direct) return direct;
+  const lower = name.toLowerCase();
+  const match = Object.entries(MAP).find(([k]) => k.toLowerCase() === lower);
+  return match ? match[1] : Dot;
 }
+
+export interface MenuIconOption {
+  name: string;
+  label: string;
+  category: 'General' | 'Operations' | 'Finance' | 'Communication' | 'Admin & Security';
+  icon: LucideIcon;
+}
+
+export const AVAILABLE_MENU_ICONS: MenuIconOption[] = [
+  // General & Navigation
+  { name: 'AppstoreOutlined', label: 'Dashboard', category: 'General', icon: LayoutDashboard },
+  { name: 'HomeOutlined', label: 'Home / Towers', category: 'General', icon: Home },
+  { name: 'BankOutlined', label: 'Organization', category: 'General', icon: Building2 },
+  { name: 'ApartmentOutlined', label: 'Communities / Units', category: 'General', icon: Building },
+  { name: 'grid', label: 'Services Grid', category: 'General', icon: LayoutGrid },
+  { name: 'list', label: 'List View', category: 'General', icon: List },
+
+  // Operations & Community
+  { name: 'NotificationOutlined', label: 'Announcements', category: 'Operations', icon: Megaphone },
+  { name: 'ToolOutlined', label: 'Maintenance / Help Desk', category: 'Operations', icon: Wrench },
+  { name: 'IdcardOutlined', label: 'Visitors / Pass', category: 'Operations', icon: IdCard },
+  { name: 'CoffeeOutlined', label: 'Amenities', category: 'Operations', icon: Coffee },
+  { name: 'cube', label: 'Parcels / Packages', category: 'Operations', icon: Package },
+  { name: 'Car', label: 'Vehicles / Parking', category: 'Operations', icon: Car },
+  { name: 'ScanLine', label: 'Verify Pass / Scanner', category: 'Operations', icon: ScanLine },
+  { name: 'Calendar', label: 'Calendar / Events', category: 'Operations', icon: Calendar },
+
+  // Finance & Billing
+  { name: 'Wallet', label: 'Maintenance & Billing', category: 'Finance', icon: Wallet },
+  { name: 'CreditCard', label: 'Card / Payments', category: 'Finance', icon: CreditCard },
+  { name: 'Receipt', label: 'Invoices / Receipts', category: 'Finance', icon: Receipt },
+  { name: 'DollarOutlined', label: 'Finance / Cash', category: 'Finance', icon: DollarSign },
+  { name: 'BarChartOutlined', label: 'Analytics / Reports', category: 'Finance', icon: BarChart3 },
+
+  // Communication & Notifications
+  { name: 'MailOutlined', label: 'Notification Templates', category: 'Communication', icon: Mail },
+  { name: 'MessageOutlined', label: 'Notifications / Messages', category: 'Communication', icon: MessageSquare },
+  { name: 'Bell', label: 'Alerts / Bell', category: 'Communication', icon: Bell },
+  { name: 'MessageCircle', label: 'Chat / Support', category: 'Communication', icon: MessageCircle },
+  { name: 'Inbox', label: 'Inbox', category: 'Communication', icon: Inbox },
+
+  // Admin & Security
+  { name: 'UserOutlined', label: 'Manage People / Users', category: 'Admin & Security', icon: User },
+  { name: 'TeamOutlined', label: 'Residents / Groups', category: 'Admin & Security', icon: Users },
+  { name: 'SafetyOutlined', label: 'Admin Users / Security', category: 'Admin & Security', icon: ShieldCheck },
+  { name: 'KeyRound', label: 'Roles & Permissions', category: 'Admin & Security', icon: KeyRound },
+  { name: 'MenuOutlined', label: 'Menu Management', category: 'Admin & Security', icon: MenuIcon },
+  { name: 'SettingOutlined', label: 'Configuration', category: 'Admin & Security', icon: Settings },
+  { name: 'ShieldAlert', label: 'Watchlist / Security', category: 'Admin & Security', icon: ShieldAlert },
+  { name: 'Siren', label: 'SOS / Emergency', category: 'Admin & Security', icon: Siren },
+  { name: 'FileText', label: 'Audit / Documents', category: 'Admin & Security', icon: FileText },
+];

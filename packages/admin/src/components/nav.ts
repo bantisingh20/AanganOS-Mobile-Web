@@ -16,6 +16,7 @@ export const ADMIN_FALLBACK_MENU: MenuNode[] = [
   ]),
   node('admin.group.operations', 'Operations', null, null, [
     node('admin.announcements', 'Announcements', '/announcements', 'NotificationOutlined'),
+    node('admin.maintenance-billing', 'Maintenance & Billing', '/maintenance-billing', 'Wallet'),
     node('admin.maintenance', 'Maintenance', '/maintenance', 'ToolOutlined'),
     node('admin.visitors', 'Visitors', '/visitors', 'IdcardOutlined'),
     node('admin.amenities', 'Amenities', '/amenities', 'CoffeeOutlined'),
@@ -27,5 +28,6 @@ export const ADMIN_FALLBACK_MENU: MenuNode[] = [
     node('admin.roles', 'Roles & Permissions', '/roles', 'KeyRound'),
     node('admin.menu', 'Menu Management', '/menu-management', 'MenuOutlined'),
     node('admin.config', 'Configuration', '/config', 'SettingOutlined'),
+    node('admin.notification-templates', 'Notification Templates', '/notification-templates', 'MailOutlined'),
   ]),
 ];

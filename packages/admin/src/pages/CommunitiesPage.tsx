@@ -166,8 +166,8 @@ export function CommunitiesPage() {
             <THead>
               <TR>
                 <TH className="w-14 text-center">#</TH>
-                <TH>{t('communities.colName')}</TH>
-                <TH className="w-44">{t('communities.colOrganization')}</TH>
+                <TH className="w-40">{t('communities.colName')}</TH>
+                <TH className="w-40">{t('communities.colOrganization')}</TH>
                 <TH className="w-40">{t('communities.colType')}</TH>
                 <TH className="w-28">{t('communities.colStatus')}</TH>
                 <TH className="w-32">{t('communities.colUnits')}</TH>

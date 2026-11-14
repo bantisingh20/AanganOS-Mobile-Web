@@ -37,7 +37,9 @@ export function useAsync<T>(
       });
     return () => {
       active = false;
-      controller.abort();
+      //controller.abort();
+      // Do not forcefully abort the HTTP connection on component unmount / StrictMode re-render
+      // to avoid triggering TaskCanceledException and resetting connection pool on the remote database.
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [...deps, nonce]);

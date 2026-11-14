@@ -61,6 +61,9 @@ export class ApiClient {
           return await this.send<T>(method, path, options, correlationId);
         }
         this.tokenStore.clear();
+        if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+          window.location.replace('/login');
+        }
       }
       throw err;
     }
@@ -80,7 +83,7 @@ export class ApiClient {
     }
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
+    const timeout = setTimeout(() => controller.abort(), 30000);
     const onCallerAbort = () => controller.abort();
     if (options.signal) {
       if (options.signal.aborted) controller.abort();

@@ -10,7 +10,7 @@ export function InviteVisitorScreen() {
   const navigate = useNavigate();
   const me = useAsync((signal) => residents.me({ signal }).catch(() => null), []);
   const resident = me.data?.resident ?? null;
-  const units: InviteVisitorUnit[] = (me.data?.units ?? []).map((u) => ({ unitId: u.unitId, unitNumber: u.unitNumber, communityId: u.communityId }));
+  const units: InviteVisitorUnit[] = (me.data?.units ?? []).map((u) => ({ unitId: u.unitId, unitNumber: u.unitNumber, communityId: u.communityId ?? undefined }));
 
   return (
     <PageLayout title={t('myVisitors.inviteTitle')} subtitle={t('myVisitors.inviteSubtitle')}>

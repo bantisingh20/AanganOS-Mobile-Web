@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { auth, tokenStore } from '@shared/services';
+import { auth, tokenStore, notifications } from '@shared/services';
 import type { LoginRequest, LoginResponse } from '@shared/api/auth';
 import { resetMenuCache } from '@shared/lib/useMenu';
 import { resetHomeTilesCache } from '@shared/lib/appTiles';
@@ -27,9 +27,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const hasToken = !!tokenStore.getAccessToken();
       setIsAuthenticated(hasToken);
       setUser(hasToken ? tokenStore.getUser<NonNullable<LoginResponse['user']>>() : null);
+      if (!hasToken && typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+        window.location.replace('/login');
+      }
     });
     return unsubscribe;
   }, []);
+
+  // Periodic session heartbeat & focus check: automatically logs out if session was ended on another device
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    let cancelled = false;
+    const verifySession = async () => {
+      if (cancelled || !tokenStore.getAccessToken()) return;
+      try {
+        await notifications.unreadCount();
+      } catch {
+        // If 401 unauthenticated, ApiClient clears tokenStore.
+        if (!tokenStore.getAccessToken()) {
+          setIsAuthenticated(false);
+          setUser(null);
+          if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+            window.location.replace('/login');
+          }
+        }
+      }
+    };
+
+    // Immediate check on mount/auth, then periodic heartbeat every 3 seconds
+    void verifySession();
+    const interval = setInterval(verifySession, 3000);
+
+    const onFocus = () => {
+      if (!cancelled && document.visibilityState !== 'hidden') {
+        void verifySession();
+      }
+    };
+
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onFocus);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onFocus);
+    };
+  }, [isAuthenticated]);
 
   const login = useCallback(async (request: LoginRequest) => {
     const result = await auth.login(request);

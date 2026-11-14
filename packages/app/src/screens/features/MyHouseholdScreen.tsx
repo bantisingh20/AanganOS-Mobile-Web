@@ -74,7 +74,7 @@ export function MyHouseholdScreen() {
               )}
             </div>
 
-            {units.map((u) => <UnitCard key={u.unitId} unit={u} communityId={u.communityId} />)}
+            {units.map((u) => <UnitCard key={u.unitId} unit={u} communityId={u.communityId ?? ''} />)}
             {units.length === 0 ? (
               <div className="rounded-3xl bg-card py-10 text-center text-sm text-muted-foreground shadow-sm ring-1 ring-border">{t('myHousehold.noUnits')}</div>
             ) : null}

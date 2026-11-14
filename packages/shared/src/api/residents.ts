@@ -11,7 +11,9 @@ export const ResidentVerificationStatus = {
 
 export interface Resident {
   id: string;
-  communityId: string;
+  communityId?: string | null;
+  organizationId?: string | null;
+
   userId: string | null;
   name: string;
   email: string | null;
@@ -31,6 +33,8 @@ export interface Resident {
   loginStatus: string | null;
   communityName?: string | null;
   organizationName?: string | null;
+  roleName?: string | null;
+  roles?: string[];
 }
 
 export interface ResidentListFilters {
@@ -46,7 +50,9 @@ export interface ResidentHouseholdUnit {
   unitType: string;
   unitStatus: string;
   floor: string | null;
-  communityId: string;
+  communityId?: string | null;
+  organizationId?: string | null;
+
   relationship: string;
   startDate: string;
 }
@@ -66,7 +72,9 @@ export interface EmergencyContact {
 
 export interface Vehicle {
   id: string;
-  communityId: string;
+  communityId?: string | null;
+  organizationId?: string | null;
+
   unitId: string;
   registrationNumber: string;
   vehicleType: string;
@@ -111,7 +119,9 @@ export interface AddEmergencyContactBody {
 }
 
 export interface CreateResidentBody {
-  communityId: string;
+  communityId?: string | null;
+  organizationId?: string | null;
+
   name: string;
   residentType: string;
   phone?: string;

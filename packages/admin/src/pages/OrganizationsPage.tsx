@@ -13,10 +13,10 @@ import { SelectField } from '@shared/components/SelectField';
 import { Table, THead, TBody, TR, TH, TD } from '@shared/components/ui/table';
 import { Pagination } from '@shared/components/ui/pagination';
 import { Toaster } from '@shared/components/ui/sonner';
-import { organizations, communities, subscriptions } from '@shared/services';
+import { organizations, subscriptions } from '@shared/services';
 import type { Organization } from '@shared/api/organizations';
 import type { SubscriptionStatus, RenewalRequest } from '@shared/api/subscriptions';
-import type { Community } from '@shared/api/communities';
+// import type { Community } from '@shared/api/communities';
 import { useAsync } from '@shared/lib/useAsync';
 import { useIsSmallScreen } from '@shared/lib/useMediaQuery';
 import { toFormError } from '@shared/api/errors';
@@ -52,10 +52,10 @@ export function OrganizationsPage() {
     (signal) => organizations.list({ search: search.trim() || undefined, page, pageSize }, { signal }).catch(() => null),
     [search, page, pageSize, reloadKey],
   );
-  const commQuery = useAsync(
-    (signal) => communities.list({ pageSize: 200 }, {}, { signal }).catch(() => null),
-    [reloadKey],
-  );
+  // const commQuery = useAsync(
+  //   (signal) => communities.list({ pageSize: 200 }, {}, { signal }).catch(() => null),
+  //   [reloadKey],
+  // );
   const renewalsQuery = useAsync(
     (signal) => subscriptions.pendingRenewals({ signal }).catch(() => [] as RenewalRequest[]),
     [reloadKey],
@@ -73,11 +73,11 @@ export function OrganizationsPage() {
   }, [orgIds]);
   const subByOrg = subsQuery.data ?? new Map<string, SubscriptionStatus>();
 
-  const commCountByOrg = useMemo(() => {
-    const m = new Map<string, number>();
-    (commQuery.data?.items ?? []).forEach((c: Community) => m.set(c.organizationId, (m.get(c.organizationId) ?? 0) + 1));
-    return m;
-  }, [commQuery.data]);
+  // const commCountByOrg = useMemo(() => {
+  //   const m = new Map<string, number>();
+  //   (commQuery.data?.items ?? []).forEach((c: Community) => m.set(c.organizationId, (m.get(c.organizationId) ?? 0) + 1));
+  //   return m;
+  // }, [commQuery.data]);
 
   const renewals = renewalsQuery.data ?? [];
   const reload = () => setReloadKey((k) => k + 1);
@@ -199,7 +199,7 @@ export function OrganizationsPage() {
             <TBody>
               {items.map((org, i) => {
                 const sub = subByOrg.get(org.id);
-                const count = commCountByOrg.get(org.id) ?? 0;
+                // const count = 9;
                 return (
                   <TR key={org.id}>
                     <TD className="text-center text-[11px] text-muted-foreground">{(page - 1) * pageSize + i + 1}</TD>
@@ -214,7 +214,7 @@ export function OrganizationsPage() {
                         </div>
                       </div>
                     </TD>
-                    <TD><CommunitiesPill count={count} onClick={() => navigate(`/communities?organizationId=${org.id}`)} /></TD>
+                    <TD><CommunitiesPill count={org.communityCount} onClick={() => navigate(`/communities?organizationId=${org.id}`)} /></TD>
                     <TD><StatusBadge org={org} /></TD>
                     <TD><SubBadge sub={sub} /></TD>
                     <TD>
@@ -232,7 +232,7 @@ export function OrganizationsPage() {
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {items.map((org) => {
             const sub = subByOrg.get(org.id);
-            const count = commCountByOrg.get(org.id) ?? 0;
+            // const count =commCou ntByOrg.get(org.id) ?? 0;
             return (
               <Card key={org.id} className="flex flex-col gap-3 rounded-2xl p-4">
                 <div className="flex items-center gap-2.5">
@@ -247,7 +247,7 @@ export function OrganizationsPage() {
                 <div className="flex flex-wrap items-center gap-2">
                   <StatusBadge org={org} />
                   <SubBadge sub={sub} />
-                  <CommunitiesPill count={count} onClick={() => navigate(`/communities?organizationId=${org.id}`)} />
+                  <CommunitiesPill count={org.communityCount} onClick={() => navigate(`/communities?organizationId=${org.id}`)} />
                 </div>
                 <div className="flex items-center justify-end gap-1.5 border-t border-border pt-3">
                   <OrgActions org={org} onExpiry={() => setExpiryOrg(org)} onEdit={() => setEditing(org)} onDelete={() => setConfirmDelete(org)} onActivate={() => setConfirmActivate(org)} />

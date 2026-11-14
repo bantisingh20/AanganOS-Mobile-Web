@@ -1,7 +1,7 @@
 # AanganOS Mobile-Web
 
 A React + Vite + TypeScript rebuild of AanganOS using **shadcn/ui** (Tailwind + Radix),
-designed to run as a web app and — later — as a native mobile app via **Capacitor**.
+designed to run as a web app and as a native mobile app via **Capacitor**.
 
 ## Structure (single project)
 
@@ -39,10 +39,23 @@ No hand-written CSS beyond the shadcn theme variables in `src/index.css`.
 Talks to the existing AanganOS backend (`ApiResult<T>` envelope). Base URL: `VITE_API_BASE_URL`
 in `.env` (default `http://localhost:5272`).
 
-## Run
-```
+## Run in Browser
+```bash
 npm install
-npm run dev     # serves on http://localhost:5180
+npm run dev:app       # serves mobile app in browser
+npm run dev:admin     # serves admin portal
+```
+
+## Run on Mobile Device / Emulator (Android)
+See **[MOBILE_RUN_GUIDE.md](./MOBILE_RUN_GUIDE.md)** for complete instructions on building and running on an Android device with the local backend API.
+
+Quick run with device on USB:
+```bash
+adb reverse tcp:5272 tcp:5272
+npm run build:app
+cd packages/app
+npx cap sync android
+npx cap run android
 ```
 
 ## Mobile screens done
@@ -54,4 +67,3 @@ npm run dev     # serves on http://localhost:5180
 
 ## Next
 - Admin portal under `src/web` (login / forgot / register-society for PowerUser + Org/Community admin)
-- Capacitor wrapper for the mobile app

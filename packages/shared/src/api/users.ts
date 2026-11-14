@@ -11,7 +11,10 @@ export interface User {
 }
 
 export interface UpdateUserBody {
-  status: UserStatus;
+  name?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  status?: UserStatus;
 }
 
 export class UsersClient {

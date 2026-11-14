@@ -16,6 +16,7 @@ import type { MenuItem, MenuItemBody } from '@shared/api/menuItems';
 import { useAsync } from '@shared/lib/useAsync';
 import { toFormError } from '@shared/api/errors';
 import { menuIcon } from '@shared/components/menuIcons';
+import { MenuIconPicker } from '@shared/components/MenuIconPicker';
 
 type Option = { value: string; label: string };
 
@@ -419,8 +420,6 @@ function MenuItemFormDialog({ open, item, parentOptions, onClose, onSaved }: { o
       setBusy(false);
     }
   };
-
-  const IconPreview = menuIcon(icon.trim() || null);
   const surfaceOptions: Option[] = [
     { value: String(SURFACE_ADMIN), label: t('menuMgmt.surfaceAdmin') },
     { value: String(SURFACE_APP), label: t('menuMgmt.surfaceApp') },
@@ -445,12 +444,13 @@ function MenuItemFormDialog({ open, item, parentOptions, onClose, onSaved }: { o
           <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{t('menuMgmt.colRoute')}</label>
           <Input value={route} onChange={(e) => setRoute(e.target.value)} placeholder={t('menuMgmt.routePlaceholder')} maxLength={200} />
         </div>
-        <div>
-          <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{t('menuMgmt.colIcon')}</label>
-          <div className="flex items-center gap-2">
-            <Input value={icon} onChange={(e) => setIcon(e.target.value)} placeholder={t('menuMgmt.iconPlaceholder')} maxLength={100} />
-            {icon.trim() ? <IconPreview className="h-5 w-5 shrink-0 text-muted-foreground" /> : null}
-          </div>
+        <div className="sm:col-span-2">
+          <MenuIconPicker
+            value={icon}
+            onChange={setIcon}
+            label={t('menuMgmt.colIcon')}
+            placeholder={t('menuMgmt.iconPlaceholder')}
+          />
         </div>
         <div className="sm:col-span-2">
           <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{t('menuMgmt.requiresPermission')}</label>

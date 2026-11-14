@@ -13,6 +13,7 @@ let lastHomeTab: TabKey = 'home';
 export function HomeScreen() {
   const navigate = useNavigate();
   const { displayName, user } = useAuth();
+  console.log('HomeScreen: displayName', displayName, 'user', user);
   const [tab, setTabState] = useState<TabKey>(lastHomeTab);
   const setTab = (t: TabKey) => { lastHomeTab = t; setTabState(t); };
 
@@ -21,7 +22,7 @@ export function HomeScreen() {
 
   const userName = meQuery.data?.resident?.name ?? displayName ?? 'Signed in';
   const unitLabel = meQuery.data?.units?.[0]?.unitNumber ?? null;
-  const societyName = user?.communityName ?? '';
+  const societyName = user?.organizationName ?? '';
   const unreadCount = unreadQuery.data ?? 0;
 
   const goNotifications = () => navigate('/notifications');

@@ -73,7 +73,7 @@ export function ProfileTab({
             </div>
           </div>
           <div className="relative mt-4 flex border-t border-white/20 pt-3">
-            <ProfileStat icon={Building2} value={societyName || '—'} label={t('profile.community')} />
+            <ProfileStat icon={Building2} value={societyName || '—'} label={t('users.society')} />
             <span className="w-px bg-white/20" />
             <ProfileStat icon={Award} value={roleLabel} label={t('profile.role')} />
           </div>
