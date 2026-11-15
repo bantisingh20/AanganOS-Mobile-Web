@@ -20,25 +20,14 @@ export function ServicesTab({ unreadCount = 0, onNotifications }: { unreadCount?
 
   // Prefer dynamic groups from database; fallback to static groups only if backend returned none
   const visibleGroups = useMemo(() => {
-    let result = groups && groups.length > 0
-      ? [...groups]
-      : FALLBACK_GROUP_ORDER.map((g) => ({
-          id: g.group,
-          title: t(g.titleKey),
-          items: byGroup(g.group),
-        })).filter((g) => g.items.length > 0);
-
-    // If user has admin tiles available and admin group isn't in backend groups yet, append Admin group
-    const adminItems = byGroup('admin');
-    if (adminItems.length > 0 && !result.some((g) => g.id === 'admin' || g.id === 'app.admin')) {
-      result.push({
-        id: 'admin',
-        title: t('services.groupAdmin', 'Admin & Society Management'),
-        items: adminItems,
-      });
+    if (groups && groups.length > 0) {
+      return groups;
     }
-
-    return result;
+    return FALLBACK_GROUP_ORDER.map((g) => ({
+      id: g.group,
+      title: t(g.titleKey),
+      items: byGroup(g.group),
+    })).filter((g) => g.items.length > 0);
   }, [groups, byGroup, t]);
 
   return (

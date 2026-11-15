@@ -7,10 +7,9 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { PageLayout } from '@app/components/PageLayout';
 import { Badge } from '@shared/components/ui/badge';
-import { Dialog, DialogHeader, DialogFooter } from '@shared/components/ui/dialog';
+import { SmartFormDrawer } from '@shared/components/ui/smart-form-drawer';
 import { ConfirmDialog } from '@shared/components/ui/confirm-dialog';
 import { Input } from '@shared/components/ui/input';
-import { Button } from '@shared/components/ui/button';
 import { SelectField } from '@shared/components/SelectField';
 import { residents, users, units as unitsApi } from '@shared/services';
 import type { Resident } from '@shared/api/residents';
@@ -398,44 +397,50 @@ function PersonDialog({
   };
 
   return (
-    <Dialog open={open} onClose={onClose}>
-      <DialogHeader
-        title={isEdit ? 'Edit Person' : 'Add Person'}
-        description={isEdit ? person?.name : 'Add a new resident, tenant, or security staff member.'}
-      />
-      <div className="flex flex-col gap-3 py-2 text-xs">
+    <SmartFormDrawer
+      open={open}
+      onClose={onClose}
+      title={isEdit ? 'Edit Person' : 'Add Person'}
+      subtitle={isEdit ? person?.name : 'Add a resident, tenant, or security staff member.'}
+      fieldsCount={5}
+      onSave={submit}
+      isSaving={busy}
+      saveLabel={isEdit ? 'Update' : 'Add Person'}
+      cancelLabel="Cancel"
+    >
+      <div className="flex flex-col gap-4 text-xs">
         <div>
-          <label className="mb-1 block font-semibold text-muted-foreground">Full Name *</label>
+          <label className="mb-1.5 block font-bold text-foreground">Full Name *</label>
           <Input
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Ramesh Kumar"
-            className="h-9 text-xs"
+            className="h-10 text-xs sm:text-sm"
           />
         </div>
 
         <div>
-          <label className="mb-1 block font-semibold text-muted-foreground">Mobile Phone *</label>
+          <label className="mb-1.5 block font-bold text-foreground">Mobile Phone *</label>
           <Input
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             placeholder="+91 98765 43210"
-            className="h-9 text-xs"
+            className="h-10 text-xs sm:text-sm"
           />
         </div>
 
         <div>
-          <label className="mb-1 block font-semibold text-muted-foreground">Email (Optional)</label>
+          <label className="mb-1.5 block font-bold text-foreground">Email (Optional)</label>
           <Input
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="ramesh@example.com"
-            className="h-9 text-xs"
+            className="h-10 text-xs sm:text-sm"
           />
         </div>
 
         <div>
-          <label className="mb-1 block font-semibold text-muted-foreground">Role Type *</label>
+          <label className="mb-1.5 block font-bold text-foreground">Role Type *</label>
           <SelectField
             value={residentType}
             options={[
@@ -449,7 +454,7 @@ function PersonDialog({
 
         {residentType !== 'security' && unitOptions.length > 0 ? (
           <div>
-            <label className="mb-1 block font-semibold text-muted-foreground">Assign Flat / Unit (Optional)</label>
+            <label className="mb-1.5 block font-bold text-foreground">Assign Flat / Unit (Optional)</label>
             <SelectField
               value={unitId ?? ''}
               options={[{ value: '', label: 'Select Flat…' }, ...unitOptions]}
@@ -458,16 +463,7 @@ function PersonDialog({
           </div>
         ) : null}
       </div>
-
-      <DialogFooter>
-        <Button variant="outline" onClick={onClose} className="h-9 rounded-xl text-xs">
-          Cancel
-        </Button>
-        <Button onClick={submit} disabled={busy} className="h-9 rounded-xl bg-primary text-xs">
-          {busy ? 'Saving…' : isEdit ? 'Update' : 'Add Person'}
-        </Button>
-      </DialogFooter>
-    </Dialog>
+    </SmartFormDrawer>
   );
 }
 
