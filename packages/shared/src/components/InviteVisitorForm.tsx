@@ -314,69 +314,172 @@ export function InviteVisitorForm({
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4">
       {create.error ? <FormBanner message={create.error.message} /> : null}
 
-      <div className="flex items-center gap-2">
-        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10"><User className="h-4 w-4 text-primary" /></span>
-        <span className="text-sm font-extrabold uppercase tracking-wide text-muted-foreground">{t('myVisitors.sectionDetails')}</span>
-      </div>
+      {/* Responsive Grid: Details on Left (on desktop) / Photo at Top (on mobile) */}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-5 lg:gap-6 items-start">
+        {/* Left Column on Desktop / Bottom on Mobile: Details Fields */}
+        <div className="order-2 md:order-1 md:col-span-7 lg:col-span-8 flex flex-col gap-3.5">
+          {units.length > 1 ? (
+            <SelectField
+              label={t('myVisitors.hostUnit')}
+              required
+              value={effectiveUnitId}
+              options={unitOptions}
+              placeholder={t('myVisitors.selectUnit')}
+              onChange={setUnitId}
+            />
+          ) : null}
 
-      <div className="flex flex-col items-center gap-3">
-        <div className="relative flex aspect-square w-full max-w-[220px] items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-border bg-muted/40">
-          {photoPreview ? (
-            <>
-              <img src={photoPreview} alt="visitor" className="h-full w-full object-cover" />
-              <button type="button" onClick={() => { setPhotoFile(null); setPhotoPreview(null); setUploadError(null); }} className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white">
-                <X className="h-4 w-4" />
-              </button>
-            </>
-          ) : (
-            <Camera className="h-12 w-12 text-muted-foreground" />
-          )}
+          <TextField
+            label={t('myVisitors.visitorName')}
+            requiredMark
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={t('myVisitors.visitorNamePlaceholder')}
+          />
+
+          <PhoneField label={t('myVisitors.phone')} value={phone} onChange={setPhone} />
+
+          <TextField
+            label={t('myVisitors.email')}
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder={t('myVisitors.emailPlaceholder')}
+          />
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <TextField
+              label={t('myVisitors.whomToMeet')}
+              value={whom}
+              onChange={(e) => setWhom(e.target.value)}
+              placeholder={t('myVisitors.whomToMeetPlaceholder')}
+            />
+            <TextField
+              label={t('myVisitors.persons')}
+              type="number"
+              value={persons}
+              onChange={(e) => setPersons(e.target.value)}
+              placeholder="1"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <SelectField
+              label={t('myVisitors.vehicleType')}
+              value={vehicleType}
+              options={vehicleOptions}
+              placeholder={t('myVisitors.selectVehicleType')}
+              onChange={setVehicleType}
+            />
+            <TextField
+              label={t('myVisitors.vehicleNumber')}
+              value={vehicle}
+              onChange={(e) => setVehicle(e.target.value)}
+              placeholder={t('myVisitors.vehicleNumberPlaceholder')}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Field label={t('myVisitors.visitDate')}>
+              <input
+                type="date"
+                value={visitDate}
+                onChange={(e) => setVisitDate(e.target.value)}
+                className="h-11 w-full rounded-xl border border-input bg-card px-3 text-sm outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              />
+            </Field>
+            <Field label={t('myVisitors.validUntil')} required>
+              <input
+                type="date"
+                value={validUntil}
+                onChange={(e) => setValidUntil(e.target.value)}
+                className="h-11 w-full rounded-xl border border-input bg-card px-3 text-sm outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              />
+            </Field>
+          </div>
         </div>
-        {uploadError ? <p className="text-center text-xs font-semibold text-destructive">{uploadError}</p> : null}
-        <div className="flex gap-2">
-          <button type="button" onClick={() => cameraInput.current?.click()} className="flex items-center gap-1.5 rounded-xl border border-border bg-card px-4 py-2 text-sm font-bold active:scale-95 transition-transform">
-            <Camera className="h-4 w-4 text-primary" /> {t('myVisitors.takePhoto')}
-          </button>
-          <button type="button" onClick={() => galleryInput.current?.click()} className="flex items-center gap-1.5 rounded-xl border border-border bg-card px-4 py-2 text-sm font-bold active:scale-95 transition-transform">
-            <ImageIcon className="h-4 w-4 text-primary" /> {t('myVisitors.fromGallery')}
-          </button>
+
+        {/* Right Column on Desktop / Top on Mobile: Camera & Photo Upload Section */}
+        <div className="order-1 md:order-2 md:col-span-5 lg:col-span-4 flex flex-col items-center gap-3 rounded-2xl border border-border/70 bg-muted/20 p-4 sm:p-5 text-center md:sticky md:top-4">
+          <div className="relative flex aspect-square w-full max-w-[200px] sm:max-w-[220px] items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-border bg-card shadow-xs transition-colors hover:border-primary/60">
+            {photoPreview ? (
+              <>
+                <img src={photoPreview} alt="visitor" className="h-full w-full object-cover" />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPhotoFile(null);
+                    setPhotoPreview(null);
+                    setUploadError(null);
+                  }}
+                  className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 transition-colors"
+                  aria-label="Remove photo"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </>
+            ) : (
+              <div className="flex flex-col items-center gap-1.5 text-muted-foreground p-3 text-center">
+                <Camera className="h-10 w-10 text-muted-foreground/60" />
+                <span className="text-[11px] font-medium text-muted-foreground/80">
+                  Visitor Photo (Optional)
+                </span>
+              </div>
+            )}
+          </div>
+
+          {uploadError ? (
+            <p className="text-center text-xs font-semibold text-destructive">{uploadError}</p>
+          ) : null}
+
+          <div className="flex flex-wrap justify-center gap-2 w-full">
+            <button
+              type="button"
+              onClick={() => cameraInput.current?.click()}
+              className="flex h-10 items-center justify-center gap-1.5 flex-1 min-w-[120px] rounded-xl border border-border bg-card px-3 text-xs sm:text-sm font-semibold hover:bg-muted active:scale-95 transition-all text-foreground"
+            >
+              <Camera className="h-4 w-4 text-primary" /> {t('myVisitors.takePhoto')}
+            </button>
+            <button
+              type="button"
+              onClick={() => galleryInput.current?.click()}
+              className="flex h-10 items-center justify-center gap-1.5 flex-1 min-w-[120px] rounded-xl border border-border bg-card px-3 text-xs sm:text-sm font-semibold hover:bg-muted active:scale-95 transition-all text-foreground"
+            >
+              <ImageIcon className="h-4 w-4 text-primary" /> {t('myVisitors.fromGallery')}
+            </button>
+          </div>
+
+          <p className="text-center text-[11px] text-muted-foreground/70 px-2">
+            Attach photo for faster check-in and gate identity verification.
+          </p>
+
+          <input ref={cameraInput} type="file" accept="image/*" capture="environment" className="hidden" onChange={onPickPhoto} />
+          <input ref={galleryInput} type="file" accept="image/*" className="hidden" onChange={onPickPhoto} />
         </div>
-        <input ref={cameraInput} type="file" accept="image/*" capture="environment" className="hidden" onChange={onPickPhoto} />
-        <input ref={galleryInput} type="file" accept="image/*" className="hidden" onChange={onPickPhoto} />
       </div>
 
-      {units.length > 1 ? (
-        <SelectField label={t('myVisitors.hostUnit')} required value={effectiveUnitId} options={unitOptions} placeholder={t('myVisitors.selectUnit')} onChange={setUnitId} />
-      ) : null}
+      {/* Footer: Validity note + Medium-sized Submit Button */}
+      <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-border/50">
+        {config.data?.visitPassValidityText ? (
+          <p className="text-xs text-muted-foreground">
+            {t('myVisitors.validityNote', { validity: config.data.visitPassValidityText })}
+          </p>
+        ) : (
+          <div />
+        )}
 
-      <TextField label={t('myVisitors.visitorName')} requiredMark value={name} onChange={(e) => setName(e.target.value)} placeholder={t('myVisitors.visitorNamePlaceholder')} />
-      <PhoneField label={t('myVisitors.phone')} value={phone} onChange={setPhone} />
-      <TextField label={t('myVisitors.email')} type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t('myVisitors.emailPlaceholder')} />
-      <TextField label={t('myVisitors.whomToMeet')} value={whom} onChange={(e) => setWhom(e.target.value)} placeholder={t('myVisitors.whomToMeetPlaceholder')} />
-      <TextField label={t('myVisitors.persons')} type="number" value={persons} onChange={(e) => setPersons(e.target.value)} placeholder="1" />
-
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <SelectField label={t('myVisitors.vehicleType')} value={vehicleType} options={vehicleOptions} placeholder={t('myVisitors.selectVehicleType')} onChange={setVehicleType} />
-        <TextField label={t('myVisitors.vehicleNumber')} value={vehicle} onChange={(e) => setVehicle(e.target.value)} placeholder={t('myVisitors.vehicleNumberPlaceholder')} />
+        <PrimaryButton
+          label={t('myVisitors.createPass')}
+          loading={create.running}
+          disabled={!valid}
+          arrow={false}
+          className="w-full sm:w-auto sm:min-w-[200px] !h-11 px-6 rounded-xl text-sm font-bold shadow-xs hover:bg-primary/90"
+          onClick={() => void create.run()}
+        />
       </div>
-
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <Field label={t('myVisitors.visitDate')}>
-          <input type="date" value={visitDate} onChange={(e) => setVisitDate(e.target.value)} className="h-12 w-full rounded-xl border border-input bg-card px-3 text-base outline-none focus-visible:ring-1 focus-visible:ring-ring" />
-        </Field>
-        <Field label={t('myVisitors.validUntil')} required>
-          <input type="date" value={validUntil} onChange={(e) => setValidUntil(e.target.value)} className="h-12 w-full rounded-xl border border-input bg-card px-3 text-base outline-none focus-visible:ring-1 focus-visible:ring-ring" />
-        </Field>
-      </div>
-
-      {config.data?.visitPassValidityText ? (
-        <p className="px-1 text-center text-xs text-muted-foreground">{t('myVisitors.validityNote', { validity: config.data.visitPassValidityText })}</p>
-      ) : null}
-
-      <PrimaryButton label={t('myVisitors.createPass')} loading={create.running} disabled={!valid} onClick={() => void create.run()} />
     </div>
   );
 }

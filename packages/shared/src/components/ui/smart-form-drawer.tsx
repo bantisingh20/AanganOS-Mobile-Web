@@ -22,6 +22,10 @@ export interface SmartFormDrawerProps {
   isSaving?: boolean;
   saveDisabled?: boolean;
   /**
+   * Whether to show 'cross' (default, clean X button), 'cancel' (text button), or 'both'.
+   */
+  closeAction?: 'cross' | 'cancel' | 'both';
+  /**
    * Optional custom header action elements placed alongside Save/Cancel.
    */
   headerActions?: ReactNode;
@@ -40,6 +44,7 @@ export function SmartFormDrawer({
   cancelLabel = 'Cancel',
   isSaving = false,
   saveDisabled = false,
+  closeAction = 'cross',
   headerActions,
   children,
   className,
@@ -139,53 +144,55 @@ export function SmartFormDrawer({
             ) : null}
           </div>
 
-          {/* Top-Right: Cancel + Save + Close Button */}
+          {/* Top-Right: Cancel / Save / Close Button (Medium sized targets) */}
           <div className="flex shrink-0 items-center gap-2">
             {headerActions}
 
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={isSaving}
-              onClick={onClose}
-              className="h-8.5 rounded-xl px-3 text-xs font-semibold hover:bg-muted active:scale-95 transition-all"
-            >
-              {cancelLabel}
-            </Button>
+            {(closeAction === 'cancel' || closeAction === 'both') && (
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isSaving}
+                onClick={onClose}
+                className="h-10 rounded-xl px-4 text-xs sm:text-sm font-semibold hover:bg-muted active:scale-95 transition-all"
+              >
+                {cancelLabel}
+              </Button>
+            )}
 
             {onSave ? (
               <Button
                 type="button"
-                size="sm"
                 disabled={saveDisabled || isSaving}
                 onClick={onSave}
-                className="h-8.5 rounded-xl bg-primary px-3.5 text-xs font-bold text-primary-foreground shadow-sm hover:bg-primary/90 active:scale-95 transition-all"
+                className="h-10 rounded-xl bg-primary px-4 text-xs sm:text-sm font-bold text-primary-foreground shadow-sm hover:bg-primary/90 active:scale-95 transition-all"
               >
                 {isSaving ? (
-                  <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
                 ) : (
-                  <Check className="mr-1 h-3.5 w-3.5 stroke-[2.5]" />
+                  <Check className="mr-1.5 h-4 w-4 stroke-[2.5]" />
                 )}
                 {saveLabel}
               </Button>
             ) : null}
 
-            <button
-              type="button"
-              disabled={isSaving}
-              onClick={onClose}
-              aria-label="Close"
-              className="ml-1 flex h-8.5 w-8.5 items-center justify-center rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground active:scale-95 transition-all"
-            >
-              <X className="h-4 w-4" />
-            </button>
+            {(closeAction === 'cross' || closeAction === 'both') && (
+              <button
+                type="button"
+                disabled={isSaving}
+                onClick={onClose}
+                aria-label="Close"
+                className="flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground active:scale-95 transition-all"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            )}
           </div>
         </header>
 
         {/* Scrollable Form Body */}
         <div className="safe-bottom min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6">
-          <div className="mx-auto flex max-w-lg flex-col gap-4">
+          <div className="mx-auto flex w-full max-w-4xl flex-col gap-4">
             {children}
           </div>
         </div>

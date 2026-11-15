@@ -129,7 +129,7 @@ export function VerifyPassScreen() {
 
   return (
     <PageLayout title={t('verifyPass.title')} subtitle={t('verifyPass.subtitle')}>
-      <div className="flex flex-col gap-4 px-4 py-4">
+      <div className="flex flex-col gap-4">
         {!result ? (
           <>
             <div className="flex rounded-full bg-muted p-1">

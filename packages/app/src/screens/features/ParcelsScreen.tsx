@@ -33,7 +33,7 @@ export function ParcelsScreen() {
 
   return (
     <PageLayout title={t('parcels.title')} subtitle={t('parcels.subtitle')}>
-      <div className="flex flex-col gap-3 px-4 py-4">
+      <div className="flex flex-col gap-3">
         {me.loading || list.loading ? (
           <p className="py-10 text-center text-sm text-muted-foreground">{t('common.loading')}</p>
         ) : items.length === 0 ? (

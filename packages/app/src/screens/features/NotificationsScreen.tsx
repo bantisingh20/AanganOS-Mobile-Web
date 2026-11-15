@@ -17,7 +17,7 @@ export function NotificationsScreen() {
         </button>
       }
     >
-      <div className="px-4 py-4">
+      <div>
         <NotificationInbox controlsRef={(h) => { controls.current = h; }} />
       </div>
     </PageLayout>

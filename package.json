@@ -5,14 +5,13 @@
   "type": "module",
   "workspaces": [
     "packages/shared",
-    "packages/app",
-    "packages/admin"
+    "packages/app"
   ],
   "scripts": {
+    "dev": "npm run dev -w @aanganos/app",
     "dev:app": "npm run dev -w @aanganos/app",
-    "dev:admin": "npm run dev -w @aanganos/admin",
+    "build": "npm run build -w @aanganos/app",
     "build:app": "npm run build -w @aanganos/app",
-    "build:admin": "npm run build -w @aanganos/admin",
     "typecheck": "npm run typecheck --workspaces --if-present"
   },
   "devDependencies": {

@@ -46,7 +46,7 @@ export function MyHouseholdScreen() {
 
   return (
     <PageLayout title={t('myHousehold.title')} subtitle={t('myHousehold.subtitle')}>
-      <div className="flex flex-col gap-4 bg-background px-4 py-4">
+      <div className="flex flex-col gap-4">
         {me.loading ? (
           <p className="py-10 text-center text-sm text-muted-foreground">{t('common.loading')}</p>
         ) : !resident ? (

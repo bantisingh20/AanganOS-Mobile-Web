@@ -39,10 +39,20 @@ function flattenLeaves(nodes: MenuNode[]): MenuNode[] {
 export function SidebarNav({ items, currentPath, onNavigate, collapsed = false }: SidebarNavProps) {
   const { t } = useTranslation();
 
+  // Exclude client-side mobile tabs (Home, Services, Profile) from the Desktop Sidebar
+  const cleanItems = items.filter((node) => {
+    const key = (node.key ?? '').toLowerCase();
+    const route = (node.route ?? '').toLowerCase().replace(/^\/+/, '');
+    if (key === 'app.home' || (key === 'home' && route === 'home')) return false;
+    if (key === 'app.services' || (key === 'services' && route === 'services')) return false;
+    if (key === 'app.profile' && (!node.children || node.children.length === 0)) return false;
+    return true;
+  });
+
   if (collapsed) {
     return (
       <nav className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto p-2">
-        {flattenLeaves(items).map((node) => (
+        {flattenLeaves(cleanItems).map((node) => (
           <NavRow key={node.key} node={node} currentPath={currentPath} onNavigate={onNavigate} collapsed depth={0} />
         ))}
       </nav>
@@ -51,7 +61,7 @@ export function SidebarNav({ items, currentPath, onNavigate, collapsed = false }
 
   return (
     <nav className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto p-2">
-      {items.map((node) =>
+      {cleanItems.map((node) =>
         isGroup(node) ? (
           <div key={node.key} className="mb-1">
             <div className="px-3 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400">

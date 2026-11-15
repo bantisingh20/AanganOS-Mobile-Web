@@ -91,7 +91,7 @@ export function RaiseTicketScreen() {
 
   return (
     <PageLayout title={t('raiseTicket.title')} subtitle={t('raiseTicket.subtitle')}>
-      <div className="flex flex-col gap-3 px-4 py-4">
+      <div className="flex flex-col gap-3">
         {submit.error ? <FormBanner message={submit.error.message} /> : null}
         {me.loading ? (
           <p className="py-10 text-center text-sm text-muted-foreground">{t('common.loading')}</p>

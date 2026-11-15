@@ -217,7 +217,7 @@ export function MyTasksScreen() {
       title={t('myTasks.title')}
       subtitle={total > 0 ? t(total === 1 ? 'myTasks.itemsOne' : 'myTasks.itemsOther', { count: total }) : t('myTasks.subtitleEmpty')}
     >
-      <div className="flex flex-col gap-3 px-4 py-4">
+      <div className="flex flex-col gap-3">
         {summaryItems.length > 0 ? (
           <div className="flex flex-wrap gap-2">
             {filters.map((ft) => (

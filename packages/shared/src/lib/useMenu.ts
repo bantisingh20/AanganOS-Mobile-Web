@@ -20,16 +20,53 @@ export function resetMenuCache(): void {
   notify();
 }
 
+/**
+ * Normalizes the backend menu tree:
+ * 1. Filters out client-side mobile tabs ('app.home', 'home', 'app.services', 'services', 'app.profile', 'profile')
+ *    from being standalone top-level items.
+ * 2. Unpacks container nodes like 'app.services' so their functional groups (Community, Security, Admin, etc.)
+ *    become direct top-level groups in both the Desktop Sidebar and Mobile Services Tab.
+ */
+export function normalizeMenu(nodes: MenuNode[]): MenuNode[] {
+  const result: MenuNode[] = [];
+
+  for (const node of nodes) {
+    const key = (node.key ?? '').toLowerCase();
+    const route = (node.route ?? '').toLowerCase().replace(/^\/+/, '');
+
+    // Skip standalone mobile tab items
+    if (key === 'app.home' || (key === 'home' && route === 'home')) continue;
+    if (key === 'app.profile' && (!node.children || node.children.length === 0)) continue;
+
+    // If it is 'app.services' or route is 'services', unpack its children into top-level groups
+    if (key === 'app.services' || route === 'services') {
+      if (node.children && node.children.length > 0) {
+        result.push(...normalizeMenu(node.children));
+      }
+      continue;
+    }
+
+    // Recursively normalize children
+    const cleanChildren = node.children && node.children.length > 0 ? normalizeMenu(node.children) : [];
+    result.push({
+      ...node,
+      children: cleanChildren,
+    });
+  }
+
+  return result;
+}
+
 async function loadMenu(): Promise<MenuNode[]> {
   if (cache) return cache;
   if (!inflight) {
     inflight = menu
       .get()
       .then((items) => {
-        cache = items;
+        cache = normalizeMenu(items);
         inflight = null;
         notify();
-        return items;
+        return cache;
       })
       .catch(() => {
         inflight = null;

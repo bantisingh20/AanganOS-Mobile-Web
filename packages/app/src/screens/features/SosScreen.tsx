@@ -59,7 +59,7 @@ export function SosScreen() {
 
   return (
     <PageLayout title={t('sos.title')} subtitle={t('sos.subtitle')}>
-      <div className="flex flex-col gap-3 px-4 py-4">
+      <div className="flex flex-col gap-3">
         <div className="flex rounded-full bg-muted p-1">
           {(['open', 'all'] as const).map((f) => (
             <button key={f} type="button" onClick={() => setFilter(f)} className={cn('flex-1 rounded-full py-1.5 text-sm font-bold transition-colors', filter === f ? 'bg-primary text-primary-foreground' : 'text-muted-foreground')}>

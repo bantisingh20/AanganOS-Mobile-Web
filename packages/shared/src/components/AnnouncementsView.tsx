@@ -10,11 +10,6 @@ import {
   LayoutGrid,
   Eye,
   EyeOff,
-  ChevronLeft,
-  Calendar,
-  Wrench,
-  AlertTriangle,
-  type LucideIcon,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -32,6 +27,7 @@ import { Pagination } from '@shared/components/ui/pagination';
 import { Toaster } from '@shared/components/ui/sonner';
 import { EntitySelect, type EntityPage } from '@shared/components/EntitySelect';
 import { FormBanner } from '@shared/components/FormBanner';
+import { AdaptiveShell } from '@shared/components/layout/AdaptiveShell';
 
 import { announcements, masterData, organizations, communities } from '@shared/services';
 import type { Announcement } from '@shared/api/announcements';
@@ -47,14 +43,8 @@ export interface AnnouncementsViewProps {
   mode?: 'admin' | 'mobile';
   permKey?: string;
   onBack?: () => void;
+  standalone?: boolean;
 }
-
-const CATEGORY_META: Record<string, { icon: LucideIcon; tint: string }> = {
-  maintenance: { icon: Wrench, tint: '#05b872' },
-  event: { icon: Calendar, tint: '#0ea5e9' },
-  emergency: { icon: AlertTriangle, tint: '#dc2626' },
-  general: { icon: Megaphone, tint: '#f59e0b' },
-};
 
 function formatDate(iso: string): string {
   try {
@@ -96,27 +86,28 @@ async function resolveOrgLabel(id: string, signal: AbortSignal): Promise<string 
   }
 }
 
-export function AnnouncementsView({ mode = 'admin', permKey, onBack }: AnnouncementsViewProps) {
+export function AnnouncementsView({ mode: _mode = 'admin', permKey, onBack, standalone = false }: AnnouncementsViewProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const scope = useScope();
   const { user } = useAuth();
-  const isMobileMode = mode === 'mobile';
-  const effectivePermKey = permKey || (isMobileMode ? 'announcements' : 'admin.announcements');
-  const perm = usePermission(effectivePermKey);
   const isSmall = useIsSmallScreen();
   const handleBack = onBack ?? (() => navigate(-1));
 
-  const isAdmin = perm.isAdmin || scope.isPowerUser || scope.isOrgAdmin;
-  const canAdd = isAdmin || perm.canAdd;
-  const canEdit = isAdmin || perm.canEdit;
-  const canDelete = isAdmin || perm.canDelete;
+  const effectivePermKey = permKey || 'announcements';
+  const perm = usePermission(effectivePermKey);
+  const adminAnnouncementsPerm = usePermission('admin.announcements');
+
+  const isAdmin = perm.isAdmin || adminAnnouncementsPerm.isAdmin || scope.isPowerUser || scope.isOrgAdmin;
+  const canAdd = isAdmin || perm.canAdd || adminAnnouncementsPerm.canAdd;
+  const canEdit = isAdmin || perm.canEdit || adminAnnouncementsPerm.canEdit;
+  const canDelete = isAdmin || perm.canDelete || adminAnnouncementsPerm.canDelete;
 
   const [search, setSearch] = useState('');
   const [filterOrgId, setFilterOrgId] = useState<string | null>(null);
   const [filterCommunityId, setFilterCommunityId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(isMobileMode ? 50 : 10);
+  const [pageSize, setPageSize] = useState(isSmall ? 50 : 10);
   const [view, setView] = useState<'table' | 'cards'>('table');
   const effectiveView = isSmall ? 'cards' : view;
 
@@ -127,9 +118,8 @@ export function AnnouncementsView({ mode = 'admin', permKey, onBack }: Announcem
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
 
-  const effectiveCommunityId = isMobileMode
-    ? (user?.communityId ?? undefined)
-    : (filterCommunityId ?? scope.scopedCommunityId ?? undefined);
+  const effectiveCommunityId =
+    filterCommunityId ?? scope.scopedCommunityId ?? user?.communityId ?? undefined;
 
   // Master data categories
   const categoriesQuery = useAsync(
@@ -158,15 +148,15 @@ export function AnnouncementsView({ mode = 'admin', permKey, onBack }: Announcem
         search: search.trim() || undefined,
         page,
         pageSize,
-        ...(isMobileMode ? { sort: 'publishedAtUtc:desc' } : {}),
+        sort: 'publishedAtUtc:desc',
       },
       {
-        ...(isMobileMode ? {} : { includeInactive: true }),
+        ...(canEdit ? { includeInactive: true } : {}),
         ...(effectiveCommunityId ? { communityId: effectiveCommunityId } : {}),
       },
       { signal },
     ).catch(() => null),
-    [search, effectiveCommunityId, page, pageSize, reloadKey, isMobileMode],
+    [search, effectiveCommunityId, page, pageSize, reloadKey, canEdit],
   );
 
   const items = useMemo(() => query.data?.items ?? [], [query.data]);
@@ -291,112 +281,9 @@ export function AnnouncementsView({ mode = 'admin', permKey, onBack }: Announcem
     </>
   );
 
-  // MOBILE UI MODE
-  if (isMobileMode) {
-    return (
-      <div className="mx-auto flex h-[100dvh] w-full max-w-2xl flex-col overflow-hidden bg-background">
-        <header className="safe-top flex shrink-0 items-center gap-2 bg-primary px-3 pb-3 pt-3 text-primary-foreground">
-          <button
-            type="button"
-            onClick={handleBack}
-            aria-label="Back"
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full hover:bg-white/15"
-          >
-            <ChevronLeft className="h-6 w-6" />
-          </button>
-          <div className="min-w-0 flex-1">
-            <div className="truncate text-lg font-extrabold leading-tight">{t('announcements.title')}</div>
-          </div>
-          {canAdd ? (
-            <button
-              type="button"
-              onClick={() => setCreating(true)}
-              aria-label={t('announcements.add')}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full hover:bg-white/15"
-            >
-              <Plus className="h-5 w-5" />
-            </button>
-          ) : null}
-        </header>
-
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
-          <div className="flex flex-col gap-3">
-            {query.loading && items.length === 0 ? (
-              <p className="px-1 py-10 text-center text-sm text-muted-foreground">{t('common.loading')}</p>
-            ) : query.error ? (
-              <div className="flex flex-col items-center gap-3 py-10">
-                <p className="text-sm text-destructive">{query.error.message}</p>
-                <button
-                  type="button"
-                  onClick={reload}
-                  className="rounded-full bg-primary px-4 py-2 text-sm font-bold text-primary-foreground"
-                >
-                  {t('common.retry')}
-                </button>
-              </div>
-            ) : items.length === 0 ? (
-              <div className="flex flex-col items-center gap-2 py-16 text-center">
-                <Megaphone className="h-10 w-10 text-muted-foreground/50" />
-                <p className="text-sm text-muted-foreground">{t('announcements.empty')}</p>
-              </div>
-            ) : (
-              items.map((a) => {
-                const meta = CATEGORY_META[a.category] ?? CATEGORY_META.general!;
-                return (
-                  <article key={a.id} className="flex flex-col gap-2 rounded-2xl bg-card p-4 shadow-sm border border-border/50">
-                    <div className="flex gap-3">
-                      <span
-                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
-                        style={{ backgroundColor: `${meta.tint}1f` }}
-                      >
-                        <meta.icon className="h-5 w-5" style={{ color: meta.tint }} />
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-start justify-between gap-2">
-                          <h2 className="text-[15px] font-extrabold leading-tight">{a.title}</h2>
-                          <span className="shrink-0 text-xs font-medium text-muted-foreground">{formatDate(a.publishedAtUtc)}</span>
-                        </div>
-                        <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-muted-foreground">{a.body}</p>
-                      </div>
-                    </div>
-                    {canEdit || canDelete ? (
-                      <div className="flex justify-end gap-2 border-t border-border pt-2">
-                        {canEdit ? (
-                          <button
-                            type="button"
-                            onClick={() => setEditing(a)}
-                            className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-bold text-primary hover:bg-accent"
-                          >
-                            <Pencil className="h-3.5 w-3.5" /> {t('announcements.edit')}
-                          </button>
-                        ) : null}
-                        {canDelete ? (
-                          <button
-                            type="button"
-                            onClick={() => setConfirmDelete(a)}
-                            className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-bold text-destructive hover:bg-destructive/10"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" /> {t('announcements.delete')}
-                          </button>
-                        ) : null}
-                      </div>
-                    ) : null}
-                  </article>
-                );
-              })
-            )}
-          </div>
-        </div>
-
-        {dialogs}
-      </div>
-    );
-  }
-
-  // ADMIN UI MODE
-  return (
+  const body = (
     <div className="space-y-3 sm:space-y-4">
-      <Card className="relative overflow-hidden rounded-2xl p-0">
+      <Card className="relative hidden overflow-hidden rounded-2xl p-0 md:block">
         <span className="absolute left-0 top-0 h-full w-1 bg-emerald-600" />
         <div className="flex items-center justify-between gap-3 py-3.5 pl-4 pr-3.5">
           <div className="flex min-w-0 items-center gap-3">
@@ -568,6 +455,22 @@ export function AnnouncementsView({ mode = 'admin', permKey, onBack }: Announcem
       {dialogs}
     </div>
   );
+
+  if (standalone) {
+    return (
+      <AdaptiveShell
+        title={t('announcements.title')}
+        subtitle={t('announcements.subtitle')}
+        showBack
+        hideDesktopSubHeader
+        onBack={handleBack}
+      >
+        {body}
+      </AdaptiveShell>
+    );
+  }
+
+  return body;
 }
 
 function AnnouncementFormDialog({

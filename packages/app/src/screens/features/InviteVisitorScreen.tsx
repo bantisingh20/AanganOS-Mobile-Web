@@ -14,7 +14,7 @@ export function InviteVisitorScreen() {
 
   return (
     <PageLayout title={t('myVisitors.inviteTitle')} subtitle={t('myVisitors.inviteSubtitle')}>
-      <div className="px-4 py-4">
+      <div className="mx-auto max-w-5xl">
         {me.loading ? (
           <p className="py-10 text-center text-sm text-muted-foreground">{t('common.loading')}</p>
         ) : units.length === 0 ? (

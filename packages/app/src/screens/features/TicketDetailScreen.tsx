@@ -167,7 +167,7 @@ export function TicketDetailScreen() {
       ) : !ticket ? (
         <p className="py-10 text-center text-sm text-muted-foreground">{t('myTickets.detailEmpty')}</p>
       ) : (
-        <div className="px-4 py-4">
+        <div>
           <div className={cn('relative overflow-hidden rounded-2xl p-5 text-white shadow-md', tone)}>
             <div className="pointer-events-none absolute -right-8 -top-12 h-36 w-36 rounded-full bg-white/10" />
             <div className="pointer-events-none absolute -bottom-14 -left-10 h-32 w-32 rounded-full bg-black/10" />

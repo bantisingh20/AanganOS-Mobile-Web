@@ -11,7 +11,6 @@ import {
   Trash2,
   Pencil,
   ShieldCheck,
-  ChevronLeft,
   ArrowDownLeft,
   ArrowUpRight,
 } from 'lucide-react';
@@ -25,11 +24,13 @@ import { Input } from '@shared/components/ui/input';
 import { Badge } from '@shared/components/ui/badge';
 import { Dialog, DialogHeader, DialogFooter } from '@shared/components/ui/dialog';
 import { ConfirmDialog } from '@shared/components/ui/confirm-dialog';
+import { SmartFormDrawer } from '@shared/components/ui/smart-form-drawer';
 import { SelectField } from '@shared/components/SelectField';
 import { Table, THead, TBody, TR, TH, TD } from '@shared/components/ui/table';
 import { Pagination } from '@shared/components/ui/pagination';
 import { Toaster } from '@shared/components/ui/sonner';
 import { EntitySelect, type EntityPage } from '@shared/components/EntitySelect';
+import { AdaptiveShell } from '@shared/components/layout/AdaptiveShell';
 
 import { maintenanceBilling, masterData, organizations, communities, units } from '@shared/services';
 import type {
@@ -49,6 +50,7 @@ export interface MaintenanceBillingViewProps {
   mode?: 'admin' | 'mobile';
   permKey?: string;
   onBack?: () => void;
+  standalone?: boolean;
 }
 
 type Tab = 'bills' | 'charges' | 'expenses' | 'dashboard';
@@ -108,27 +110,27 @@ async function resolveOrgLabel(id: string, signal: AbortSignal): Promise<string 
   }
 }
 
-export function MaintenanceBillingView({ mode = 'admin', permKey, onBack }: MaintenanceBillingViewProps) {
+export function MaintenanceBillingView({ mode: _mode, permKey, onBack, standalone = false }: MaintenanceBillingViewProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const scope = useScope();
   const isSmall = useIsSmallScreen();
-  const isMobileMode = mode === 'mobile';
   const handleBack = onBack ?? (() => navigate(-1));
 
   // Determine permission key: Admin ('admin.maintenance' / 'admin.maintenance-billing') vs App ('billing')
-  const effectivePermKey = permKey || (isMobileMode ? 'billing' : 'admin.maintenance');
+  const effectivePermKey = permKey || 'billing';
   const perm = usePermission(effectivePermKey);
+  const adminMaintenancePerm = usePermission('admin.maintenance');
   const chargePerm = usePermission('MaintenanceCharge');
   const expensePerm = usePermission('MaintenanceExpense');
   const paymentPerm = usePermission('MaintenancePayment');
 
-  const isAdmin = perm.isAdmin || scope.isPowerUser || scope.isOrgAdmin;
+  const isAdmin = perm.isAdmin || adminMaintenancePerm.isAdmin || scope.isPowerUser || scope.isOrgAdmin;
 
-  const canAddBill = isAdmin || perm.canAdd;
-  const canEditBill = isAdmin || perm.canEdit;
-  const canRecordPayment = isAdmin || paymentPerm.canAdd || perm.canEdit;
-  const canApprovePayment = isAdmin || paymentPerm.canApprove || perm.canApprove;
+  const canAddBill = isAdmin || perm.canAdd || adminMaintenancePerm.canAdd;
+  const canEditBill = isAdmin || perm.canEdit || adminMaintenancePerm.canEdit;
+  const canRecordPayment = isAdmin || paymentPerm.canAdd || perm.canEdit || adminMaintenancePerm.canEdit;
+  const canApprovePayment = isAdmin || paymentPerm.canApprove || perm.canApprove || adminMaintenancePerm.canApprove;
 
   const canAddCharge = isAdmin || chargePerm.canAdd || perm.canAdd;
   const canEditCharge = isAdmin || chargePerm.canEdit || perm.canEdit;
@@ -146,7 +148,7 @@ export function MaintenanceBillingView({ mode = 'admin', permKey, onBack }: Main
   const [periodYear, setPeriodYear] = useState('');
   const [periodMonth, setPeriodMonth] = useState<string>(ALL);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(isMobileMode ? 50 : 10);
+  const [pageSize, setPageSize] = useState(isSmall ? 50 : 10);
   const [view, setView] = useState<'table' | 'cards'>('table');
   const effectiveView = isSmall ? 'cards' : view;
 
@@ -357,189 +359,10 @@ export function MaintenanceBillingView({ mode = 'admin', permKey, onBack }: Main
     </>
   );
 
-  // MOBILE UI MODE
-  if (isMobileMode) {
-    return (
-      <div className="mx-auto flex h-[100dvh] w-full max-w-2xl flex-col overflow-hidden bg-background">
-        <header className="safe-top flex shrink-0 items-center gap-2 bg-primary px-3 pb-3 pt-3 text-primary-foreground">
-          <button
-            type="button"
-            onClick={handleBack}
-            aria-label="Back"
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full hover:bg-white/15"
-          >
-            <ChevronLeft className="h-6 w-6" />
-          </button>
-          <div className="min-w-0 flex-1">
-            <div className="truncate text-lg font-extrabold leading-tight">{t('billing.title')}</div>
-            <div className="truncate text-xs text-primary-foreground/80">{t('billing.subtitle')}</div>
-          </div>
-          {tab === 'bills' && canAddBill ? (
-            <button
-              type="button"
-              onClick={() => setGenerating(true)}
-              aria-label={t('billing.generate')}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/20 hover:bg-white/30"
-            >
-              <Plus className="h-5 w-5" />
-            </button>
-          ) : tab === 'charges' && canAddCharge ? (
-            <button
-              type="button"
-              onClick={() => setCharging(true)}
-              aria-label={t('billing.setCharge')}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/20 hover:bg-white/30"
-            >
-              <Plus className="h-5 w-5" />
-            </button>
-          ) : tab === 'expenses' && canAddExpense ? (
-            <button
-              type="button"
-              onClick={() => setAddingExpense(true)}
-              aria-label={t('billing.addLedger')}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/20 hover:bg-white/30"
-            >
-              <Plus className="h-5 w-5" />
-            </button>
-          ) : null}
-        </header>
-
-        <div className="flex flex-col gap-3 px-4 py-3">
-          {/* Organization & Community Selection Filters in Mobile */}
-          {scope.showOrgFilter || scope.showCommunityFilter ? (
-            <div className="flex flex-col gap-2">
-              {scope.showOrgFilter ? (
-                <EntitySelect
-                  value={filterOrgId}
-                  onChange={(v) => {
-                    setFilterOrgId(v);
-                    setFilterCommunityId(null);
-                    setPage(1);
-                  }}
-                  fetchPage={fetchOrgPage}
-                  resolveLabel={resolveOrgLabel}
-                  placeholder={t('billing.filterOrg', { defaultValue: 'Select Organization' })}
-                />
-              ) : null}
-              {scope.showCommunityFilter ? (
-                <EntitySelect
-                  value={filterCommunityId}
-                  onChange={(v) => {
-                    setFilterCommunityId(v);
-                    setPage(1);
-                  }}
-                  fetchPage={makeCommunityFetch(filterOrgId ?? undefined)}
-                  resolveLabel={resolveCommunityLabel}
-                  placeholder={t('billing.allCommunities', { defaultValue: 'All Communities' })}
-                />
-              ) : null}
-            </div>
-          ) : null}
-
-          {/* Pill Tabs */}
-          <div className="flex rounded-full bg-muted p-1">
-            {tabs.map((tb) => (
-              <button
-                key={tb.key}
-                type="button"
-                onClick={() => setTab(tb.key)}
-                className={`flex-1 rounded-full py-1.5 text-xs font-bold transition-colors ${
-                  tab === tb.key ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground'
-                }`}
-              >
-                {tb.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-6">
-          {tab === 'bills' && (
-            <div className="flex flex-col gap-3">
-              {billsQuery.loading && bills.length === 0 ? (
-                <p className="py-10 text-center text-sm text-muted-foreground">{t('common.loading')}</p>
-              ) : bills.length === 0 ? (
-                <div className="py-12 text-center text-sm text-muted-foreground">{t('billing.empty')}</div>
-              ) : (
-                bills.map((b) => (
-                  <article key={b.id} className="flex flex-col gap-2.5 rounded-2xl bg-card p-4 shadow-sm border border-border/60">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <div className="text-base font-bold leading-tight">{b.unitNumber ?? b.unitId}</div>
-                        {showCommunityCol && b.communityName ? (
-                          <div className="text-xs text-muted-foreground">{b.communityName}</div>
-                        ) : null}
-                        <div className="text-xs text-muted-foreground mt-0.5">{formatPeriod(b.periodYear, b.periodMonth)}</div>
-                      </div>
-                      <StatusBadge b={b} />
-                    </div>
-
-                    <div className="flex items-center justify-between border-t border-border pt-2 text-xs">
-                      <div>
-                        <span className="text-muted-foreground">{t('billing.colAmount')}: </span>
-                        <span className="font-bold text-foreground">₹{formatAmount(b.amount)}</span>
-                      </div>
-                      {b.amountDue > 0 ? (
-                        <div>
-                          <span className="text-muted-foreground">{t('billing.colDue')}: </span>
-                          <span className="font-bold text-rose-600">₹{formatAmount(b.amountDue)}</span>
-                        </div>
-                      ) : null}
-                    </div>
-
-                    <div className="flex items-center justify-between border-t border-border pt-2">
-                      <span className="text-[11px] text-muted-foreground">Due: {formatDate(b.dueDateUtc)}</span>
-                      <BillRowActions b={b} />
-                    </div>
-                  </article>
-                ))
-              )}
-            </div>
-          )}
-
-          {tab === 'charges' && (
-            <ChargesTab
-              communityId={effectiveCommunityId}
-              organizationId={effectiveOrgId}
-              canAdd={canAddCharge}
-              canEdit={canEditCharge}
-              canDelete={canDeleteCharge}
-              onOpenSet={() => setCharging(true)}
-              onOpenBulk={() => setBulkCharging(true)}
-            />
-          )}
-
-          {tab === 'expenses' && (
-            <ExpensesTab
-              communityId={effectiveCommunityId}
-              organizationId={effectiveOrgId}
-              adding={addingExpense}
-              canAdd={canAddExpense}
-              canEdit={canEditExpense}
-              canDelete={canDeleteExpense}
-              onCloseAdd={() => setAddingExpense(false)}
-            />
-          )}
-
-          {tab === 'dashboard' && (
-            <CollectionDashboard
-              communityId={effectiveCommunityId}
-              organizationId={effectiveOrgId}
-              showOrg={!effectiveCommunityId}
-            />
-          )}
-        </div>
-
-        {commonDialogs}
-      </div>
-    );
-  }
-
-  // ADMIN UI MODE
-  return (
+  const body = (
     <div className="space-y-3 sm:space-y-4">
-      {/* Top Banner Card */}
-      <Card className="relative overflow-hidden rounded-2xl p-0">
+      {/* Top Banner Card (2nd UI: Visible on large screens, hidden on mobile) */}
+      <Card className="relative hidden overflow-hidden rounded-2xl p-0 md:block">
         <span className="absolute left-0 top-0 h-full w-1 bg-emerald-600" />
         <div className="flex flex-col gap-3 py-3.5 pl-4 pr-3.5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 items-center gap-3">
@@ -867,6 +690,22 @@ export function MaintenanceBillingView({ mode = 'admin', permKey, onBack }: Main
       {commonDialogs}
     </div>
   );
+
+  if (standalone) {
+    return (
+      <AdaptiveShell
+        title={t('billing.title')}
+        subtitle={t('billing.subtitle')}
+        showBack
+        hideDesktopSubHeader
+        onBack={handleBack}
+      >
+        {body}
+      </AdaptiveShell>
+    );
+  }
+
+  return body;
 }
 
 // -------------------------------------------------------------
@@ -1385,9 +1224,18 @@ function GenerateBillsDialog({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} className="max-w-lg">
-      <DialogHeader title={t('billing.generateTitle')} />
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <SmartFormDrawer
+      open={open}
+      onClose={onClose}
+      title={t('billing.generateTitle')}
+      fieldsCount={4}
+      onSave={submit}
+      saveLabel={t('billing.generate')}
+      cancelLabel={t('orgs.cancel')}
+      isSaving={busy}
+      saveDisabled={!canSubmit}
+    >
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 py-2">
         {!presetCommunityId ? (
           <div className="sm:col-span-2">
             <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{t('billing.community')}</label>
@@ -1423,19 +1271,7 @@ function GenerateBillsDialog({
           <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
         </div>
       </div>
-      <DialogFooter>
-        <Button variant="outline" onClick={onClose} className="h-9 rounded-lg text-xs">
-          {t('orgs.cancel')}
-        </Button>
-        <Button
-          onClick={submit}
-          disabled={busy || !canSubmit}
-          className="h-9 rounded-lg bg-emerald-600 text-xs hover:bg-emerald-700"
-        >
-          {t('billing.generate')}
-        </Button>
-      </DialogFooter>
-    </Dialog>
+    </SmartFormDrawer>
   );
 }
 
@@ -1491,9 +1327,18 @@ function RecordPaymentDialog({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} className="max-w-lg">
-      <DialogHeader title={t('billing.recordPaymentTitle')} />
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <SmartFormDrawer
+      open={open}
+      onClose={onClose}
+      title={t('billing.recordPaymentTitle')}
+      fieldsCount={4}
+      onSave={submit}
+      saveLabel={t('billing.recordPayment')}
+      cancelLabel={t('orgs.cancel')}
+      isSaving={busy}
+      saveDisabled={!canSubmit}
+    >
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 py-2">
         <div>
           <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{t('billing.amount')}</label>
           <Input
@@ -1527,19 +1372,7 @@ function RecordPaymentDialog({
           <Input type="date" value={paidAt} onChange={(e) => setPaidAt(e.target.value)} />
         </div>
       </div>
-      <DialogFooter>
-        <Button variant="outline" onClick={onClose} className="h-9 rounded-lg text-xs">
-          {t('orgs.cancel')}
-        </Button>
-        <Button
-          onClick={submit}
-          disabled={busy || !canSubmit}
-          className="h-9 rounded-lg bg-emerald-600 text-xs hover:bg-emerald-700"
-        >
-          {t('billing.recordPayment')}
-        </Button>
-      </DialogFooter>
-    </Dialog>
+    </SmartFormDrawer>
   );
 }
 
@@ -1610,9 +1443,18 @@ function SetChargeDialog({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} className="max-w-lg">
-      <DialogHeader title={t('billing.setChargeTitle')} />
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <SmartFormDrawer
+      open={open}
+      onClose={onClose}
+      title={t('billing.setChargeTitle')}
+      fieldsCount={5}
+      onSave={submit}
+      saveLabel={t('billing.save')}
+      cancelLabel={t('orgs.cancel')}
+      isSaving={busy}
+      saveDisabled={!canSubmit}
+    >
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 py-2">
         {!communityId ? (
           <div className="sm:col-span-2">
             <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{t('billing.community')}</label>
@@ -1665,19 +1507,7 @@ function SetChargeDialog({
           {t('billing.active')}
         </label>
       </div>
-      <DialogFooter>
-        <Button variant="outline" onClick={onClose} className="h-9 rounded-lg text-xs">
-          {t('orgs.cancel')}
-        </Button>
-        <Button
-          onClick={submit}
-          disabled={busy || !canSubmit}
-          className="h-9 rounded-lg bg-emerald-600 text-xs hover:bg-emerald-700"
-        >
-          {t('billing.save')}
-        </Button>
-      </DialogFooter>
-    </Dialog>
+    </SmartFormDrawer>
   );
 }
 
@@ -1757,9 +1587,18 @@ function BulkSetChargeDialog({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} className="max-w-lg">
-      <DialogHeader title={t('billing.bulkSetTitle')} />
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <SmartFormDrawer
+      open={open}
+      onClose={onClose}
+      title={t('billing.bulkSetTitle')}
+      fieldsCount={5}
+      onSave={submit}
+      saveLabel={t('billing.applyToUnits')}
+      cancelLabel={t('orgs.cancel')}
+      isSaving={busy}
+      saveDisabled={!canSubmit}
+    >
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 py-2">
         {!communityId ? (
           <div className="sm:col-span-2">
             <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{t('billing.community')}</label>
@@ -1838,19 +1677,7 @@ function BulkSetChargeDialog({
           {t('billing.active')}
         </label>
       </div>
-      <DialogFooter>
-        <Button variant="outline" onClick={onClose} className="h-9 rounded-lg text-xs">
-          {t('orgs.cancel')}
-        </Button>
-        <Button
-          onClick={submit}
-          disabled={busy || !canSubmit}
-          className="h-9 rounded-lg bg-emerald-600 text-xs hover:bg-emerald-700"
-        >
-          {t('billing.applyToUnits')}
-        </Button>
-      </DialogFooter>
-    </Dialog>
+    </SmartFormDrawer>
   );
 }
 
@@ -1931,9 +1758,18 @@ function ExpenseFormDialog({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} className="max-w-lg">
-      <DialogHeader title={isEdit ? t('billing.editLedgerTitle') : t('billing.addLedgerTitle')} />
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <SmartFormDrawer
+      open={open}
+      onClose={onClose}
+      title={isEdit ? t('billing.editLedgerTitle') : t('billing.addLedgerTitle')}
+      fieldsCount={8}
+      onSave={submit}
+      saveLabel={isEdit ? t('billing.saveChanges') : t('billing.save')}
+      cancelLabel={t('orgs.cancel')}
+      isSaving={busy}
+      saveDisabled={!canSubmit}
+    >
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 py-2">
         {!communityId && !isEdit ? (
           <div className="sm:col-span-2">
             <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{t('billing.community')}</label>
@@ -2021,19 +1857,7 @@ function ExpenseFormDialog({
           />
         </div>
       </div>
-      <DialogFooter>
-        <Button variant="outline" onClick={onClose} className="h-9 rounded-lg text-xs">
-          {t('orgs.cancel')}
-        </Button>
-        <Button
-          onClick={submit}
-          disabled={busy || !canSubmit}
-          className="h-9 rounded-lg bg-emerald-600 text-xs hover:bg-emerald-700"
-        >
-          {isEdit ? t('billing.saveChanges') : t('billing.save')}
-        </Button>
-      </DialogFooter>
-    </Dialog>
+    </SmartFormDrawer>
   );
 }
 

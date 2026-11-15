@@ -63,3 +63,5 @@ export function ChangePasswordDialog({ open, onClose }: { open: boolean; onClose
     </Dialog>
   );
 }
+
+export default ChangePasswordDialog;

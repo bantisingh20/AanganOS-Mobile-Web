@@ -53,7 +53,7 @@ export function NotificationsPage() {
 
   return (
     <div className="space-y-3 sm:space-y-4">
-      <Card className="relative overflow-hidden rounded-2xl p-0">
+      <Card className="relative hidden overflow-hidden rounded-2xl p-0 md:block">
         <span className="absolute left-0 top-0 h-full w-1 bg-emerald-600" />
         <div className="flex items-center gap-3 py-3.5 pl-4 pr-3.5">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-300">

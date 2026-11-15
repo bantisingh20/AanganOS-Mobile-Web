@@ -1,64 +1,105 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useDynamicTiles, type TileGroup } from '@shared/lib/appTiles';
-import { TopBar } from '@app/components/TopBar';
-import { tileIcon } from '@app/lib/tileIcons';
+import { useMenu } from '@shared/lib/useMenu';
+import { menuIcon } from '@shared/components/menuIcons';
+import type { MenuNode } from '@shared/api/menu';
 
-const FALLBACK_GROUP_ORDER: { group: TileGroup; titleKey: string }[] = [
-  { group: 'myHome', titleKey: 'services.groupMyHome' },
-  { group: 'community', titleKey: 'services.groupCommunity' },
-  { group: 'security', titleKey: 'services.groupSecurity' },
-  { group: 'support', titleKey: 'services.groupSupport' },
-  { group: 'admin', titleKey: 'services.groupAdmin' },
-];
+function flattenLeaves(nodes: MenuNode[]): MenuNode[] {
+  const out: MenuNode[] = [];
+  for (const n of nodes) {
+    const route = (n.route ?? '').toLowerCase().replace(/^\/+/, '');
+    // Exclude home/dashboard routes as they belong to the Home tab
+    if (route === '' || route === 'home') continue;
+    if (n.route) out.push(n);
+    if (n.children && n.children.length > 0) out.push(...flattenLeaves(n.children));
+  }
+  return out;
+}
 
-export function ServicesTab({ unreadCount = 0, onNotifications }: { unreadCount?: number; onNotifications?: () => void }) {
+export function ServicesTab(_props?: { unreadCount?: number; onNotifications?: () => void }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { groups, byGroup, loading } = useDynamicTiles();
+  const { items: menuTree, loading } = useMenu();
 
-  // Prefer dynamic groups from database; fallback to static groups only if backend returned none
-  const visibleGroups = useMemo(() => {
-    if (groups && groups.length > 0) {
-      return groups;
+  const sections = useMemo(() => {
+    const list: { id: string; title: string; items: MenuNode[] }[] = [];
+    const ungrouped: MenuNode[] = [];
+
+    for (const node of menuTree) {
+      if (node.children && node.children.length > 0) {
+        const leaves = flattenLeaves(node.children);
+        if (leaves.length > 0) {
+          list.push({
+            id: node.key,
+            title: t(`menu.${node.key}`, { defaultValue: node.label }),
+            items: leaves,
+          });
+        }
+      } else if (node.route) {
+        const route = (node.route ?? '').toLowerCase().replace(/^\/+/, '');
+        if (route !== '' && route !== 'home') {
+          ungrouped.push(node);
+        }
+      }
     }
-    return FALLBACK_GROUP_ORDER.map((g) => ({
-      id: g.group,
-      title: t(g.titleKey),
-      items: byGroup(g.group),
-    })).filter((g) => g.items.length > 0);
-  }, [groups, byGroup, t]);
+
+    if (ungrouped.length > 0) {
+      list.unshift({
+        id: 'main',
+        title: t('services.groupMain', { defaultValue: 'Society Services' }),
+        items: ungrouped,
+      });
+    }
+
+    return list;
+  }, [menuTree, t]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-background">
-      <TopBar title={t('services.title')} subtitle={t('services.subtitle')} notificationCount={unreadCount} {...(onNotifications ? { onNotifications } : {})} />
-      <div className="flex flex-col gap-6 px-4 py-5">
-        {loading && visibleGroups.length === 0 ? (
-          <p className="py-10 text-center text-sm text-muted-foreground">{t('common.loading')}</p>
+      <div className="flex flex-col gap-6 px-4 py-4 sm:px-6">
+        {loading && sections.length === 0 ? (
+          <div className="py-16 text-center text-sm text-muted-foreground font-medium">
+            {t('common.loading', 'Loading services…')}
+          </div>
+        ) : sections.length === 0 ? (
+          <div className="py-16 text-center text-sm text-muted-foreground font-medium">
+            No services accessible for your role.
+          </div>
         ) : null}
-        {visibleGroups.map((group) => (
-          <section key={group.id}>
-            <h2 className="mb-2 ml-1 text-xs font-extrabold uppercase tracking-wider text-muted-foreground">
-              {group.title}
+
+        {sections.map((section) => (
+          <section key={section.id}>
+            <h2 className="mb-3 ml-1 text-xs font-extrabold uppercase tracking-wider text-muted-foreground">
+              {section.title}
             </h2>
-            <div className="grid grid-cols-2 gap-3">
-              {group.items.map((item) => {
-                const Icon = tileIcon(item.icon);
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
+              {section.items.map((item) => {
+                const Icon = menuIcon(item.icon);
+                const itemSub = t(`menu.${item.key}Sub`, { defaultValue: '' });
                 return (
                   <button
-                    key={item.code}
+                    key={item.key}
                     type="button"
-                    onClick={() => navigate(item.route)}
-                    className="flex flex-col gap-2 rounded-2xl bg-card p-4 text-left shadow-sm transition-transform active:scale-[0.98]"
+                    onClick={() => {
+                      if (item.route) {
+                        const target = item.route.startsWith('/') ? item.route : `/${item.route}`;
+                        navigate(target);
+                      }
+                    }}
+                    className="flex flex-col gap-2 rounded-2xl border border-border/70 bg-card p-4 text-left shadow-2xs transition-all hover:border-primary/50 hover:shadow-xs active:scale-[0.98]"
                   >
-                    <span className="flex h-11 w-11 items-center justify-center rounded-xl" style={{ backgroundColor: `${item.tint}1f` }}>
-                      <Icon className="h-[22px] w-[22px]" style={{ color: item.tint }} />
+                    <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary shadow-2xs">
+                      <Icon className="h-5 w-5" />
                     </span>
-                    <span className="block text-[15px] font-bold leading-tight">
-                      {item.label || t(item.labelKey)}
+                    <span className="block text-[14px] font-bold leading-tight text-foreground truncate">
+                      {t(`menu.${item.key}`, { defaultValue: item.label })}
                     </span>
-                    <span className="line-clamp-2 block text-xs text-muted-foreground">{t(item.subKey)}</span>
+                    {itemSub ? (
+                      <span className="line-clamp-1 block text-[11px] text-muted-foreground">
+                        {itemSub}
+                      </span>
+                    ) : null}
                   </button>
                 );
               })}
@@ -69,3 +110,5 @@ export function ServicesTab({ unreadCount = 0, onNotifications }: { unreadCount?
     </div>
   );
 }
+
+export default ServicesTab;

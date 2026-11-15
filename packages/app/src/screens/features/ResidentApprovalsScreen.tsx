@@ -89,7 +89,7 @@ export function ResidentApprovalsScreen() {
       title={t('residentApprovals.title', 'Resident Approvals')}
       subtitle={t('residentApprovals.subtitle', 'Review and verify pending resident KYC')}
     >
-      <div className="flex flex-col gap-3 px-4 py-4">
+      <div className="flex flex-col gap-3">
         {/* Status Filter Tabs */}
         <div className="flex rounded-full bg-muted p-1">
           {[

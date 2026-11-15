@@ -74,7 +74,7 @@ export function WatchlistScreen() {
         </button>
       ) : undefined}
     >
-      <div className="flex flex-col gap-3 px-4 py-4">
+      <div className="flex flex-col gap-3">
         {query.loading ? (
           <p className="py-10 text-center text-sm text-muted-foreground">{t('common.loading')}</p>
         ) : items.length === 0 ? (

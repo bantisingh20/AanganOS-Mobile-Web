@@ -241,7 +241,7 @@ export function RolesPage() {
   return (
     <div className="space-y-3 sm:space-y-4">
       {/* Top Header Card */}
-      <Card className="relative overflow-hidden rounded-2xl p-0">
+      <Card className="relative hidden overflow-hidden rounded-2xl p-0 md:block">
         <span className="absolute left-0 top-0 h-full w-1.5 bg-emerald-600" />
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-3.5 pl-4 pr-3.5">
           <div className="flex min-w-0 items-center gap-3">

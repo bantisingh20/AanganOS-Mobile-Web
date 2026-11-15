@@ -43,7 +43,7 @@ export function MaintenanceScreen() {
 
   return (
     <PageLayout title={t('maintenance.title')} subtitle={t('maintenance.subtitle')}>
-      <div className="flex flex-col gap-3 px-4 py-4">
+      <div className="flex flex-col gap-3">
         {items.length > 0 ? (
           <div className="flex items-center justify-between rounded-2xl bg-primary p-4 text-primary-foreground shadow-sm">
             <span className="text-sm font-semibold">{t('maintenance.totalDue')}</span>

@@ -52,6 +52,7 @@ export interface VisitorListFilters {
   status?: string;
   category?: string;
   hostUnitId?: string;
+  communityId?: string;
   organizationId?: string;
   fromDate?: string;
   toDate?: string;
@@ -262,6 +263,7 @@ export class GateClient {
       status: filters.status,
       category: filters.category,
       hostUnitId: filters.hostUnitId,
+      communityId: filters.communityId,
       organizationId: filters.organizationId,
       fromDate: filters.fromDate,
       toDate: filters.toDate,

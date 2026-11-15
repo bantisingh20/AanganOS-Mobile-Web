@@ -35,7 +35,7 @@ export function VehicleLookupScreen() {
 
   return (
     <PageLayout title={t('vehicleLookup.title')} subtitle={t('vehicleLookup.subtitle')}>
-      <div className="flex flex-col gap-3 px-4 py-4">
+      <div className="flex flex-col gap-3">
         <TextField
           label={t('vehicleLookup.plateLabel')}
           value={plate}

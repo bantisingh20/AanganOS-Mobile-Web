@@ -150,7 +150,7 @@ export function RegisterWalkinScreen() {
 
   return (
     <PageLayout title={t('registerWalkin.title')} subtitle={t('registerWalkin.subtitle')}>
-      <div className="flex flex-col gap-3 px-4 py-4">
+      <div className="flex flex-col gap-3">
         {/* Photo capture section */}
         <div className="flex flex-col items-center gap-2.5 py-1">
           <div className="relative flex aspect-square w-full max-w-[200px] items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-border bg-muted/40 shadow-inner">
