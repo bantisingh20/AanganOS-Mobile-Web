@@ -58,12 +58,17 @@ npx cap sync android
 npx cap run android
 ```
 
-## Mobile screens done
-- Welcome / splash
-- Login
-- Forgot password (request OTP -> verify -> reset -> done)
-- Register user (community -> mobile -> OTP -> selfie -> preview -> personal -> ID -> done)
-- Register society
-
 ## Next
 - Admin portal under `src/web` (login / forgot / register-society for PowerUser + Org/Community admin)
+
+
+## Backend
+
+# Sirf pending migrations run karke exit ho jayega (CI/CD ya manual migration ke liye best)
+dotnet run --project src/App.Api -- --migrate-only
+
+# Migrations check karke application start karega
+dotnet run --project src/App.Api -- --migrate
+
+# Forced full re-seed (agar kabhi intentionally fresh test data populate karna ho)
+dotnet run --project src/App.Api -- --force-seed

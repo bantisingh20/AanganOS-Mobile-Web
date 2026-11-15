@@ -18,7 +18,7 @@ import { cn } from '@shared/lib/utils';
 import { ADMIN_FALLBACK_MENU } from './nav';
 import { ChangePasswordDialog } from './ChangePasswordDialog';
 
-const HELP_URL = 'https://docs.sharcnix.com';
+const HELP_URL = 'https://aanganos.sharcnix.com/help';
 
 function leafItems(nodes: MenuNode[]): MenuNode[] {
   const out: MenuNode[] = [];
@@ -40,7 +40,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const refreshUnread = () => { void notifications.unreadCount().then(setUnread).catch(() => undefined); };
   useEffect(() => {
     refreshUnread();
-    const id = setInterval(refreshUnread, 60000);
+    const id = setInterval(refreshUnread, 120000);
     return () => clearInterval(id);
   }, []);
 

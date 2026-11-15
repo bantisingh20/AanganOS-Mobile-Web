@@ -5,6 +5,8 @@ import react from '@vitejs/plugin-react';
 const sharedSrc = path.resolve(__dirname, '../shared/src');
 
 export default defineConfig({
+  envDir: path.resolve(__dirname, '../..'),
+  base: '/',
   plugins: [react()],
   resolve: {
     alias: {

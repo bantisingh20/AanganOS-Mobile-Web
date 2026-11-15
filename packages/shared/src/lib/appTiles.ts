@@ -5,7 +5,7 @@ import { resolvePersona, type Persona } from '@shared/lib/roles';
 import { useMenu } from '@shared/lib/useMenu';
 import type { MenuNode } from '@shared/api/menu';
 
-export type TileGroup = 'myHome' | 'community' | 'security' | 'support';
+export type TileGroup = 'myHome' | 'community' | 'security' | 'support' | 'admin';
 
 /**
  * Presentation-only registry for app tiles: icon / label / tint / group / route keyed by a stable
@@ -26,6 +26,8 @@ export interface AppTile {
   group: TileGroup;
   personas: Persona[];
   showInHome: boolean;
+  label?: string;
+  groupTitle?: string;
 }
 
 const VIEW = 0;
@@ -43,7 +45,8 @@ export const APP_TILES: AppTile[] = [
   { code: 'parcels', route: '/parcels', icon: 'Package', labelKey: 'services.myParcels', subKey: 'services.myParcelsSub', tint: '#cf5500', permKey: 'parcels', permAction: VIEW, group: 'community', personas: ['resident'], showInHome: true },
   { code: 'maintenance', route: '/maintenance', icon: 'CreditCard', labelKey: 'services.maintenance', subKey: 'services.maintenanceSub', tint: '#1a7f37', permKey: 'maintenance', permAction: VIEW, group: 'community', personas: ['resident'], showInHome: true },
   { code: 'billing', route: '/billing', icon: 'Wallet', labelKey: 'services.billing', subKey: 'services.billingSub', tint: '#1a7f37', permKey: 'billing', permAction: VIEW, group: 'community', personas: ['admin'], showInHome: true },
-  { code: 'raise-ticket', route: '/raise-ticket', icon: 'MessageCircle', labelKey: 'services.helpDesk', subKey: 'services.helpDeskSub', tint: '#16a34a', permKey: 'raise-ticket', permAction: VIEW, group: 'community', personas: ['resident'], showInHome: true },
+  { code: 'helpdesk', route: '/my-tickets', icon: 'MessageCircle', labelKey: 'services.helpDesk', subKey: 'services.helpDeskSub', tint: '#16a34a', permKey: 'raise-ticket', permAction: VIEW, group: 'community', personas: ['resident'], showInHome: true },
+  { code: 'raise-ticket', route: '/raise-ticket', icon: 'MessageCircle', labelKey: 'services.helpDesk', subKey: 'services.helpDeskSub', tint: '#16a34a', permKey: 'raise-ticket', permAction: VIEW, group: 'community', personas: ['resident'], showInHome: false },
   { code: 'announcements', route: '/announcements', icon: 'Megaphone', labelKey: 'services.announcements', subKey: 'services.announcementsSub', tint: '#8250df', permKey: 'announcements', permAction: VIEW, group: 'community', personas: ['resident'], showInHome: true },
 
   { code: 'verify-pass', route: '/verify-pass', icon: 'ScanLine', labelKey: 'services.verifyPass', subKey: 'services.verifyPassSub', tint: '#05b872', permKey: 'verify-pass', permAction: CREATE, group: 'security', personas: ['security', 'admin'], showInHome: true },
@@ -54,6 +57,9 @@ export const APP_TILES: AppTile[] = [
   { code: 'sos', route: '/sos', icon: 'Siren', labelKey: 'services.sos', subKey: 'services.sosSub', tint: '#e11d48', permKey: 'sos', permAction: VIEW, group: 'security', personas: ['resident', 'security', 'admin'], showInHome: true },
 
   { code: 'notifications', route: '/notifications', icon: 'Bell', labelKey: 'services.notifications', subKey: 'services.notificationsSub', tint: '#d97706', permKey: 'notifications', permAction: VIEW, group: 'support', personas: ['resident', 'security', 'admin'], showInHome: true },
+
+  { code: 'manage-residents', route: '/manage-residents', icon: 'Users', labelKey: 'services.manageResidents', subKey: 'services.manageResidentsSub', tint: '#8250df', permKey: 'residents', permAction: VIEW, group: 'admin', personas: ['admin'], showInHome: false },
+  { code: 'resident-approvals', route: '/resident-approvals', icon: 'UserCheck', labelKey: 'services.residentApprovals', subKey: 'services.residentApprovalsSub', tint: '#05b872', permKey: 'residents', permAction: CREATE, group: 'admin', personas: ['admin'], showInHome: false },
 ];
 
 const TILE_BY_CODE = new Map(APP_TILES.map((t) => [t.code, t]));
@@ -102,7 +108,7 @@ const MENU_KEY_TO_CODE: Record<string, string> = {
   'app.parcels': 'parcels',
   'app.maintenance': 'maintenance',
   'app.billing': 'billing',
-  'app.helpdesk': 'raise-ticket',
+  'app.helpdesk': 'helpdesk',
   'app.announcements': 'announcements',
   'app.verifypass': 'verify-pass',
   'app.walkin': 'register-walkin',
@@ -111,6 +117,12 @@ const MENU_KEY_TO_CODE: Record<string, string> = {
   'app.watchlist': 'watchlist',
   'app.sos': 'sos',
   'app.notifications': 'notifications',
+  'app.residents.manage': 'manage-residents',
+  'app.residents.approvals': 'resident-approvals',
+  'admin.residents': 'manage-residents',
+  'app.admin.residents': 'manage-residents',
+  'app.admin.resident-approvals': 'resident-approvals',
+  'admin.resident-approvals': 'resident-approvals',
 };
 
 const ROUTE_TO_CODE: Record<string, string> = Object.fromEntries(
@@ -138,9 +150,16 @@ function codeForNode(node: MenuNode): string | null {
   return null;
 }
 
+export interface DynamicTileGroup {
+  id: string;
+  title: string;
+  items: AppTile[];
+}
+
 export interface DynamicTilesResult extends AppTilesResult {
   loading: boolean;
   source: 'backend' | 'fallback';
+  groups: DynamicTileGroup[];
 }
 
 /**
@@ -155,31 +174,81 @@ export function useDynamicTiles(): DynamicTilesResult {
   const { items: menuNodes, loading } = useMenu([]);
 
   return useMemo<DynamicTilesResult>(() => {
-    const leafNodes = flattenMenu(menuNodes).filter((n) => n.route);
     const tiles: AppTile[] = [];
     const used = new Set<string>();
+    const groups: DynamicTileGroup[] = [];
+
+    // Recursively extract all group nodes (e.g. My Home, Community, Security) that contain leaf routes
+    const extractGroups = (nodeList: MenuNode[]) => {
+      for (const node of nodeList) {
+        if (!node.children || node.children.length === 0) continue;
+
+        // Check if direct children have routes (leaf items like My Profile, My Household)
+        const leafChildren = node.children.filter((c) => Boolean(c.route));
+        if (leafChildren.length > 0) {
+          const itemsInGroup: AppTile[] = [];
+          for (const n of leafChildren) {
+            const code = codeForNode(n);
+            if (!code || used.has(code)) continue;
+            const baseTile = TILE_BY_CODE.get(code);
+            if (!baseTile) continue;
+
+            used.add(code);
+            const resolvedTile: AppTile = {
+              ...baseTile,
+              label: n.label?.trim() || undefined,
+              icon: n.icon || baseTile.icon,
+              groupTitle: node.label?.trim() || undefined,
+            };
+            itemsInGroup.push(resolvedTile);
+            tiles.push(resolvedTile);
+          }
+          if (itemsInGroup.length > 0) {
+            groups.push({
+              id: node.key,
+              title: node.label,
+              items: itemsInGroup,
+            });
+          }
+        }
+
+        // Also recurse into nested group containers (e.g. app.services containing groups)
+        const subGroups = node.children.filter((c) => c.children && c.children.length > 0 && !c.route);
+        if (subGroups.length > 0) {
+          extractGroups(subGroups);
+        }
+      }
+    };
+
+    extractGroups(menuNodes);
+
+    // Capture any remaining standalone leaf nodes
+    const leafNodes = flattenMenu(menuNodes).filter((n) => n.route);
     for (const n of leafNodes) {
       const code = codeForNode(n);
       if (!code || used.has(code)) continue;
-      const tile = TILE_BY_CODE.get(code);
-      if (!tile) continue;
+      const baseTile = TILE_BY_CODE.get(code);
+      if (!baseTile) continue;
       used.add(code);
-      tiles.push(tile);
+      const resolvedTile: AppTile = {
+        ...baseTile,
+        label: n.label?.trim() || undefined,
+        icon: n.icon || baseTile.icon,
+      };
+      tiles.push(resolvedTile);
     }
 
     if (tiles.length === 0) {
-      // While the menu is still loading, show NOTHING (empty) rather than the full fallback catalog —
-      // that fallback was the "all tabs flash for 1s then filter" bug. Only use the permission-gated
-      // fallback once loading has finished and the backend menu genuinely returned no tiles.
+      // While the menu is still loading, show NOTHING (empty) rather than the full fallback catalog
       if (loading) {
         const none = (_group: TileGroup): AppTile[] => [];
-        return { ...fallback, tiles: [], byGroup: none, loading, source: 'backend' };
+        return { ...fallback, tiles: [], groups: [], byGroup: none, loading, source: 'backend' };
       }
-      return { ...fallback, loading, source: 'fallback' };
+      return { ...fallback, groups: [], loading, source: 'fallback' };
     }
 
     const byGroup = (group: TileGroup): AppTile[] => tiles.filter((t) => t.group === group);
-    return { ...fallback, tiles, byGroup, loading, source: 'backend' };
+    return { ...fallback, tiles, groups, byGroup, loading, source: 'backend' };
   }, [fallback, menuNodes, loading]);
 }
 

@@ -30,6 +30,6 @@ export type Persona = 'resident' | 'security' | 'admin';
 
 export function resolvePersona(roles: readonly string[]): Persona {
   if (hasSecurityRole(roles) && !hasResidentRole(roles)) return 'security';
-  if (hasAdminRole(roles) && !hasResidentRole(roles)) return 'admin';
+  // Mobile has 2 core profiles: security and resident (normal resident + admin)
   return 'resident';
 }

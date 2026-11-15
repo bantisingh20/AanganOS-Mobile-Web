@@ -42,7 +42,7 @@ function formatDate(iso: string): string {
 export function MyTicketsScreen() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const perm = usePermission('my-tickets');
+  const perm = usePermission(['app.helpdesk', 'Ticket', 'helpdesk', 'my-tickets']);
   const [filter, setFilter] = useState<'all' | 'open'>('all');
   const [page, setPage] = useState(1);
 
@@ -70,8 +70,13 @@ export function MyTicketsScreen() {
       subtitle={t('myTickets.subtitle')}
       right={
         perm.canAdd ? (
-          <button type="button" onClick={() => navigate('/raise-ticket')} aria-label={t('myTickets.raise')} className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-white/15">
-            <Plus className="h-5 w-5" />
+          <button
+            type="button"
+            onClick={() => navigate('/raise-ticket')}
+            aria-label={t('myTickets.raise')}
+            className="flex h-10 w-10 items-center justify-center rounded-full text-foreground hover:bg-muted active:scale-95 transition-all"
+          >
+            <Plus className="h-6 w-6 text-primary" />
           </button>
         ) : undefined
       }

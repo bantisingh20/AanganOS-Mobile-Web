@@ -83,53 +83,59 @@ export function LoginPage() {
         </div>
       </aside>
 
-      <div className="relative flex h-full flex-1 flex-col justify-between overflow-hidden bg-slate-50/50 p-3 sm:p-5 lg:p-6 xl:p-8">
-        <div className="z-20 flex w-full shrink-0 items-center justify-between">
-          <div className="flex items-center gap-2 lg:hidden">
-            <img src={logoUrl} alt="AanganOS" className="h-7 w-7 rounded-lg object-cover" />
-            <span className="text-xs font-semibold text-slate-800 sm:text-sm">AanganOS</span>
+      <div className="relative flex h-full flex-1 flex-col overflow-y-auto bg-slate-50/50">
+        <div className="flex min-h-full flex-1 flex-col justify-between p-3 sm:p-5 lg:p-6 xl:p-8">
+          <div className="z-20 flex w-full shrink-0 items-center justify-between">
+            <div className="flex items-center gap-2 lg:hidden">
+              <img src={logoUrl} alt="AanganOS" className="h-7 w-7 rounded-lg object-cover" />
+              <span className="text-xs font-semibold text-slate-800 sm:text-sm">AanganOS</span>
+            </div>
+            <div className="ml-auto">
+              <LanguageSwitcher />
+            </div>
           </div>
-          <div className="ml-auto">
-            <LanguageSwitcher />
-          </div>
-        </div>
 
-        <div className={`z-10 mx-auto my-auto w-full shrink-0 ${mode === 'onboard' ? 'max-w-sm sm:max-w-md lg:max-w-2xl' : 'max-w-xs sm:max-w-sm lg:max-w-md'}`}>
-          <div className="mb-5 flex flex-col items-center gap-2.5">
-            <img src={logoUrl} alt="AanganOS" className="h-16 w-16 rounded-2xl object-cover shadow-md shadow-emerald-600/20 sm:h-20 sm:w-20" />
-            <div className="text-center leading-none">
-              <span className="text-xl font-bold tracking-tight sm:text-2xl">
-                <span className="text-slate-800">Aangan</span>
-                <span className="text-emerald-600">OS</span>
-              </span>
-              <div className="mt-1 text-[9px] font-semibold uppercase tracking-[0.2em] text-emerald-700 sm:text-[10px]">
-                Smart Living · Stronger Communities
+          <div className={`z-10 mx-auto my-auto w-full py-2 sm:py-3 ${mode === 'onboard' ? 'max-w-sm sm:max-w-md lg:max-w-2xl' : 'max-w-xs sm:max-w-sm lg:max-w-md'}`}>
+            <div className={`flex flex-col items-center ${mode === 'onboard' ? 'mb-2.5 gap-1.5' : 'mb-5 gap-2.5'}`}>
+              <img
+                src={logoUrl}
+                alt="AanganOS"
+                className={`rounded-2xl object-cover shadow-md shadow-emerald-600/20 ${mode === 'onboard' ? 'h-10 w-10 sm:h-12 sm:w-12' : 'h-16 w-16 sm:h-20 sm:w-20'}`}
+              />
+              <div className="text-center leading-none">
+                <span className={`font-bold tracking-tight ${mode === 'onboard' ? 'text-lg sm:text-xl' : 'text-xl sm:text-2xl'}`}>
+                  <span className="text-slate-800">Aangan</span>
+                  <span className="text-emerald-600">OS</span>
+                </span>
+                <div className="mt-1 text-[9px] font-semibold uppercase tracking-[0.2em] text-emerald-700 sm:text-[10px]">
+                  Smart Living · Stronger Communities
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-lg shadow-slate-200/50 sm:p-6 lg:p-7">
-            <div className="mb-3 text-left sm:mb-4">
-              <h1 className="m-0 text-sm font-semibold tracking-tight text-slate-800 sm:text-base lg:text-lg">
-                {mode === 'login' ? 'Sign in to Admin' : t('society.title')}
-              </h1>
-              <p className="mb-0 mt-0.5 text-[11px] text-slate-500 sm:text-xs">
-                {mode === 'login'
-                  ? 'Access your society administration dashboard'
-                  : t('society.subtitle')}
-              </p>
+            <div className={`rounded-2xl border border-slate-200 bg-white shadow-lg shadow-slate-200/50 ${mode === 'onboard' ? 'p-3.5 sm:p-5 lg:p-6' : 'p-4 sm:p-6 lg:p-7'}`}>
+              <div className={`text-left ${mode === 'onboard' ? 'mb-2.5' : 'mb-3 sm:mb-4'}`}>
+                <h1 className="m-0 text-sm font-semibold tracking-tight text-slate-800 sm:text-base lg:text-lg">
+                  {mode === 'login' ? 'Sign in to Admin' : t('society.title')}
+                </h1>
+                <p className="mb-0 mt-0.5 text-[11px] text-slate-500 sm:text-xs">
+                  {mode === 'login'
+                    ? 'Access your society administration dashboard'
+                    : t('society.subtitle')}
+                </p>
+              </div>
+
+              {mode === 'login' ? (
+                <SignInForm onSwitch={() => setMode('onboard')} />
+              ) : (
+                <OnboardPanel onBack={() => setMode('login')} />
+              )}
             </div>
-
-            {mode === 'login' ? (
-              <SignInForm onSwitch={() => setMode('onboard')} />
-            ) : (
-              <OnboardPanel onBack={() => setMode('login')} />
-            )}
           </div>
-        </div>
 
-        <div className="z-10 shrink-0 text-center text-[10px] text-slate-400">
-          Enterprise Community &amp; Estate Management System
+          <div className="z-10 shrink-0 pt-2 text-center text-[10px] text-slate-400">
+            Enterprise Community &amp; Estate Management System
+          </div>
         </div>
       </div>
 
@@ -246,20 +252,19 @@ function OnboardPanel({ onBack }: { onBack: () => void }) {
   const { t } = useTranslation();
   return (
     <>
-      <div className="flex max-h-[55vh] flex-col overflow-y-auto pr-0.5 sm:max-h-none">
-        <RegisterSociety
-          submitLabel="Create Society & Access Dashboard"
-          onSuccess={(message) => {
-            toast.success(message || 'Thanks for registering. Our team will connect with you to activate your account.', { duration: 6000 });
-            onBack();
-          }}
-        />
-      </div>
+      <RegisterSociety
+        compact
+        submitLabel="Create Society & Access Dashboard"
+        onSuccess={(message) => {
+          toast.success(message || 'Thanks for registering. Our team will connect with you to activate your account.', { duration: 6000 });
+          onBack();
+        }}
+      />
 
       <button
         type="button"
         onClick={onBack}
-        className="mt-2 flex items-center gap-1 border-none bg-transparent p-0 text-[11px] font-medium text-slate-500 transition-colors hover:text-slate-800 sm:text-xs"
+        className="mt-3 flex items-center gap-1 border-none bg-transparent p-0 text-[11px] font-medium text-slate-500 transition-colors hover:text-slate-800 sm:text-xs"
       >
         <ChevronLeft className="h-3.5 w-3.5" />
         <span>{t('forgot.backToLogin')}</span>

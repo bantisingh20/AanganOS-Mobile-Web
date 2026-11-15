@@ -37,6 +37,7 @@ export function HomeScreen() {
           unreadCount={unreadCount}
           onNotifications={goNotifications}
           onOpenProfile={() => setTab('profile')}
+          onOpenServices={() => setTab('services')}
         />
       ) : tab === 'services' ? (
         <ServicesTab unreadCount={unreadCount} onNotifications={goNotifications} />

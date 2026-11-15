@@ -2,6 +2,22 @@ import type { ApiClient } from './client';
 import type { PagedData } from './types';
 import { buildQuery, listQueryParams, type ListQuery } from './query';
 
+export interface PublicVisitPass {
+  visitorName: string;
+  photoDataUrl?: string | null;
+  qrToken: string;
+  validFromUtc: string;
+  validUntilUtc: string;
+  status: string;
+  isValidNow: boolean;
+  numberOfPersons?: number | null;
+  whomToMeet?: string | null;
+  vehicleNumber?: string | null;
+  hostUnitNumber?: string | null;
+  communityName?: string | null;
+  organizationName?: string | null;
+}
+
 export interface Visitor {
   id: string;
   communityId: string;
@@ -26,6 +42,10 @@ export interface Visitor {
   hostUnitNumber?: string | null;
   communityName?: string | null;
   organizationName?: string | null;
+  createdAtUtc?: string | null;
+  passType?: string | null;
+  publicToken?: string | null;
+  validUntilUtc?: string | null;
 }
 
 export interface VisitorListFilters {
@@ -82,6 +102,7 @@ export interface CreateRecurringVisitorBody {
   dailyStartMinutes?: number;
   dailyEndMinutes?: number;
   photoFileId?: string;
+  photoBase64?: string;
 }
 
 export interface CreateVisitPassBody {
@@ -99,6 +120,7 @@ export interface CreateVisitPassBody {
   validUntilUtc?: string;
   maxUses?: number;
   photoFileId?: string;
+  photoBase64?: string;
 }
 
 export interface VisitPass {
@@ -178,6 +200,7 @@ export interface RegisterWalkInBody {
   purpose?: string;
   whomToMeet?: string;
   expectedDurationMinutes?: number;
+  photoBase64?: string;
 }
 
 export interface RegisterWalkInResult {
@@ -315,5 +338,9 @@ export class GateClient {
 
   recordExit(body: RecordExitBody): Promise<EntryExitEvent> {
     return this.api.post<EntryExitEvent>('/api/v1/entry-events/exit', { body });
+  }
+
+  getPublicPass(token: string, options?: { signal?: AbortSignal }): Promise<PublicVisitPass> {
+    return this.api.get<PublicVisitPass>(`/api/v1/public/visit-passes/${encodeURIComponent(token)}`, options);
   }
 }

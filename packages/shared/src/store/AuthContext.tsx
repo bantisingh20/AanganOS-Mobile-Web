@@ -28,7 +28,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsAuthenticated(hasToken);
       setUser(hasToken ? tokenStore.getUser<NonNullable<LoginResponse['user']>>() : null);
       if (!hasToken && typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
-        window.location.replace('/login');
+        const loginTarget = window.location.pathname.startsWith('/admin') ? '/admin/login' : '/login';
+        window.location.replace(loginTarget);
       }
     });
     return unsubscribe;
@@ -49,7 +50,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setIsAuthenticated(false);
           setUser(null);
           if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
-            window.location.replace('/login');
+            const loginTarget = window.location.pathname.startsWith('/admin') ? '/admin/login' : '/login';
+            window.location.replace(loginTarget);
           }
         }
       }

@@ -27,9 +27,8 @@ export function RaiseTicketScreen() {
   const [priority, setPriority] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [attachments, setAttachments] = useState<string[]>([]);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
-  const [uploading, setUploading] = useState(false);
   const [done, setDone] = useState(false);
 
   const effectiveUnitId = unitId ?? soleUnitId;
@@ -44,23 +43,26 @@ export function RaiseTicketScreen() {
   const prioOptions: SelectOption[] = (prios.data ?? []).map((c) => ({ value: c.code, label: c.label }));
   const unitOptions: SelectOption[] = units.map((u) => ({ value: u.unitId, label: `${t('raiseTicket.unit')} ${u.unitNumber}` }));
 
-  const onPickPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onPickPhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; e.target.value = '';
-    if (!file || !communityId || attachments.length >= MAX_ATTACHMENTS) return;
-    setUploading(true);
-    try {
-      const up = await files.upload(file, { owningResourceType: 'Ticket', communityId });
-      setAttachments((p) => [...p, up.reference]);
-      setPreviews((p) => [...p, URL.createObjectURL(file)]);
-    } catch { void 0; } finally { setUploading(false); }
+    if (!file || pendingFiles.length >= MAX_ATTACHMENTS) return;
+    setPendingFiles((p) => [...p, file]);
+    setPreviews((p) => [...p, URL.createObjectURL(file)]);
   };
   const removeAt = (i: number) => {
-    setAttachments((p) => p.filter((_, idx) => idx !== i));
+    setPendingFiles((p) => p.filter((_, idx) => idx !== i));
     setPreviews((p) => p.filter((_, idx) => idx !== i));
   };
 
   const submit = useAsyncAction(async () => {
     if (!effectiveUnitId || !category) throw new Error(t('raiseTicket.selectCategory'));
+    const uploadedIds: string[] = [];
+    if (communityId) {
+      for (const f of pendingFiles) {
+        const up = await files.upload(f, { owningResourceType: 'Ticket', communityId });
+        uploadedIds.push(up.reference);
+      }
+    }
     await tickets.create({
       hostUnitId: effectiveUnitId,
       title: title.trim(),
@@ -68,7 +70,7 @@ export function RaiseTicketScreen() {
       category,
       ...(subcategory ? { subcategory } : {}),
       ...(priority ? { priority } : {}),
-      ...(attachments.length ? { attachmentFileIds: attachments } : {}),
+      ...(uploadedIds.length ? { attachmentFileIds: uploadedIds } : {}),
     });
     setDone(true);
   });
@@ -117,7 +119,7 @@ export function RaiseTicketScreen() {
               <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t('raiseTicket.descriptionPlaceholder')} rows={4} className="w-full resize-none rounded-xl border border-input bg-card px-3 py-2.5 text-base outline-none focus-visible:ring-1 focus-visible:ring-ring" />
             </Field>
 
-            <Field label={`${t('raiseTicket.attachPhotos')} (${attachments.length}/${MAX_ATTACHMENTS})`}>
+            <Field label={`${t('raiseTicket.attachPhotos')} (${pendingFiles.length}/${MAX_ATTACHMENTS})`}>
               <div className="flex flex-wrap gap-2">
                 {previews.map((src, i) => (
                   <div key={i} className="relative h-20 w-20 overflow-hidden rounded-xl border border-border">
@@ -125,17 +127,17 @@ export function RaiseTicketScreen() {
                     <button type="button" onClick={() => removeAt(i)} className="absolute right-0.5 top-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/50 text-white"><X className="h-3.5 w-3.5" /></button>
                   </div>
                 ))}
-                {attachments.length < MAX_ATTACHMENTS ? (
-                  <label className="flex h-20 w-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-border text-muted-foreground">
+                {pendingFiles.length < MAX_ATTACHMENTS ? (
+                  <label className="flex h-20 w-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-border text-muted-foreground active:scale-95 transition-transform">
                     <Camera className="h-6 w-6" />
-                    <span className="text-[10px] font-semibold">{uploading ? '…' : t('raiseTicket.addPhoto')}</span>
+                    <span className="text-[10px] font-semibold">{t('raiseTicket.addPhoto')}</span>
                     <input type="file" accept="image/*" className="hidden" onChange={onPickPhoto} />
                   </label>
                 ) : null}
               </div>
             </Field>
 
-            <PrimaryButton label={t('raiseTicket.submit')} loading={submit.running} disabled={!valid || uploading} onClick={() => void submit.run()} />
+            <PrimaryButton label={t('raiseTicket.submit')} loading={submit.running} disabled={!valid} onClick={() => void submit.run()} />
           </>
         )}
       </div>

@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Repeat, Camera, X, AlertCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { residents, gate, masterData, files } from '@shared/services';
+import { residents, gate, masterData } from '@shared/services';
+import { compressImageToDataUrl } from '@shared/lib/image';
 import { useAsync, useAsyncAction } from '@shared/lib/useAsync';
 import { usePermission } from '@shared/lib/usePermission';
 import { cn } from '@shared/lib/utils';
@@ -158,8 +159,8 @@ function AddRecurringDialog({
   const [startDate, setStartDate] = useState(todayPlus(0));
   const [endDate, setEndDate] = useState(todayPlus(30));
   const [photoFileId, setPhotoFileId] = useState<string | null>(null);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<FormErrorView | null>(null);
 
   const selectedUnit = units.find((u) => u.unitId === (unitId ?? soleUnitId)) ?? null;
@@ -169,11 +170,11 @@ function AddRecurringDialog({
   const catOptions: SelectOption[] = (cats.data ?? []).map((c) => ({ value: c.code, label: c.label }));
   const unitOptions: SelectOption[] = units.map((u) => ({ value: u.unitId, label: u.unitNumber }));
 
-  const onPickPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onPickPhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; e.target.value = '';
-    if (!file || !resolvedCommunity) return;
-    setUploading(true);
-    try { const up = await files.upload(file, { owningResourceType: 'RecurringVisitor', communityId: resolvedCommunity }); setPhotoFileId(up.reference); setPhotoPreview(URL.createObjectURL(file)); } catch { void 0; } finally { setUploading(false); }
+    if (!file) return;
+    setPhotoFile(file);
+    setPhotoPreview(URL.createObjectURL(file));
   };
 
   const save = useAsyncAction(async () => {
@@ -183,11 +184,22 @@ function AddRecurringDialog({
     if (!category) throw new Error(t('recurring.warnCategory'));
     if (dayMask <= 0) throw new Error(t('recurring.warnDays'));
     if (!startDate || !endDate) throw new Error(t('recurring.warnDates'));
+
+    let photoBase64: string | undefined;
+    if (photoFile) {
+      try {
+        photoBase64 = await compressImageToDataUrl(photoFile, 960, 960, 0.75);
+      } catch {
+        // Fallback
+      }
+    }
+
     await gate.createRecurringVisitor({
       hostUnitId: effUnit, hostResidentId: residentId, name: name.trim(), category,
       daysOfWeek: dayMask, startDate: dayStartIso(startDate), endDate: dayStartIso(endDate),
       ...(phone.trim() ? { phone: phone.trim() } : {}),
       ...(photoFileId ? { photoFileId } : {}),
+      ...(photoBase64 ? { photoBase64 } : {}),
     });
     onSaved();
   });
@@ -204,12 +216,12 @@ function AddRecurringDialog({
             {photoPreview ? (
               <>
                 <img src={photoPreview} alt="" className="h-full w-full object-cover" />
-                <button type="button" onClick={() => { setPhotoFileId(null); setPhotoPreview(null); }} className="absolute right-0 top-0 flex h-6 w-6 items-center justify-center rounded-full bg-black/50 text-white"><X className="h-3.5 w-3.5" /></button>
+                <button type="button" onClick={() => { setPhotoFile(null); setPhotoFileId(null); setPhotoPreview(null); }} className="absolute right-0 top-0 flex h-6 w-6 items-center justify-center rounded-full bg-black/50 text-white"><X className="h-3.5 w-3.5" /></button>
               </>
             ) : (<Camera className="h-7 w-7 text-muted-foreground" />)}
           </div>
-          <label className="cursor-pointer text-xs font-bold text-primary">
-            {uploading ? '…' : t('recurring.photo')}
+          <label className="cursor-pointer text-xs font-bold text-primary active:scale-95 transition-transform">
+            {t('recurring.photo')}
             <input type="file" accept="image/*" className="hidden" onChange={onPickPhoto} />
           </label>
         </div>
@@ -243,7 +255,7 @@ function AddRecurringDialog({
       </div>
       <DialogFooter>
         <Button variant="outline" onClick={onClose} disabled={save.running} className="h-10 rounded-xl">{t('common.cancel')}</Button>
-        <PrimaryButton className="h-10 w-auto px-5" arrow={false} label={t('recurring.add')} loading={save.running} disabled={uploading} onClick={() => { setError(null); void save.run(); }} />
+        <PrimaryButton className="h-10 w-auto px-5" arrow={false} label={t('recurring.add')} loading={save.running} onClick={() => { setError(null); void save.run(); }} />
       </DialogFooter>
     </Dialog>
   );

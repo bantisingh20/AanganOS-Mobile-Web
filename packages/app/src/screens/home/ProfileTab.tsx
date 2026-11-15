@@ -45,11 +45,13 @@ export function ProfileTab({
   };
 
   const accountRows: NavRow[] = [
-    ...(persona !== 'admin' ? [{ path: '/my-profile', icon: UserCircle, labelKey: 'profile.myProfile', subKey: 'profile.myProfileSub', tint: '#05b872' }] : []),
+    // ...(persona !== 'admin' ? [{ path: '/my-profile', icon: UserCircle, labelKey: 'profile.myProfile', subKey: 'profile.myProfileSub', tint: '#05b872' }] : []),
+    { path: '/my-profile', icon: UserCircle, labelKey: 'profile.myProfile', subKey: 'profile.myProfileSub', tint: '#05b872' },
     { path: '/notifications', icon: Bell, labelKey: 'profile.notifications', subKey: 'profile.notificationsSub', tint: '#d97706' },
   ];
   const supportRows: NavRow[] = [
-    ...(persona === 'resident' ? [{ path: '/raise-ticket', icon: HelpCircle, labelKey: 'profile.support', subKey: 'profile.supportSub', tint: '#0ea5e9' }] : []),
+    // ...(persona === 'resident' ? [] : []),
+    { path: '/raise-ticket', icon: HelpCircle, labelKey: 'profile.support', subKey: 'profile.supportSub', tint: '#0ea5e9' },
     { icon: FileText, labelKey: 'profile.termsPrivacy', subKey: 'profile.termsPrivacySub', tint: '#64748b' },
   ];
 
@@ -83,7 +85,7 @@ export function ProfileTab({
           {accountRows.map((row, i) => (
             <Row key={row.labelKey} row={row} first={i === 0} onNavigate={() => row.path && navigate(row.path)} />
           ))}
-          {persona === 'resident' ? <PresenceRow /> : null}
+          {persona === 'resident' || persona === 'admin' ? <PresenceRow /> : null}
           <ThemeRow />
           <div className="flex items-center gap-3 border-t border-border px-4 py-3">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: '#0ea5e91f' }}>

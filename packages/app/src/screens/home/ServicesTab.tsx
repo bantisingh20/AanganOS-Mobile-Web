@@ -1,22 +1,45 @@
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useDynamicTiles, type TileGroup } from '@shared/lib/appTiles';
 import { TopBar } from '@app/components/TopBar';
 import { tileIcon } from '@app/lib/tileIcons';
 
-const GROUP_ORDER: { group: TileGroup; titleKey: string }[] = [
+const FALLBACK_GROUP_ORDER: { group: TileGroup; titleKey: string }[] = [
   { group: 'myHome', titleKey: 'services.groupMyHome' },
   { group: 'community', titleKey: 'services.groupCommunity' },
   { group: 'security', titleKey: 'services.groupSecurity' },
   { group: 'support', titleKey: 'services.groupSupport' },
+  { group: 'admin', titleKey: 'services.groupAdmin' },
 ];
 
 export function ServicesTab({ unreadCount = 0, onNotifications }: { unreadCount?: number; onNotifications?: () => void }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { byGroup, loading } = useDynamicTiles();
+  const { groups, byGroup, loading } = useDynamicTiles();
 
-  const visibleGroups = GROUP_ORDER.map((g) => ({ ...g, items: byGroup(g.group) })).filter((g) => g.items.length > 0);
+  // Prefer dynamic groups from database; fallback to static groups only if backend returned none
+  const visibleGroups = useMemo(() => {
+    let result = groups && groups.length > 0
+      ? [...groups]
+      : FALLBACK_GROUP_ORDER.map((g) => ({
+          id: g.group,
+          title: t(g.titleKey),
+          items: byGroup(g.group),
+        })).filter((g) => g.items.length > 0);
+
+    // If user has admin tiles available and admin group isn't in backend groups yet, append Admin group
+    const adminItems = byGroup('admin');
+    if (adminItems.length > 0 && !result.some((g) => g.id === 'admin' || g.id === 'app.admin')) {
+      result.push({
+        id: 'admin',
+        title: t('services.groupAdmin', 'Admin & Society Management'),
+        items: adminItems,
+      });
+    }
+
+    return result;
+  }, [groups, byGroup, t]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-background">
@@ -26,8 +49,10 @@ export function ServicesTab({ unreadCount = 0, onNotifications }: { unreadCount?
           <p className="py-10 text-center text-sm text-muted-foreground">{t('common.loading')}</p>
         ) : null}
         {visibleGroups.map((group) => (
-          <section key={group.group}>
-            <h2 className="mb-2 ml-1 text-xs font-extrabold uppercase tracking-wider text-muted-foreground">{t(group.titleKey)}</h2>
+          <section key={group.id}>
+            <h2 className="mb-2 ml-1 text-xs font-extrabold uppercase tracking-wider text-muted-foreground">
+              {group.title}
+            </h2>
             <div className="grid grid-cols-2 gap-3">
               {group.items.map((item) => {
                 const Icon = tileIcon(item.icon);
@@ -41,7 +66,9 @@ export function ServicesTab({ unreadCount = 0, onNotifications }: { unreadCount?
                     <span className="flex h-11 w-11 items-center justify-center rounded-xl" style={{ backgroundColor: `${item.tint}1f` }}>
                       <Icon className="h-[22px] w-[22px]" style={{ color: item.tint }} />
                     </span>
-                    <span className="block text-[15px] font-bold leading-tight">{t(item.labelKey)}</span>
+                    <span className="block text-[15px] font-bold leading-tight">
+                      {item.label || t(item.labelKey)}
+                    </span>
                     <span className="line-clamp-2 block text-xs text-muted-foreground">{t(item.subKey)}</span>
                   </button>
                 );

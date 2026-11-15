@@ -1,6 +1,7 @@
 import type { ApiClient } from './client';
 import type { PagedData } from './types';
 import { buildQuery, listQueryParams, type ListQuery } from './query';
+import { cacheWrap, cacheInvalidate } from '../lib/cache';
 
 export interface Organization {
   id: string;
@@ -13,27 +14,36 @@ export interface Organization {
 export class OrganizationsClient {
   constructor(private readonly api: ApiClient) {}
 
-  list(query: ListQuery = {}, options?: { signal?: AbortSignal }): Promise<PagedData<Organization>> {
-    return this.api.get<PagedData<Organization>>(`/api/v1/organizations${buildQuery(listQueryParams(query))}`, options);
+  list(query: ListQuery = {}, options?: { signal?: AbortSignal; forceRefresh?: boolean }): Promise<PagedData<Organization>> {
+    const qs = buildQuery(listQueryParams(query));
+    return cacheWrap(`orgs_${qs}`, () => this.api.get<PagedData<Organization>>(`/api/v1/organizations${qs}`, options), 15 * 60 * 1000, options?.forceRefresh);
   }
 
-  get(id: string, options?: { signal?: AbortSignal }): Promise<Organization> {
-    return this.api.get<Organization>(`/api/v1/organizations/${id}`, options);
+  get(id: string, options?: { signal?: AbortSignal; forceRefresh?: boolean }): Promise<Organization> {
+    return cacheWrap(`org_${id}`, () => this.api.get<Organization>(`/api/v1/organizations/${id}`, options), 15 * 60 * 1000, options?.forceRefresh);
   }
 
-  create(name: string): Promise<Organization> {
-    return this.api.post<Organization>('/api/v1/organizations', { body: { name } });
+  async create(name: string): Promise<Organization> {
+    const res = await this.api.post<Organization>('/api/v1/organizations', { body: { name } });
+    cacheInvalidate('org');
+    return res;
   }
 
-  update(id: string, name: string): Promise<Organization> {
-    return this.api.put<Organization>(`/api/v1/organizations/${id}`, { body: { name } });
+  async update(id: string, name: string): Promise<Organization> {
+    const res = await this.api.put<Organization>(`/api/v1/organizations/${id}`, { body: { name } });
+    cacheInvalidate('org');
+    return res;
   }
 
-  remove(id: string): Promise<{ id: string }> {
-    return this.api.delete<{ id: string }>(`/api/v1/organizations/${id}`);
+  async remove(id: string): Promise<{ id: string }> {
+    const res = await this.api.delete<{ id: string }>(`/api/v1/organizations/${id}`);
+    cacheInvalidate('org');
+    return res;
   }
 
-  activate(id: string): Promise<Organization> {
-    return this.api.post<Organization>(`/api/v1/organizations/${id}/activate`, {});
+  async activate(id: string): Promise<Organization> {
+    const res = await this.api.post<Organization>(`/api/v1/organizations/${id}/activate`, {});
+    cacheInvalidate('org');
+    return res;
   }
 }

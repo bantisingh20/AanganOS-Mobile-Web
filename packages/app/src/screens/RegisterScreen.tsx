@@ -19,6 +19,7 @@ import { useAuth } from '@shared/store/AuthContext';
 import { toFormError, type FormErrorView } from '@shared/api/errors';
 import type { PublicCommunity, PublicUnit, PublicWing } from '@shared/api/onboarding';
 import { countryFromValue, validatePhoneNumber } from '@shared/lib/countries';
+import { compressImageToDataUrl } from '@shared/lib/image';
 
 type Step = 'community' | 'mobile' | 'otp' | 'selfie' | 'preview' | 'personal' | 'id' | 'done';
 const STEP_ORDER: Step[] = ['community', 'mobile', 'otp', 'selfie', 'preview', 'personal', 'id'];
@@ -29,15 +30,6 @@ function formatCountdown(seconds: number): string {
   const m = Math.floor(seconds / 60).toString().padStart(2, '0');
   const s = (seconds % 60).toString().padStart(2, '0');
   return `${m}:${s}`;
-}
-
-function fileToDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
 }
 
 export function RegisterScreen() {
@@ -190,8 +182,10 @@ export function RegisterScreen() {
 
   const onPickFile = async (e: React.ChangeEvent<HTMLInputElement>, set: (v: string) => void) => {
     const file = e.target.files?.[0];
-    if (file) set(await fileToDataUrl(file));
     e.target.value = '';
+    if (!file) return;
+    const compressed = await compressImageToDataUrl(file);
+    set(compressed);
   };
 
   const submitRegister = async () => {

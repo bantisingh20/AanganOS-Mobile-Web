@@ -1,6 +1,7 @@
 import type { ApiClient } from './client';
 import type { PagedData } from './types';
 import { buildQuery, listQueryParams, type ListQuery } from './query';
+import { cacheWrap, cacheInvalidate } from '../lib/cache';
 
 export interface Community {
   id: string;
@@ -18,28 +19,34 @@ export interface CommunityListFilters {
 export class CommunitiesClient {
   constructor(private readonly api: ApiClient) {}
 
-  list(query: ListQuery = {}, filters: CommunityListFilters = {}, options?: { signal?: AbortSignal }): Promise<PagedData<Community>> {
+  list(query: ListQuery = {}, filters: CommunityListFilters = {}, options?: { signal?: AbortSignal; forceRefresh?: boolean }): Promise<PagedData<Community>> {
     const qs = buildQuery({
       ...listQueryParams(query),
       communityType: filters.communityType,
       organizationId: filters.organizationId,
     });
-    return this.api.get<PagedData<Community>>(`/api/v1/communities${qs}`, options);
+    return cacheWrap(`communities_${qs}`, () => this.api.get<PagedData<Community>>(`/api/v1/communities${qs}`, options), 15 * 60 * 1000, options?.forceRefresh);
   }
 
-  get(id: string, options?: { signal?: AbortSignal }): Promise<Community> {
-    return this.api.get<Community>(`/api/v1/communities/${id}`, options);
+  get(id: string, options?: { signal?: AbortSignal; forceRefresh?: boolean }): Promise<Community> {
+    return cacheWrap(`community_${id}`, () => this.api.get<Community>(`/api/v1/communities/${id}`, options), 15 * 60 * 1000, options?.forceRefresh);
   }
 
-  create(body: { organizationId: string; name: string; communityType: string }): Promise<Community> {
-    return this.api.post<Community>('/api/v1/communities', { body });
+  async create(body: { organizationId: string; name: string; communityType: string }): Promise<Community> {
+    const res = await this.api.post<Community>('/api/v1/communities', { body });
+    cacheInvalidate('communit');
+    return res;
   }
 
-  update(id: string, body: { name?: string; communityType?: string }): Promise<Community> {
-    return this.api.put<Community>(`/api/v1/communities/${id}`, { body });
+  async update(id: string, body: { name?: string; communityType?: string }): Promise<Community> {
+    const res = await this.api.put<Community>(`/api/v1/communities/${id}`, { body });
+    cacheInvalidate('communit');
+    return res;
   }
 
-  remove(id: string): Promise<{ id: string }> {
-    return this.api.delete<{ id: string }>(`/api/v1/communities/${id}`);
+  async remove(id: string): Promise<{ id: string }> {
+    const res = await this.api.delete<{ id: string }>(`/api/v1/communities/${id}`);
+    cacheInvalidate('communit');
+    return res;
   }
 }

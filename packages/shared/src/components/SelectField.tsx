@@ -23,6 +23,7 @@ export function SelectField({
   error,
   required,
   className,
+  size = 'lg',
 }: {
   label?: string;
   value: string | null;
@@ -33,11 +34,13 @@ export function SelectField({
   error?: string;
   required?: boolean;
   className?: string;
+  size?: 'sm' | 'lg';
 }) {
+  const h = size === 'sm' ? 'h-10 text-sm' : 'h-12 text-sm';
   return (
     <Field {...(label !== undefined ? { label } : {})} {...(error ? { error } : {})} {...(required ? { required: true } : {})}>
       <Select value={value ?? undefined} onValueChange={onChange} disabled={disabled}>
-        <SelectTrigger className={cn('h-12 text-sm', error ? 'border-destructive' : '', className)}>
+        <SelectTrigger className={cn(h, error ? 'border-destructive' : '', className)}>
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent>

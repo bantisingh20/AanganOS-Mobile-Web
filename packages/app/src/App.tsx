@@ -6,6 +6,7 @@ import { LoginScreen } from '@app/screens/LoginScreen';
 import { ForgotPasswordScreen } from '@app/screens/ForgotPasswordScreen';
 import { RegisterScreen } from '@app/screens/RegisterScreen';
 import { RegisterSocietyScreen } from '@app/screens/RegisterSocietyScreen';
+import { PublicPassScreen } from '@app/screens/PublicPassScreen';
 import { HomeScreen } from '@app/screens/HomeScreen';
 import { useBackButton } from '@app/lib/useBackButton';
 import { AnnouncementsScreen } from '@app/screens/features/AnnouncementsScreen';
@@ -28,6 +29,8 @@ import { RegisterWalkinScreen } from '@app/screens/features/RegisterWalkinScreen
 import { EntryExitScreen } from '@app/screens/features/EntryExitScreen';
 import { WatchlistScreen } from '@app/screens/features/WatchlistScreen';
 import { SosScreen } from '@app/screens/features/SosScreen';
+import { ManagePeopleScreen } from '@app/screens/features/ManagePeopleScreen';
+import { ResidentApprovalsScreen } from '@app/screens/features/ResidentApprovalsScreen';
 import type { ReactElement } from 'react';
 
 function RequireAuth({ children }: { children: ReactElement }) {
@@ -65,11 +68,13 @@ export function App() {
           <Route path="/forgot" element={<ForgotPasswordScreen />} />
           <Route path="/register" element={<RegisterScreen />} />
           <Route path="/register-society" element={<RegisterSocietyScreen />} />
+          <Route path="/pass/:token" element={<PublicPassScreen />} />
           <Route path="/home" element={<RequireAuth><HomeScreen /></RequireAuth>} />
           <Route path="/announcements" element={<RequireAuth><AnnouncementsScreen /></RequireAuth>} />
           <Route path="/notifications" element={<RequireAuth><NotificationsScreen /></RequireAuth>} />
           <Route path="/my-profile" element={<RequireAuth><MyProfileScreen /></RequireAuth>} />
           <Route path="/my-tickets" element={<RequireAuth><MyTicketsScreen /></RequireAuth>} />
+          <Route path="/helpdesk" element={<RequireAuth><MyTicketsScreen /></RequireAuth>} />
           <Route path="/my-tickets/:id" element={<RequireAuth><TicketDetailScreen /></RequireAuth>} />
           <Route path="/raise-ticket" element={<RequireAuth><RaiseTicketScreen /></RequireAuth>} />
           <Route path="/my-household" element={<RequireAuth><MyHouseholdScreen /></RequireAuth>} />
@@ -86,6 +91,8 @@ export function App() {
           <Route path="/verify-pass" element={<RequireAuth><VerifyPassScreen /></RequireAuth>} />
           <Route path="/register-walkin" element={<RequireAuth><RegisterWalkinScreen /></RequireAuth>} />
           <Route path="/entry-exit" element={<RequireAuth><EntryExitScreen /></RequireAuth>} />
+          <Route path="/manage-residents" element={<RequireAuth><ManagePeopleScreen /></RequireAuth>} />
+          <Route path="/resident-approvals" element={<RequireAuth><ResidentApprovalsScreen /></RequireAuth>} />
           <Route path="/watchlist" element={<RequireAuth><WatchlistScreen /></RequireAuth>} />
           <Route path="/sos" element={<RequireAuth><SosScreen /></RequireAuth>} />
           <Route path="*" element={<NotFound />} />

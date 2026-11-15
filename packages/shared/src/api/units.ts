@@ -1,6 +1,7 @@
 import type { ApiClient } from './client';
 import type { PagedData } from './types';
 import { buildQuery, listQueryParams, type ListQuery } from './query';
+import { cacheWrap, cacheInvalidate } from '../lib/cache';
 
 export interface Unit {
   id: string;
@@ -104,7 +105,7 @@ export class UnitsClient {
     return this.api.post<UnitPet>('/api/v1/pets', { body });
   }
 
-  list(query: ListQuery = {}, filters: UnitListFilters = {}, options?: { signal?: AbortSignal }): Promise<PagedData<Unit>> {
+  list(query: ListQuery = {}, filters: UnitListFilters = {}, options?: { signal?: AbortSignal; forceRefresh?: boolean }): Promise<PagedData<Unit>> {
     const qs = buildQuery({
       ...listQueryParams(query),
       unitStatus: filters.unitStatus,
@@ -114,18 +115,24 @@ export class UnitsClient {
       communityId: filters.communityId,
       organizationId: filters.organizationId,
     });
-    return this.api.get<PagedData<Unit>>(`/api/v1/units${qs}`, options);
+    return cacheWrap(`units_${qs}`, () => this.api.get<PagedData<Unit>>(`/api/v1/units${qs}`, options), 15 * 60 * 1000, options?.forceRefresh);
   }
 
-  create(body: CreateUnitBody): Promise<Unit> {
-    return this.api.post<Unit>('/api/v1/units', { body });
+  async create(body: CreateUnitBody): Promise<Unit> {
+    const res = await this.api.post<Unit>('/api/v1/units', { body });
+    cacheInvalidate('units');
+    return res;
   }
 
-  update(id: string, body: UpdateUnitBody): Promise<Unit> {
-    return this.api.put<Unit>(`/api/v1/units/${id}`, { body });
+  async update(id: string, body: UpdateUnitBody): Promise<Unit> {
+    const res = await this.api.put<Unit>(`/api/v1/units/${id}`, { body });
+    cacheInvalidate('units');
+    return res;
   }
 
-  remove(id: string): Promise<{ id: string }> {
-    return this.api.delete<{ id: string }>(`/api/v1/units/${id}`);
+  async remove(id: string): Promise<{ id: string }> {
+    const res = await this.api.delete<{ id: string }>(`/api/v1/units/${id}`);
+    cacheInvalidate('units');
+    return res;
   }
 }

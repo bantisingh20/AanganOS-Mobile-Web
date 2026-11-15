@@ -41,7 +41,7 @@ export function RegisterSocietyScreen() {
       <h1 className="text-center text-xl font-extrabold">{t('society.title')}</h1>
       <p className="text-center text-sm leading-relaxed text-muted-foreground">{t('society.subtitle')}</p>
 
-      <RegisterSociety onSuccess={(msg) => setSuccessMsg(msg || t('society.successBody'))} />
+      <RegisterSociety compact onSuccess={(msg) => setSuccessMsg(msg || t('society.successBody'))} />
 
       <div className="mt-1 flex items-center justify-center gap-1.5 px-3 text-xs text-muted-foreground">
         <ShieldCheck className="h-4 w-4 shrink-0 text-primary" />

@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import QRCode from 'qrcode';
-import { Camera, Share2, User, X, Image as ImageIcon } from 'lucide-react';
+import { Camera, Share2, User, X, Image as ImageIcon, MessageSquare, Copy, Download, Check } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { gate, masterData, files, onboarding } from '@shared/services';
+import { gate, masterData, onboarding } from '@shared/services';
+import { compressImageToDataUrl } from '@shared/lib/image';
 import { useAsync, useAsyncAction } from '@shared/lib/useAsync';
 import type { CreateVisitPassResult } from '@shared/api/gate';
 import { TextField } from '@shared/components/TextField';
@@ -62,9 +63,9 @@ export function InviteVisitorForm({
   const [vehicle, setVehicle] = useState('');
   const [visitDate, setVisitDate] = useState(todayPlus(0));
   const [validUntil, setValidUntil] = useState(todayPlus(1));
-  const [photoFileId, setPhotoFileId] = useState<string | null>(null);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [result, setResult] = useState<CreateVisitPassResult | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const cameraInput = useRef<HTMLInputElement | null>(null);
@@ -88,26 +89,30 @@ export function InviteVisitorForm({
     }
   }, [result]);
 
-  const onPickPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onPickPhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = '';
-    if (!file || !resolvedCommunityId) return;
-    setUploading(true);
-    try {
-      const uploaded = await files.upload(file, { owningResourceType: 'VisitPass', communityId: resolvedCommunityId });
-      setPhotoFileId(uploaded.reference);
-      setPhotoPreview(URL.createObjectURL(file));
-    } catch {
-      void 0;
-    } finally {
-      setUploading(false);
-    }
+    if (!file) return;
+    setUploadError(null);
+    setPhotoFile(file);
+    setPhotoPreview(URL.createObjectURL(file));
   };
 
   const create = useAsyncAction(async () => {
     if (!selectedUnit) throw new Error(t('myVisitors.warnSelectUnit'));
     if (!name.trim()) throw new Error(t('myVisitors.warnName'));
     if (!validUntil) throw new Error(t('myVisitors.warnValidUntil'));
+
+    let photoBase64: string | undefined;
+    if (photoFile) {
+      try {
+        photoBase64 = await compressImageToDataUrl(photoFile, 960, 960, 0.75);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Photo processing failed';
+        setUploadError(msg);
+      }
+    }
+
     const n = Number(persons.trim() || '1');
     const r = await gate.createVisitPass({
       hostUnitId: selectedUnit.unitId,
@@ -120,7 +125,7 @@ export function InviteVisitorForm({
       ...(whom.trim() ? { whomToMeet: whom.trim() } : {}),
       ...(vehicleType ? { vehicleType } : {}),
       ...(vehicle.trim() ? { vehicleNumber: vehicle.trim() } : {}),
-      ...(photoFileId ? { photoFileId } : {}),
+      ...(photoBase64 ? { photoBase64 } : {}),
       ...(residentId ? { hostResidentId: residentId } : {}),
     });
     setResult(r);
@@ -131,23 +136,101 @@ export function InviteVisitorForm({
   const reset = () => {
     setName(''); setPhone(''); setEmail(''); setWhom(''); setPersons('1');
     setVehicleType(null); setVehicle(''); setVisitDate(todayPlus(0)); setValidUntil(todayPlus(1));
-    setPhotoFileId(null); setPhotoPreview(null); setResult(null); setQrDataUrl(null);
+    setPhotoFile(null); setPhotoPreview(null); setUploadError(null); setResult(null); setQrDataUrl(null);
+    setCopied(false);
     create.reset();
+  };
+
+  const [copied, setCopied] = useState(false);
+
+  const passUrl = result
+    ? `${window.location.origin}/pass/${result.pass.publicToken || result.pass.qrToken}`
+    : '';
+
+  const getShareText = () => {
+    if (!result) return '';
+    const unitLabel = selectedUnit?.unitNumber ? `Flat / Unit: ${selectedUnit.unitNumber}` : '';
+    return (
+      `🎟️ Visitor Entry Pass for ${result.pass.visitorName}\n` +
+      (unitLabel ? `${unitLabel}\n` : '') +
+      `🔐 Gate Code / OTP: ${result.otp}\n` +
+      `📅 Valid until: ${formatDateTime(result.pass.validUntilUtc)}\n\n` +
+      `📲 Tap link to view pass & QR code:\n${passUrl}`
+    );
   };
 
   const share = async () => {
     if (!result) return;
-    const text =
-      `Visit pass for ${result.pass.visitorName}\n` +
-      `One-time code: ${result.otp}\n` +
-      `Valid until: ${formatDateTime(result.pass.validUntilUtc)}\n` +
-      `Pass token: ${result.pass.qrToken}`;
-    const nav = navigator as Navigator & { share?: (d: { title?: string; text?: string }) => Promise<void> };
-    if (nav.share) {
-      await nav.share({ title: 'AanganOS Visit Pass', text }).catch(() => undefined);
-    } else {
-      await navigator.clipboard?.writeText(text).catch(() => undefined);
+    const shareText = getShareText();
+    const nav = navigator as Navigator & {
+      share?: (d: { title?: string; text?: string; url?: string; files?: File[] }) => Promise<void>;
+      canShare?: (d: { files?: File[] }) => boolean;
+    };
+
+    let sharedWithFile = false;
+    if (nav.share && qrDataUrl) {
+      try {
+        const res = await fetch(qrDataUrl);
+        const blob = await res.blob();
+        const file = new File(
+          [blob],
+          `pass-${result.pass.visitorName.toLowerCase().replace(/\s+/g, '-')}.png`,
+          { type: 'image/png' },
+        );
+        if (nav.canShare && nav.canShare({ files: [file] })) {
+          await nav.share({
+            title: `Gate Pass - ${result.pass.visitorName}`,
+            text: shareText,
+            url: passUrl,
+            files: [file],
+          });
+          sharedWithFile = true;
+        }
+      } catch {
+        sharedWithFile = false;
+      }
     }
+
+    if (!sharedWithFile) {
+      if (nav.share) {
+        await nav.share({
+          title: `Gate Pass - ${result.pass.visitorName}`,
+          text: shareText,
+          url: passUrl,
+        }).catch(() => undefined);
+      } else {
+        await navigator.clipboard?.writeText(shareText).catch(() => undefined);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2500);
+      }
+    }
+  };
+
+  const shareWhatsApp = () => {
+    if (!result) return;
+    const shareText = getShareText();
+    const rawPhone = (result.pass.phone ?? '').replace(/[^0-9]/g, '');
+    const waUrl = rawPhone
+      ? `https://api.whatsapp.com/send?phone=${rawPhone}&text=${encodeURIComponent(shareText)}`
+      : `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;
+    window.open(waUrl, '_blank');
+  };
+
+  const copyLink = async () => {
+    if (!passUrl) return;
+    await navigator.clipboard?.writeText(passUrl).catch(() => undefined);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+  };
+
+  const downloadQr = () => {
+    if (!qrDataUrl || !result) return;
+    const a = document.createElement('a');
+    a.href = qrDataUrl;
+    a.download = `pass-${result.pass.visitorName.toLowerCase().replace(/\s+/g, '-')}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   };
 
   if (result) {
@@ -155,11 +238,25 @@ export function InviteVisitorForm({
     return (
       <div className="flex flex-col gap-4">
         <FormBanner message={t('myVisitors.passReadySubtitle')} tone="success" />
-        <section className="flex flex-col items-center gap-3 rounded-2xl bg-card p-5 shadow-sm">
+        <section className="flex flex-col items-center gap-3 rounded-2xl bg-card p-5 shadow-sm border border-border/50">
           <span className="text-sm font-bold text-muted-foreground">{t('myVisitors.scanAtGate')}</span>
-          {qrDataUrl ? <img src={qrDataUrl} alt="QR" className="h-56 w-56 rounded-xl" /> : <div className="h-56 w-56 animate-pulse rounded-xl bg-muted" />}
+          {qrDataUrl ? (
+            <img src={qrDataUrl} alt="QR" className="h-56 w-56 rounded-xl border border-border/40 p-1 bg-white" />
+          ) : (
+            <div className="h-56 w-56 animate-pulse rounded-xl bg-muted" />
+          )}
+          {qrDataUrl ? (
+            <button
+              type="button"
+              onClick={downloadQr}
+              className="flex items-center gap-1.5 text-xs font-bold text-primary hover:underline mt-1"
+            >
+              <Download className="h-3.5 w-3.5" /> Save QR Code
+            </button>
+          ) : null}
         </section>
-        <section className="overflow-hidden rounded-2xl bg-card text-sm shadow-sm">
+
+        <section className="overflow-hidden rounded-2xl bg-card text-sm shadow-sm border border-border/50 divide-y divide-border/50">
           <Row label={t('myVisitors.visitor')} value={p.visitorName} />
           {p.whomToMeet ? <Row label={t('myVisitors.whomToMeet')} value={p.whomToMeet} /> : null}
           {p.vehicleType ? <Row label={t('myVisitors.vehicleType')} value={`${p.vehicleType}${p.vehicleNumber ? ` · ${p.vehicleNumber}` : ''}`} /> : null}
@@ -169,14 +266,48 @@ export function InviteVisitorForm({
           {p.visitDateUtc ? <Row label={t('myVisitors.visitDate')} value={formatDateTime(p.visitDateUtc)} /> : null}
           <Row label={t('myVisitors.validUntilLabel')} value={formatDateTime(p.validUntilUtc)} />
         </section>
-        <button type="button" onClick={share} className="flex h-[52px] items-center justify-center gap-2 rounded-xl bg-primary text-base font-bold text-primary-foreground">
-          <Share2 className="h-5 w-5" /> {t('myVisitors.shareWithVisitor')}
-        </button>
-        <div className="flex gap-3">
-          <button type="button" onClick={reset} className="h-[52px] flex-1 rounded-xl border-2 border-primary text-base font-bold text-primary">
+
+        {/* Share Action Buttons */}
+        <div className="flex flex-col gap-2.5">
+          <button
+            type="button"
+            onClick={shareWhatsApp}
+            className="flex h-[52px] items-center justify-center gap-2 rounded-xl bg-[#25D366] text-base font-bold text-white shadow-sm hover:brightness-105 active:scale-[0.99] transition-all"
+          >
+            <MessageSquare className="h-5 w-5" /> Share on WhatsApp
+          </button>
+
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={share}
+              className="flex h-[46px] flex-1 items-center justify-center gap-2 rounded-xl bg-primary text-sm font-bold text-primary-foreground shadow-sm hover:brightness-105 active:scale-[0.99] transition-all"
+            >
+              <Share2 className="h-4 w-4" /> {t('myVisitors.shareWithVisitor')}
+            </button>
+            <button
+              type="button"
+              onClick={copyLink}
+              className="flex h-[46px] flex-1 items-center justify-center gap-2 rounded-xl border border-border bg-card text-sm font-bold text-foreground hover:bg-muted active:scale-[0.99] transition-all"
+            >
+              {copied ? (
+                <>
+                  <Check className="h-4 w-4 text-emerald-600" /> Link Copied!
+                </>
+              ) : (
+                <>
+                  <Copy className="h-4 w-4" /> Copy Pass Link
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        <div className="flex gap-3 pt-2">
+          <button type="button" onClick={reset} className="h-[48px] flex-1 rounded-xl border-2 border-primary text-sm font-bold text-primary hover:bg-primary/5 transition-colors">
             {t('myVisitors.createAnother')}
           </button>
-          {onDone ? <PrimaryButton className="flex-1" arrow={false} label={t('myVisitors.title')} onClick={onDone} /> : null}
+          {onDone ? <PrimaryButton className="flex-1 !h-[48px]" arrow={false} label={t('myVisitors.title')} onClick={onDone} /> : null}
         </div>
       </div>
     );
@@ -196,20 +327,20 @@ export function InviteVisitorForm({
           {photoPreview ? (
             <>
               <img src={photoPreview} alt="visitor" className="h-full w-full object-cover" />
-              <button type="button" onClick={() => { setPhotoFileId(null); setPhotoPreview(null); }} className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white">
+              <button type="button" onClick={() => { setPhotoFile(null); setPhotoPreview(null); setUploadError(null); }} className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white">
                 <X className="h-4 w-4" />
               </button>
             </>
           ) : (
             <Camera className="h-12 w-12 text-muted-foreground" />
           )}
-          {uploading ? <div className="absolute inset-0 flex items-center justify-center bg-black/30 text-xs font-semibold text-white">{t('myVisitors.uploading')}</div> : null}
         </div>
+        {uploadError ? <p className="text-center text-xs font-semibold text-destructive">{uploadError}</p> : null}
         <div className="flex gap-2">
-          <button type="button" onClick={() => cameraInput.current?.click()} disabled={uploading} className="flex items-center gap-1.5 rounded-xl border border-border bg-card px-4 py-2 text-sm font-bold disabled:opacity-50">
+          <button type="button" onClick={() => cameraInput.current?.click()} className="flex items-center gap-1.5 rounded-xl border border-border bg-card px-4 py-2 text-sm font-bold active:scale-95 transition-transform">
             <Camera className="h-4 w-4 text-primary" /> {t('myVisitors.takePhoto')}
           </button>
-          <button type="button" onClick={() => galleryInput.current?.click()} disabled={uploading} className="flex items-center gap-1.5 rounded-xl border border-border bg-card px-4 py-2 text-sm font-bold disabled:opacity-50">
+          <button type="button" onClick={() => galleryInput.current?.click()} className="flex items-center gap-1.5 rounded-xl border border-border bg-card px-4 py-2 text-sm font-bold active:scale-95 transition-transform">
             <ImageIcon className="h-4 w-4 text-primary" /> {t('myVisitors.fromGallery')}
           </button>
         </div>
@@ -245,7 +376,7 @@ export function InviteVisitorForm({
         <p className="px-1 text-center text-xs text-muted-foreground">{t('myVisitors.validityNote', { validity: config.data.visitPassValidityText })}</p>
       ) : null}
 
-      <PrimaryButton label={t('myVisitors.createPass')} loading={create.running} disabled={!valid || uploading} onClick={() => void create.run()} />
+      <PrimaryButton label={t('myVisitors.createPass')} loading={create.running} disabled={!valid} onClick={() => void create.run()} />
     </div>
   );
 }

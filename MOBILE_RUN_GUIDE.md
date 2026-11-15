@@ -107,3 +107,16 @@ adb reverse tcp:5272 tcp:5272; npm run build:app; cd packages/app; npx cap sync 
   - Check if Windows Firewall is blocking incoming connections on port `5272`.
 - **Changes not reflecting**:
   - Re-run `npm run build:app` and `npx cap sync android` before running the app.
+
+
+
+# From project root Release Build
+npm run build:app
+
+cd packages/app
+
+npx cap sync android
+
+cd android
+
+.\gradlew.bat assembleRelease

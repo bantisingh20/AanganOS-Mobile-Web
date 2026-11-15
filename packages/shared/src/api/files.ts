@@ -1,6 +1,7 @@
 import type { TokenStore } from './tokenStore';
 import type { ErrorCode } from './types';
 import { ApiRequestError } from './errors';
+import { compressImageFile } from '../lib/image';
 
 export interface UploadFileResult {
   reference: string;
@@ -31,11 +32,12 @@ export class FilesClient {
   }
 
   async upload(file: File | Blob, options: UploadOptions): Promise<UploadFileResult> {
+    const fileToUpload = await compressImageFile(file);
     const params = new URLSearchParams({ owningResourceType: options.owningResourceType, communityId: options.communityId });
     if (options.owningResourceId) params.set('owningResourceId', options.owningResourceId);
 
     const form = new FormData();
-    form.append('file', file, file instanceof File ? file.name : 'upload.jpg');
+    form.append('file', fileToUpload, fileToUpload instanceof File ? fileToUpload.name : 'upload.jpg');
 
     const token = this.tokenStore.getAccessToken();
     const res = await fetch(`${this.root}/api/v1/files?${params.toString()}`, {

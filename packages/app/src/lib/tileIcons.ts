@@ -13,6 +13,7 @@ import {
   ShieldAlert,
   Siren,
   UserCircle,
+  UserCheck,
   UserPlus,
   Users,
   type LucideIcon,
@@ -33,6 +34,7 @@ const ICONS: Record<string, LucideIcon> = {
   ShieldAlert,
   Siren,
   UserCircle,
+  UserCheck,
   UserPlus,
   Users,
 };

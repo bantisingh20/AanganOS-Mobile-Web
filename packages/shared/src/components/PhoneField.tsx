@@ -70,7 +70,7 @@ export function PhoneField({
     onChange(digits ? `${country.dialCode}${digits}` : '');
   };
 
-  const h = size === 'lg' ? 'h-12' : 'h-9';
+  const h = size === 'lg' ? 'h-12' : 'h-10';
 
   return (
     <Field {...(label !== undefined ? { label } : {})} {...(error ? { error } : {})}>

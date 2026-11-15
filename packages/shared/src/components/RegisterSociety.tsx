@@ -25,9 +25,15 @@ export interface RegisterSocietyProps {
   onSuccess: (message: string) => void;
   submitLabel?: string;
   twoColumn?: boolean;
+  compact?: boolean;
 }
 
-export function RegisterSociety({ onSuccess, submitLabel, twoColumn = true }: RegisterSocietyProps) {
+export function RegisterSociety({
+  onSuccess,
+  submitLabel,
+  twoColumn = true,
+  compact = true,
+}: RegisterSocietyProps) {
   const { t } = useTranslation();
 
   const TYPES = [
@@ -68,6 +74,7 @@ export function RegisterSociety({ onSuccess, submitLabel, twoColumn = true }: Re
   const validate = (): boolean => {
     const fieldErrors: Record<string, string> = {};
     if (!organizationName.trim()) fieldErrors.organizationName = t('society.enterSociety');
+    if (adminEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(adminEmail)) fieldErrors.adminEmail = t('society.invalidEmail');
     if (parseWings(wingsText).length === 0) fieldErrors.wings = t('society.enterWings');
     if (!adminName.trim()) fieldErrors.adminName = t('society.enterAdmin');
     const country = countryFromValue(adminPhone);
@@ -115,39 +122,147 @@ export function RegisterSociety({ onSuccess, submitLabel, twoColumn = true }: Re
     }
   };
 
-  const rowClass = twoColumn ? 'grid grid-cols-1 gap-3 sm:grid-cols-2' : 'flex flex-col gap-3';
+  const fieldSize = compact ? 'sm' : 'lg';
+  const rowClass = twoColumn
+    ? compact
+      ? 'grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-2.5'
+      : 'grid grid-cols-1 gap-3 sm:grid-cols-2'
+    : compact
+    ? 'flex flex-col gap-2'
+    : 'flex flex-col gap-3';
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className={compact ? 'flex flex-col gap-2 sm:gap-2.5' : 'flex flex-col gap-3'}>
       <FormBanner message={error.message} />
 
-      <TextField label={t('society.societyName')} icon={Building2} value={organizationName} onChange={(e) => setOrganizationName(e.target.value)} {...(error.fieldErrors.organizationName ? { error: error.fieldErrors.organizationName } : {})} placeholder={t('society.societyPlaceholder')} disabled={busy} />
+      <TextField
+        label={t('society.societyName')}
+        icon={Building2}
+        size={fieldSize}
+        value={organizationName}
+        onChange={(e) => setOrganizationName(e.target.value)}
+        {...(error.fieldErrors.organizationName ? { error: error.fieldErrors.organizationName } : {})}
+        placeholder={t('society.societyPlaceholder')}
+        disabled={busy}
+      />
 
       <div className={rowClass}>
-        <TextField label={t('society.wings')} icon={Home} value={wingsText} onChange={(e) => setWingsText(e.target.value)} {...(error.fieldErrors.wings ? { error: error.fieldErrors.wings } : {})} placeholder={t('society.wingsPlaceholder')} disabled={busy} />
-        <SelectField label={t('society.type')} value={communityType} options={TYPES} onChange={setCommunityType} disabled={busy} />
+        <TextField
+          label={t('society.wings')}
+          icon={Home}
+          size={fieldSize}
+          value={wingsText}
+          onChange={(e) => setWingsText(e.target.value)}
+          {...(error.fieldErrors.wings ? { error: error.fieldErrors.wings } : {})}
+          placeholder={t('society.wingsPlaceholder')}
+          disabled={busy}
+        />
+        <SelectField
+          label={t('society.type')}
+          size={fieldSize}
+          value={communityType}
+          options={TYPES}
+          onChange={setCommunityType}
+          disabled={busy}
+        />
       </div>
 
       <div className={rowClass}>
-        <TextField label={t('society.floors')} icon={Layers} type="number" inputMode="numeric" min={0} max={200} value={floors} onChange={(e) => setFloors(e.target.value)} {...(error.fieldErrors.floors ? { error: error.fieldErrors.floors } : {})} placeholder={t('society.floorsPlaceholder')} disabled={busy} />
-        <TextField label={t('society.roomsPerFloor')} icon={DoorOpen} type="number" inputMode="numeric" min={0} max={200} value={roomsPerFloor} onChange={(e) => setRoomsPerFloor(e.target.value)} {...(error.fieldErrors.roomsPerFloor ? { error: error.fieldErrors.roomsPerFloor } : {})} placeholder={t('society.roomsPlaceholder')} disabled={busy} />
+        <TextField
+          label={t('society.floors')}
+          icon={Layers}
+          size={fieldSize}
+          type="number"
+          inputMode="numeric"
+          min={0}
+          max={200}
+          value={floors}
+          onChange={(e) => setFloors(e.target.value)}
+          {...(error.fieldErrors.floors ? { error: error.fieldErrors.floors } : {})}
+          placeholder={t('society.floorsPlaceholder')}
+          disabled={busy}
+        />
+        <TextField
+          label={t('society.roomsPerFloor')}
+          icon={DoorOpen}
+          size={fieldSize}
+          type="number"
+          inputMode="numeric"
+          min={0}
+          max={200}
+          value={roomsPerFloor}
+          onChange={(e) => setRoomsPerFloor(e.target.value)}
+          {...(error.fieldErrors.roomsPerFloor ? { error: error.fieldErrors.roomsPerFloor } : {})}
+          placeholder={t('society.roomsPlaceholder')}
+          disabled={busy}
+        />
       </div>
 
-      <p className="-mt-1 text-xs text-muted-foreground">{t('society.wingsHint')}</p>
+      <p className={`text-muted-foreground ${compact ? '-mt-1 text-[11px] leading-tight' : '-mt-1 text-xs'}`}>
+        {t('society.wingsHint')}
+      </p>
 
       <div className={rowClass}>
-        <SelectField label={t('society.subscriptionDuration')} value={planMonths} options={PLAN_OPTIONS} onChange={setPlanMonths} disabled={busy} />
-        <TextField label={t('society.adminName')} icon={User} value={adminName} onChange={(e) => setAdminName(e.target.value)} {...(error.fieldErrors.adminName ? { error: error.fieldErrors.adminName } : {})} placeholder={t('society.adminNamePlaceholder')} disabled={busy} />
+        <SelectField
+          label={t('society.subscriptionDuration')}
+          size={fieldSize}
+          value={planMonths}
+          options={PLAN_OPTIONS}
+          onChange={setPlanMonths}
+          disabled={busy}
+        />
+        <TextField
+          label={t('society.adminName')}
+          icon={User}
+          size={fieldSize}
+          value={adminName}
+          onChange={(e) => setAdminName(e.target.value)}
+          {...(error.fieldErrors.adminName ? { error: error.fieldErrors.adminName } : {})}
+          placeholder={t('society.adminNamePlaceholder')}
+          disabled={busy}
+        />
       </div>
 
       <div className={rowClass}>
-        <PhoneField size="lg" label={t('society.phone')} value={adminPhone} onChange={setAdminPhone} {...(error.fieldErrors.adminPhone ? { error: error.fieldErrors.adminPhone } : {})} disabled={busy} placeholder={t('society.phonePlaceholder')} />
-        <TextField label={t('society.emailOptional')} icon={Mail} type="email" value={adminEmail} onChange={(e) => setAdminEmail(e.target.value)} {...(error.fieldErrors.adminEmail ? { error: error.fieldErrors.adminEmail } : {})} placeholder={t('society.emailPlaceholder')} disabled={busy} />
+        <PhoneField
+          size={fieldSize}
+          label={t('society.phone')}
+          value={adminPhone}
+          onChange={setAdminPhone}
+          {...(error.fieldErrors.adminPhone ? { error: error.fieldErrors.adminPhone } : {})}
+          disabled={busy}
+          placeholder={t('society.phonePlaceholder')}
+        />
+        <TextField
+          label={t('society.emailOptional')}
+          icon={Mail}
+          size={fieldSize}
+          type="email"
+          value={adminEmail}
+          onChange={(e) => setAdminEmail(e.target.value)}
+          {...(error.fieldErrors.adminEmail ? { error: error.fieldErrors.adminEmail } : {})}
+          placeholder={t('society.emailPlaceholder')}
+          disabled={busy}
+        />
       </div>
 
-      <PasswordField label={t('society.adminPassword')} value={adminPassword} onChange={setAdminPassword} {...(error.fieldErrors.adminPassword ? { error: error.fieldErrors.adminPassword } : {})} disabled={busy} placeholder={t('society.passwordPlaceholder')} onEnter={submit} />
+      <PasswordField
+        label={t('society.adminPassword')}
+        size={fieldSize}
+        value={adminPassword}
+        onChange={setAdminPassword}
+        {...(error.fieldErrors.adminPassword ? { error: error.fieldErrors.adminPassword } : {})}
+        disabled={busy}
+        placeholder={t('society.passwordPlaceholder')}
+        onEnter={submit}
+      />
 
-      <PrimaryButton label={submitLabel ?? t('society.submit')} loading={busy} onClick={submit} />
+      <PrimaryButton
+        label={submitLabel ?? t('society.submit')}
+        loading={busy}
+        onClick={submit}
+        className={compact ? 'h-11 rounded-lg text-sm font-semibold' : ''}
+      />
     </div>
   );
 }
