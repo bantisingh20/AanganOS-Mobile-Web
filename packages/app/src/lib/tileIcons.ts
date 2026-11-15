@@ -1,44 +1,6 @@
-import {
-  ArrowLeftRight,
-  Bell,
-  Car,
-  CheckCheck,
-  CreditCard,
-  Home,
-  Megaphone,
-  MessageCircle,
-  Package,
-  Repeat,
-  ScanLine,
-  ShieldAlert,
-  Siren,
-  UserCircle,
-  UserCheck,
-  UserPlus,
-  Users,
-  type LucideIcon,
-} from 'lucide-react';
-
-const ICONS: Record<string, LucideIcon> = {
-  ArrowLeftRight,
-  Bell,
-  Car,
-  CheckCheck,
-  CreditCard,
-  Home,
-  Megaphone,
-  MessageCircle,
-  Package,
-  Repeat,
-  ScanLine,
-  ShieldAlert,
-  Siren,
-  UserCircle,
-  UserCheck,
-  UserPlus,
-  Users,
-};
+import { menuIcon } from '@shared/components/menuIcons';
+import type { LucideIcon } from 'lucide-react';
 
 export function tileIcon(name: string): LucideIcon {
-  return ICONS[name] ?? Bell;
+  return menuIcon(name);
 }

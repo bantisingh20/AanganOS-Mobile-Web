@@ -56,9 +56,13 @@ export function ServicesTab({ unreadCount = 0, onNotifications }: { unreadCount?
                       <Icon className="h-[22px] w-[22px]" style={{ color: item.tint }} />
                     </span>
                     <span className="block text-[15px] font-bold leading-tight">
-                      {item.label || t(item.labelKey)}
+                      {item.label || t(item.labelKey, { defaultValue: item.labelKey })}
                     </span>
-                    <span className="line-clamp-2 block text-xs text-muted-foreground">{t(item.subKey)}</span>
+                    {item.subKey ? (
+                      <span className="line-clamp-2 block text-xs text-muted-foreground">
+                        {t(item.subKey, { defaultValue: '' })}
+                      </span>
+                    ) : null}
                   </button>
                 );
               })}

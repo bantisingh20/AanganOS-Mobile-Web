@@ -1,4 +1,5 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { ThemeProvider } from '@shared/lib/useTheme';
 import { AuthProvider, useAuth } from '@shared/store/AuthContext';
 import { WelcomeScreen } from '@app/screens/WelcomeScreen';
 import { SplashScreen, hasSeenSplash } from '@app/screens/SplashScreen';
@@ -58,10 +59,11 @@ function BackButtonHandler() {
 
 export function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <BackButtonHandler />
-        <Routes>
+    <ThemeProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <BackButtonHandler />
+          <Routes>
           <Route path="/" element={<Entry />} />
           <Route path="/splash" element={<SplashScreen />} />
           <Route path="/login" element={<LoginScreen />} />
@@ -80,6 +82,7 @@ export function App() {
           <Route path="/my-household" element={<RequireAuth><MyHouseholdScreen /></RequireAuth>} />
           <Route path="/maintenance" element={<RequireAuth><MaintenanceScreen /></RequireAuth>} />
           <Route path="/billing" element={<RequireAuth><BillingScreen /></RequireAuth>} />
+          <Route path="/maintenance-billing" element={<RequireAuth><BillingScreen /></RequireAuth>} />
           <Route path="/my-visitors" element={<RequireAuth><MyVisitorsScreen /></RequireAuth>} />
           <Route path="/visitors" element={<RequireAuth><MyVisitorsScreen /></RequireAuth>} />
           <Route path="/invite-visitor" element={<RequireAuth><InviteVisitorScreen /></RequireAuth>} />
@@ -92,6 +95,7 @@ export function App() {
           <Route path="/register-walkin" element={<RequireAuth><RegisterWalkinScreen /></RequireAuth>} />
           <Route path="/entry-exit" element={<RequireAuth><EntryExitScreen /></RequireAuth>} />
           <Route path="/manage-residents" element={<RequireAuth><ManagePeopleScreen /></RequireAuth>} />
+          <Route path="/residents" element={<RequireAuth><ManagePeopleScreen /></RequireAuth>} />
           <Route path="/resident-approvals" element={<RequireAuth><ResidentApprovalsScreen /></RequireAuth>} />
           <Route path="/watchlist" element={<RequireAuth><WatchlistScreen /></RequireAuth>} />
           <Route path="/sos" element={<RequireAuth><SosScreen /></RequireAuth>} />
@@ -99,5 +103,6 @@ export function App() {
         </Routes>
       </BrowserRouter>
     </AuthProvider>
+    </ThemeProvider>
   );
 }

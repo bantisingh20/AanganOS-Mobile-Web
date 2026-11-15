@@ -116,8 +116,8 @@ export function MaintenanceBillingView({ mode = 'admin', permKey, onBack }: Main
   const isMobileMode = mode === 'mobile';
   const handleBack = onBack ?? (() => navigate(-1));
 
-  // Determine permission key: Admin ('admin.maintenance' / 'admin.maintenance-billing') vs App ('billing')
-  const effectivePermKey = permKey || (isMobileMode ? 'billing' : 'admin.maintenance');
+  // Unified common permission key across Admin and App
+  const effectivePermKey = permKey || 'billing';
   const perm = usePermission(effectivePermKey);
   const chargePerm = usePermission('MaintenanceCharge');
   const expensePerm = usePermission('MaintenanceExpense');

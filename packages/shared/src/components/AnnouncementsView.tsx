@@ -102,7 +102,7 @@ export function AnnouncementsView({ mode = 'admin', permKey, onBack }: Announcem
   const scope = useScope();
   const { user } = useAuth();
   const isMobileMode = mode === 'mobile';
-  const effectivePermKey = permKey || (isMobileMode ? 'announcements' : 'admin.announcements');
+  const effectivePermKey = permKey || 'announcements';
   const perm = usePermission(effectivePermKey);
   const isSmall = useIsSmallScreen();
   const handleBack = onBack ?? (() => navigate(-1));

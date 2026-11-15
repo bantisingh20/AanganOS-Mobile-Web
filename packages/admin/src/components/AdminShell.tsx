@@ -76,14 +76,14 @@ export function AdminShell({ children }: { children: ReactNode }) {
             {collapsed ? <PanelLeft className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
           </button>
 
-          <div className="relative hidden flex-1 sm:block">
+          {/* <div className="relative hidden flex-1 sm:block">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input
               type="search"
               placeholder={t('admin.search')}
               className="h-9 w-full max-w-md rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm outline-none focus:border-emerald-400 focus:bg-white dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
             />
-          </div>
+          </div> */}
 
           <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
             <a href={HELP_URL} target="_blank" rel="noreferrer" aria-label={t('admin.help')} title={t('admin.help')} className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">

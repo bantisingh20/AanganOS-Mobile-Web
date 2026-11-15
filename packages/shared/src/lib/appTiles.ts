@@ -39,15 +39,16 @@ export const APP_TILES: AppTile[] = [
   { code: 'my-household', route: '/my-household', icon: 'Home', labelKey: 'services.myHousehold', subKey: 'services.myHouseholdSub', tint: '#0ea5e9', permKey: 'my-household', permAction: VIEW, group: 'myHome', personas: ['resident'], showInHome: true },
 
   { code: 'invite-visitor', route: '/invite-visitor', icon: 'UserPlus', labelKey: 'services.inviteVisitor', subKey: 'services.inviteVisitorSub', tint: '#05b872', permKey: 'invite-visitor', permAction: CREATE, group: 'community', personas: ['resident'], showInHome: true },
-  { code: 'my-visitors', route: '/visitors', icon: 'Users', labelKey: 'services.myVisitors', subKey: 'services.myVisitorsSub', tint: '#0969da', permKey: 'my-visitors', permAction: VIEW, group: 'community', personas: ['resident'], showInHome: true },
+  { code: 'my-visitors', route: '/visitors', icon: 'Users', labelKey: 'services.myVisitors', subKey: 'services.myVisitorsSub', tint: '#0969da', permKey: 'visitors', permAction: VIEW, group: 'community', personas: ['resident', 'admin'], showInHome: true },
   { code: 'approvals', route: '/approvals', icon: 'CheckCheck', labelKey: 'services.approvals', subKey: 'services.approvalsSub', tint: '#bf8700', permKey: 'approvals', permAction: VIEW, group: 'community', personas: ['resident'], showInHome: true },
   { code: 'recurring-visitors', route: '/recurring-visitors', icon: 'Repeat', labelKey: 'services.recurring', subKey: 'services.recurringSub', tint: '#0969da', permKey: 'recurring-visitors', permAction: VIEW, group: 'community', personas: ['resident'], showInHome: true },
   { code: 'parcels', route: '/parcels', icon: 'Package', labelKey: 'services.myParcels', subKey: 'services.myParcelsSub', tint: '#cf5500', permKey: 'parcels', permAction: VIEW, group: 'community', personas: ['resident'], showInHome: true },
-  { code: 'maintenance', route: '/maintenance', icon: 'CreditCard', labelKey: 'services.maintenance', subKey: 'services.maintenanceSub', tint: '#1a7f37', permKey: 'maintenance', permAction: VIEW, group: 'community', personas: ['resident'], showInHome: true },
-  { code: 'billing', route: '/billing', icon: 'Wallet', labelKey: 'services.billing', subKey: 'services.billingSub', tint: '#1a7f37', permKey: 'billing', permAction: VIEW, group: 'community', personas: ['admin'], showInHome: true },
-  { code: 'helpdesk', route: '/my-tickets', icon: 'MessageCircle', labelKey: 'services.helpDesk', subKey: 'services.helpDeskSub', tint: '#16a34a', permKey: 'raise-ticket', permAction: VIEW, group: 'community', personas: ['resident'], showInHome: true },
-  { code: 'raise-ticket', route: '/raise-ticket', icon: 'MessageCircle', labelKey: 'services.helpDesk', subKey: 'services.helpDeskSub', tint: '#16a34a', permKey: 'raise-ticket', permAction: VIEW, group: 'community', personas: ['resident'], showInHome: false },
-  { code: 'announcements', route: '/announcements', icon: 'Megaphone', labelKey: 'services.announcements', subKey: 'services.announcementsSub', tint: '#8250df', permKey: 'announcements', permAction: VIEW, group: 'community', personas: ['resident'], showInHome: true },
+  { code: 'maintenance', route: '/maintenance', icon: 'CreditCard', labelKey: 'services.maintenance', subKey: 'services.maintenanceSub', tint: '#1a7f37', permKey: 'maintenance', permAction: VIEW, group: 'community', personas: ['resident', 'admin'], showInHome: true },
+  { code: 'billing', route: '/billing', icon: 'Wallet', labelKey: 'services.billing', subKey: 'services.billingSub', tint: '#1a7f37', permKey: 'billing', permAction: VIEW, group: 'community', personas: ['admin', 'resident'], showInHome: true },
+  { code: 'helpdesk', route: '/my-tickets', icon: 'MessageCircle', labelKey: 'services.helpDesk', subKey: 'services.helpDeskSub', tint: '#16a34a', permKey: 'tickets', permAction: VIEW, group: 'community', personas: ['resident', 'admin'], showInHome: true },
+  { code: 'raise-ticket', route: '/raise-ticket', icon: 'MessageCircle', labelKey: 'services.helpDesk', subKey: 'services.helpDeskSub', tint: '#16a34a', permKey: 'tickets', permAction: VIEW, group: 'community', personas: ['resident'], showInHome: false },
+  { code: 'announcements', route: '/announcements', icon: 'Megaphone', labelKey: 'services.announcements', subKey: 'services.announcementsSub', tint: '#8250df', permKey: 'announcements', permAction: VIEW, group: 'community', personas: ['resident', 'admin'], showInHome: true },
+  { code: 'amenities', route: '/amenities', icon: 'Coffee', labelKey: 'services.amenities', subKey: '', tint: '#0284c7', permKey: 'amenities', permAction: VIEW, group: 'community', personas: ['resident', 'admin'], showInHome: true },
 
   { code: 'verify-pass', route: '/verify-pass', icon: 'ScanLine', labelKey: 'services.verifyPass', subKey: 'services.verifyPassSub', tint: '#05b872', permKey: 'verify-pass', permAction: CREATE, group: 'security', personas: ['security', 'admin'], showInHome: true },
   { code: 'register-walkin', route: '/register-walkin', icon: 'UserPlus', labelKey: 'services.registerWalkin', subKey: 'services.registerWalkinSub', tint: '#8250df', permKey: 'register-walkin', permAction: CREATE, group: 'security', personas: ['security', 'admin'], showInHome: true },
@@ -99,6 +100,16 @@ export function useAppTiles(): AppTilesResult {
 }
 
 const MENU_KEY_TO_CODE: Record<string, string> = {
+  // Canonical Common Keys
+  'announcements': 'announcements',
+  'billing': 'billing',
+  'visitors': 'my-visitors',
+  'tickets': 'helpdesk',
+  'residents': 'manage-residents',
+  'notifications': 'notifications',
+  'amenities': 'amenities',
+
+  // App & Legacy Keys
   'app.profile': 'my-profile',
   'app.household': 'my-household',
   'app.visitors.invite': 'invite-visitor',
@@ -123,6 +134,12 @@ const MENU_KEY_TO_CODE: Record<string, string> = {
   'app.admin.residents': 'manage-residents',
   'app.admin.resident-approvals': 'resident-approvals',
   'admin.resident-approvals': 'resident-approvals',
+  'admin.announcements': 'announcements',
+  'admin.billing': 'billing',
+  'admin.visitors': 'my-visitors',
+  'admin.maintenance': 'helpdesk',
+  'admin.notifications': 'notifications',
+  'admin.amenities': 'amenities',
 };
 
 const ROUTE_TO_CODE: Record<string, string> = Object.fromEntries(
@@ -162,16 +179,61 @@ export interface DynamicTilesResult extends AppTilesResult {
   groups: DynamicTileGroup[];
 }
 
+const WEB_ONLY_ROUTES = new Set([
+  '/dashboard',
+  '/reports',
+  '/config',
+  '/menu-management',
+  '/roles',
+  '/notification-templates',
+  '/admin-users',
+]);
+
+const WEB_ONLY_KEYS = new Set([
+  'admin.group.overview',
+  'admin.dashboard',
+  'admin.overview',
+  'admin.menu',
+  'admin.config',
+  'admin.roles',
+  'admin.reports',
+  'admin.notification-templates',
+  'admin.adminusers',
+]);
+
+function isWebOnlyNode(node: MenuNode): boolean {
+  if (node.key && WEB_ONLY_KEYS.has(node.key)) return true;
+  if (node.route && WEB_ONLY_ROUTES.has(node.route)) return true;
+  const normRoute = (node.route ?? '').replace(/\/+$/, '');
+  if (WEB_ONLY_ROUTES.has(normRoute)) return true;
+  return false;
+}
+
 /**
  * The tiles shown in Home + Services. Fully backend-driven: renders exactly the per-user,
  * permission-filtered tree from /api/v1/menu (mapped to presentation), in the backend's order.
- * No persona/permission filtering is re-applied here — visibility is entirely the backend's
- * decision (role Surface + the item's Access permission). Falls back to the local persona/permission
- * registry ONLY when the menu endpoint returns nothing (offline / not seeded).
+ * Only Common and App/Mobile menus are shown (Web-only menus like Dashboard/Overview are filtered out).
+ * If a user lacks permission, nothing is shown by default.
  */
 export function useDynamicTiles(): DynamicTilesResult {
   const fallback = useAppTiles();
+  const { user, roles } = useAuth();
   const { items: menuNodes, loading } = useMenu([]);
+
+  const isAdmin = roles.some((r) => /admin|poweruser|superadmin/i.test(r));
+  const granted = useMemo(() => new Set(user?.permissions ?? []), [user?.permissions]);
+
+  const canSee = (permKey: string, action: number = VIEW): boolean => {
+    if (isAdmin) return true;
+    if (!permKey) return true;
+    const resource = resourceForKey(permKey);
+    return (
+      granted.has(`${resource}:${action}`) ||
+      granted.has(`${resource}:${ACCESS}`) ||
+      granted.has(`${permKey}:${action}`) ||
+      granted.has(`${permKey}:${ACCESS}`)
+    );
+  };
 
   return useMemo<DynamicTilesResult>(() => {
     const tiles: AppTile[] = [];
@@ -182,24 +244,47 @@ export function useDynamicTiles(): DynamicTilesResult {
     const extractGroups = (nodeList: MenuNode[]) => {
       for (const node of nodeList) {
         if (!node.children || node.children.length === 0) continue;
+        // Skip web-only groups (e.g. Overview / Dashboard)
+        if (isWebOnlyNode(node)) continue;
 
         // Check if direct children have routes (leaf items like My Profile, My Household)
-        const leafChildren = node.children.filter((c) => Boolean(c.route));
+        const leafChildren = node.children.filter((c) => Boolean(c.route) && !isWebOnlyNode(c));
         if (leafChildren.length > 0) {
           const itemsInGroup: AppTile[] = [];
           for (const n of leafChildren) {
-            const code = codeForNode(n);
-            if (!code || used.has(code)) continue;
+            const code = codeForNode(n) || n.key || (n.route ?? '').replace(/^\/+/, '');
+            if (used.has(code)) continue;
+
             const baseTile = TILE_BY_CODE.get(code);
-            if (!baseTile) continue;
+            const permKey = baseTile?.permKey || n.key;
+            const permAction = baseTile?.permAction ?? VIEW;
+
+            // Strict permission check: by default don't show anything if user lacks permission
+            if (!canSee(permKey, permAction)) continue;
 
             used.add(code);
-            const resolvedTile: AppTile = {
-              ...baseTile,
-              label: n.label?.trim() || undefined,
-              icon: n.icon || baseTile.icon,
-              groupTitle: node.label?.trim() || undefined,
-            };
+            const resolvedTile: AppTile = baseTile
+              ? {
+                  ...baseTile,
+                  label: n.label?.trim() || undefined,
+                  icon: n.icon || baseTile.icon,
+                  groupTitle: node.label?.trim() || undefined,
+                }
+              : {
+                  code,
+                  route: n.route ?? '',
+                  icon: n.icon || 'LayoutGrid',
+                  labelKey: n.key,
+                  subKey: '',
+                  tint: '#05b872',
+                  permKey: n.key,
+                  permAction: 0,
+                  group: 'admin' as TileGroup,
+                  personas: ['admin', 'resident', 'security'],
+                  showInHome: true,
+                  label: n.label?.trim() || n.key,
+                  groupTitle: node.label?.trim() || undefined,
+                };
             itemsInGroup.push(resolvedTile);
             tiles.push(resolvedTile);
           }
@@ -213,7 +298,7 @@ export function useDynamicTiles(): DynamicTilesResult {
         }
 
         // Also recurse into nested group containers (e.g. app.services containing groups)
-        const subGroups = node.children.filter((c) => c.children && c.children.length > 0 && !c.route);
+        const subGroups = node.children.filter((c) => c.children && c.children.length > 0 && !c.route && !isWebOnlyNode(c));
         if (subGroups.length > 0) {
           extractGroups(subGroups);
         }
@@ -222,34 +307,51 @@ export function useDynamicTiles(): DynamicTilesResult {
 
     extractGroups(menuNodes);
 
-    // Capture any remaining standalone leaf nodes
-    const leafNodes = flattenMenu(menuNodes).filter((n) => n.route);
+    // Capture any remaining standalone leaf nodes (excluding web-only items)
+    const leafNodes = flattenMenu(menuNodes).filter((n) => n.route && !isWebOnlyNode(n));
     for (const n of leafNodes) {
-      const code = codeForNode(n);
-      if (!code || used.has(code)) continue;
+      const code = codeForNode(n) || n.key || (n.route ?? '').replace(/^\/+/, '');
+      if (used.has(code)) continue;
+
       const baseTile = TILE_BY_CODE.get(code);
-      if (!baseTile) continue;
+      const permKey = baseTile?.permKey || n.key;
+      const permAction = baseTile?.permAction ?? VIEW;
+
+      if (!canSee(permKey, permAction)) continue;
+
       used.add(code);
-      const resolvedTile: AppTile = {
-        ...baseTile,
-        label: n.label?.trim() || undefined,
-        icon: n.icon || baseTile.icon,
-      };
+      const resolvedTile: AppTile = baseTile
+        ? {
+            ...baseTile,
+            label: n.label?.trim() || undefined,
+            icon: n.icon || baseTile.icon,
+          }
+        : {
+            code,
+            route: n.route ?? '',
+            icon: n.icon || 'LayoutGrid',
+            labelKey: n.key,
+            subKey: '',
+            tint: '#05b872',
+            permKey: n.key,
+            permAction: 0,
+            group: 'admin' as TileGroup,
+            personas: ['admin', 'resident', 'security'],
+            showInHome: true,
+            label: n.label?.trim() || n.key,
+          };
       tiles.push(resolvedTile);
     }
 
+    // By default do not show anything if the user has no permissions or 0 allowed tiles
     if (tiles.length === 0) {
-      // While the menu is still loading, show NOTHING (empty) rather than the full fallback catalog
-      if (loading) {
-        const none = (_group: TileGroup): AppTile[] => [];
-        return { ...fallback, tiles: [], groups: [], byGroup: none, loading, source: 'backend' };
-      }
-      return { ...fallback, groups: [], loading, source: 'fallback' };
+      const none = (_group: TileGroup): AppTile[] => [];
+      return { ...fallback, tiles: [], groups: [], byGroup: none, loading, source: 'backend' };
     }
 
     const byGroup = (group: TileGroup): AppTile[] => tiles.filter((t) => t.group === group);
     return { ...fallback, tiles, groups, byGroup, loading, source: 'backend' };
-  }, [fallback, menuNodes, loading]);
+  }, [fallback, menuNodes, loading, isAdmin, granted]);
 }
 
 const HOME_TILES_MAX = 4;

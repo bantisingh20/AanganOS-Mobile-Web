@@ -1,6 +1,6 @@
 import type { ReactElement } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
-import { ThemeProvider } from 'next-themes';
+import { ThemeProvider } from '@shared/lib/useTheme';
 import { AuthProvider, useAuth } from '@shared/store/AuthContext';
 import { AdminShell } from '@admin/components/AdminShell';
 import { LoginPage } from '@admin/pages/LoginPage';
@@ -36,7 +36,7 @@ const PLACEHOLDERS: { path: string; titleKey: string }[] = [
 
 export function App() {
   return (
-    <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} storageKey="aanganos-admin-theme">
+    <ThemeProvider>
     <AuthProvider>
       <BrowserRouter>
         <Routes>

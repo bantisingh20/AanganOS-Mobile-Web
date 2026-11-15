@@ -73,7 +73,8 @@ export function SmartFormDrawer({
   if (isDialog) {
     return (
       <Dialog open={open} onClose={onClose} className={cn('sm:max-w-md', className)}>
-        <DialogHeader title={title} description={subtitle} />
+        <DialogHeader title={title} /> 
+        {/* description={subtitle}  */}
         <div className="py-2">{children}</div>
         <DialogFooter>
           <Button

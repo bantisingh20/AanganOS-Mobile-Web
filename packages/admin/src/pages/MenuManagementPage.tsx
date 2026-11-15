@@ -1,12 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Menu as MenuIcon, Plus, Pencil, Trash2, Search, RefreshCw, ArrowUp, ArrowDown, ArrowUpNarrowWide, ArrowDownWideNarrow, ChevronRight } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Menu as MenuIcon, Plus, Pencil, Trash2, Search, RefreshCw, ArrowUp, ArrowDown, ArrowUpNarrowWide, ArrowDownWideNarrow, ChevronRight, ChevronDown, Check, X, Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { Card } from '@shared/components/ui/card';
 import { Button } from '@shared/components/ui/button';
 import { Input } from '@shared/components/ui/input';
 import { Badge } from '@shared/components/ui/badge';
-import { Dialog, DialogHeader, DialogFooter } from '@shared/components/ui/dialog';
+import { Drawer } from '@shared/components/ui/drawer';
 import { ConfirmDialog } from '@shared/components/ui/confirm-dialog';
 import { SelectField } from '@shared/components/SelectField';
 import { Table, THead, TBody, TR, TH, TD } from '@shared/components/ui/table';
@@ -17,11 +17,13 @@ import { useAsync } from '@shared/lib/useAsync';
 import { toFormError } from '@shared/api/errors';
 import { menuIcon } from '@shared/components/menuIcons';
 import { MenuIconPicker } from '@shared/components/MenuIconPicker';
+import { cn } from '@shared/lib/utils';
 
 type Option = { value: string; label: string };
 
-const SURFACE_ADMIN = 1;
-const SURFACE_APP = 0;
+const SURFACE_APP = 0; // Mobile
+const SURFACE_ADMIN = 1; // Web
+const SURFACE_COMMON = 2; // Common (both Web and Mobile)
 
 const ACTIONS: Option[] = [
   { value: '0', label: 'View' },
@@ -82,7 +84,7 @@ function flatten(items: MenuItem[], q: string, asc: boolean, collapsed: Set<stri
 
 export function MenuManagementPage() {
   const { t } = useTranslation();
-  const [surface, setSurface] = useState<'all' | 'Admin' | 'App'>('all');
+  const [surface, setSurface] = useState<'all' | 'Common' | 'Web' | 'Mobile'>('all');
   const [search, setSearch] = useState('');
   const [sortAsc, setSortAsc] = useState(true);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
@@ -93,13 +95,19 @@ export function MenuManagementPage() {
   const [movingId, setMovingId] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
 
-  const surfaceParam = surface === 'all' ? undefined : surface;
   const query = useAsync(
-    (signal) => menuItems.list(surfaceParam, { signal }).catch(() => [] as MenuItem[]),
-    [surfaceParam, reloadKey],
+    (signal) => menuItems.list(undefined, { signal }).catch(() => [] as MenuItem[]),
+    [reloadKey],
   );
 
-  const items = useMemo(() => query.data ?? [], [query.data]);
+  const rawItems = useMemo(() => query.data ?? [], [query.data]);
+  const items = useMemo(() => {
+    if (surface === 'all') return rawItems;
+    if (surface === 'Common') return rawItems.filter((m) => m.surface === SURFACE_COMMON);
+    if (surface === 'Web') return rawItems.filter((m) => m.surface === SURFACE_ADMIN || m.surface === SURFACE_COMMON);
+    if (surface === 'Mobile') return rawItems.filter((m) => m.surface === SURFACE_APP || m.surface === SURFACE_COMMON);
+    return rawItems;
+  }, [rawItems, surface]);
   const rows = useMemo(() => flatten(items, search, sortAsc, collapsed), [items, search, sortAsc, collapsed]);
   const toggleCollapse = (id: string) => setCollapsed((prev) => {
     const next = new Set(prev);
@@ -167,9 +175,15 @@ export function MenuManagementPage() {
     }
   };
 
-  const SurfaceBadge = ({ v }: { v: number }) => (
-    <Badge tone={v === SURFACE_ADMIN ? 'default' : 'success'}>{v === SURFACE_ADMIN ? t('menuMgmt.surfaceAdmin') : t('menuMgmt.surfaceApp')}</Badge>
-  );
+  const SurfaceBadge = ({ v }: { v: number }) => {
+    if (v === SURFACE_COMMON) {
+      return <Badge tone="success">Common</Badge>;
+    }
+    if (v === SURFACE_ADMIN) {
+      return <Badge tone="default">Web</Badge>;
+    }
+    return <Badge tone="muted">Mobile</Badge>;
+  };
 
   return (
     <div className="space-y-3 sm:space-y-4">
@@ -194,14 +208,14 @@ export function MenuManagementPage() {
       <Card className="flex flex-col gap-3 rounded-2xl p-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center rounded-lg bg-muted p-0.5">
-            {(['all', 'Admin', 'App'] as const).map((s) => (
+            {(['all', 'Common', 'Web', 'Mobile'] as const).map((s) => (
               <button
                 key={s}
                 type="button"
                 onClick={() => setSurface(s)}
-                className={`h-7 rounded-md px-3 text-xs ${surface === s ? 'bg-emerald-600 text-white' : 'text-muted-foreground hover:text-foreground'}`}
+                className={`h-7 rounded-md px-3 text-xs font-semibold ${surface === s ? 'bg-emerald-600 text-white' : 'text-muted-foreground hover:text-foreground'}`}
               >
-                {s === 'all' ? t('menuMgmt.surfaceAll') : s === 'Admin' ? t('menuMgmt.surfaceAdmin') : t('menuMgmt.surfaceApp')}
+                {s === 'all' ? t('menuMgmt.surfaceAll', 'All') : s}
               </button>
             ))}
           </div>
@@ -321,13 +335,13 @@ export function MenuManagementPage() {
         </Card>
       )}
 
-      <MenuItemFormDialog
+      <MenuItemFormDrawer
         open={creating}
         parentOptions={parentOptions}
         onClose={() => setCreating(false)}
         onSaved={() => { setCreating(false); reload(); }}
       />
-      <MenuItemFormDialog
+      <MenuItemFormDrawer
         open={!!editing}
         item={editing}
         parentOptions={parentOptions.filter((o) => o.value !== editing?.id)}
@@ -352,12 +366,153 @@ export function MenuManagementPage() {
   );
 }
 
-function MenuItemFormDialog({ open, item, parentOptions, onClose, onSaved }: { open: boolean; item?: MenuItem | null; parentOptions: Option[]; onClose: () => void; onSaved: () => void }) {
+interface SearchableSelectProps {
+  label: string;
+  value: string;
+  options: Option[];
+  placeholder?: string;
+  searchPlaceholder?: string;
+  emptyText?: string;
+  onChange: (value: string) => void;
+  disabled?: boolean;
+  className?: string;
+}
+
+function SearchableSelect({
+  label,
+  value,
+  options,
+  placeholder = 'Select…',
+  searchPlaceholder = 'Search parent menu...',
+  emptyText = 'No matching parent menu found',
+  onChange,
+  disabled = false,
+  className,
+}: SearchableSelectProps) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutside);
+    return () => document.removeEventListener('mousedown', handleOutside);
+  }, [open]);
+
+  useEffect(() => {
+    if (open) {
+      setTimeout(() => inputRef.current?.focus(), 50);
+    } else {
+      setQuery('');
+    }
+  }, [open]);
+
+  const selectedOption = options.find((o) => o.value === value);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return options;
+    return options.filter((o) => o.label.toLowerCase().includes(q) || o.value.toLowerCase().includes(q));
+  }, [options, query]);
+
+  return (
+    <div ref={containerRef} className={cn('relative', className)}>
+      <label className="mb-1.5 block text-xs font-semibold text-muted-foreground">{label}</label>
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => setOpen((prev) => !prev)}
+        className={cn(
+          'flex h-10 sm:h-9 w-full items-center justify-between rounded-xl border border-input bg-background px-3 text-left text-xs transition-colors hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-ring',
+          disabled && 'cursor-not-allowed opacity-50',
+          open && 'ring-2 ring-ring border-transparent',
+        )}
+      >
+        <span className={cn('truncate', !selectedOption && 'text-muted-foreground')}>
+          {selectedOption ? selectedOption.label : placeholder}
+        </span>
+        <ChevronDown className={cn('ml-2 h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200', open && 'rotate-180')} />
+      </button>
+
+      {open && (
+        <div className="absolute left-0 top-[calc(100%+4px)] z-50 w-full min-w-[240px] rounded-xl border border-border bg-card p-2 shadow-xl animate-in fade-in-50 zoom-in-95">
+          <div className="relative mb-2">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <input
+              ref={inputRef}
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={searchPlaceholder}
+              className="h-8 w-full rounded-lg bg-muted/60 pl-8 pr-7 text-xs outline-none placeholder:text-muted-foreground focus:bg-background focus:ring-1 focus:ring-ring"
+            />
+            {query ? (
+              <button
+                type="button"
+                onClick={() => setQuery('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            ) : null}
+          </div>
+
+          <div className="max-h-52 overflow-y-auto space-y-0.5 overscroll-contain">
+            {filtered.length === 0 ? (
+              <div className="py-4 text-center text-xs text-muted-foreground">{emptyText}</div>
+            ) : (
+              filtered.map((opt) => {
+                const isSelected = opt.value === value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => {
+                      onChange(opt.value);
+                      setOpen(false);
+                    }}
+                    className={cn(
+                      'flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-xs transition-colors hover:bg-muted',
+                      isSelected ? 'bg-emerald-50 font-semibold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300' : 'text-foreground',
+                    )}
+                  >
+                    <span className="truncate">{opt.label}</span>
+                    {isSelected ? <Check className="ml-2 h-3.5 w-3.5 shrink-0 text-emerald-600" /> : null}
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MenuItemFormDrawer({
+  open,
+  item,
+  parentOptions,
+  onClose,
+  onSaved,
+}: {
+  open: boolean;
+  item?: MenuItem | null;
+  parentOptions: Option[];
+  onClose: () => void;
+  onSaved: () => void;
+}) {
   const { t } = useTranslation();
   const isEdit = !!item;
   const [key, setKey] = useState('');
   const [label, setLabel] = useState('');
-  const [surface, setSurface] = useState(String(SURFACE_ADMIN));
+  const [surface, setSurface] = useState(String(SURFACE_COMMON));
   const [parentId, setParentId] = useState('');
   const [route, setRoute] = useState('');
   const [icon, setIcon] = useState('');
@@ -373,7 +528,7 @@ function MenuItemFormDialog({ open, item, parentOptions, onClose, onSaved }: { o
     if (!open) return;
     setKey(item?.key ?? '');
     setLabel(item?.label ?? '');
-    setSurface(String(item?.surface ?? SURFACE_ADMIN));
+    setSurface(String(item?.surface ?? SURFACE_COMMON));
     setParentId(item?.parentId ?? '');
     setRoute(item?.route ?? '');
     setIcon(item?.icon ?? '');
@@ -420,85 +575,242 @@ function MenuItemFormDialog({ open, item, parentOptions, onClose, onSaved }: { o
       setBusy(false);
     }
   };
+
   const surfaceOptions: Option[] = [
-    { value: String(SURFACE_ADMIN), label: t('menuMgmt.surfaceAdmin') },
-    { value: String(SURFACE_APP), label: t('menuMgmt.surfaceApp') },
+    { value: String(SURFACE_COMMON), label: 'Common (Web & Mobile)' },
+    { value: String(SURFACE_ADMIN), label: 'Web (Admin)' },
+    { value: String(SURFACE_APP), label: 'Mobile (App)' },
   ];
   const parentSelectOptions: Option[] = [{ value: '', label: t('menuMgmt.topLevel') }, ...parentOptions];
 
   return (
-    <Dialog open={open} onClose={onClose} className="max-w-xl">
-      <DialogHeader title={isEdit ? t('menuMgmt.editTitle') : t('menuMgmt.addTitle')} />
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div>
-          <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{t('menuMgmt.keyLabel')}</label>
-          <Input value={key} disabled={isEdit} onChange={(e) => setKey(e.target.value)} placeholder={t('menuMgmt.keyPlaceholder')} maxLength={100} />
+    <Drawer
+      open={open}
+      onClose={onClose}
+      className="w-full sm:max-w-xl md:max-w-2xl"
+      title={
+        <div className="flex flex-col">
+          <span className="text-sm sm:text-base font-bold text-foreground">
+            {isEdit ? t('menuMgmt.editTitle') : t('menuMgmt.addTitle')}
+          </span>
+          <span className="text-[11px] sm:text-xs font-normal text-muted-foreground truncate">
+            {isEdit ? (item?.label || item?.key) : 'Create a new navigation item'}
+          </span>
         </div>
-        <div>
-          <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{t('menuMgmt.labelLabel')}</label>
-          <Input autoFocus value={label} onChange={(e) => setLabel(e.target.value)} placeholder={t('menuMgmt.labelPlaceholder')} maxLength={200} />
+      }
+      extra={
+        <div className="hidden sm:flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={onClose} className="h-8.5 rounded-xl px-3 text-xs font-semibold">
+            {t('orgs.cancel')}
+          </Button>
+          <Button
+            size="sm"
+            onClick={submit}
+            disabled={busy || !canSubmit}
+            className="h-8.5 rounded-xl bg-emerald-600 px-4 text-xs font-bold text-white hover:bg-emerald-700 shadow-sm"
+          >
+            {busy ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Check className="mr-1.5 h-3.5 w-3.5 stroke-[2.5]" />}
+            {isEdit ? t('menuMgmt.saveChanges') : t('menuMgmt.save')}
+          </Button>
         </div>
-        <SelectField label={t('menuMgmt.colSurface')} value={surface} options={surfaceOptions} onChange={setSurface} />
-        <SelectField label={t('menuMgmt.parentLabel')} value={parentId} options={parentSelectOptions} placeholder={t('menuMgmt.topLevel')} onChange={setParentId} />
-        <div>
-          <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{t('menuMgmt.colRoute')}</label>
-          <Input value={route} onChange={(e) => setRoute(e.target.value)} placeholder={t('menuMgmt.routePlaceholder')} maxLength={200} />
-        </div>
-        <div className="sm:col-span-2">
-          <MenuIconPicker
-            value={icon}
-            onChange={setIcon}
-            label={t('menuMgmt.colIcon')}
-            placeholder={t('menuMgmt.iconPlaceholder')}
-          />
-        </div>
-        <div className="sm:col-span-2">
-          <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{t('menuMgmt.requiresPermission')}</label>
-          <div className="flex items-center rounded-lg bg-muted p-0.5">
-            <button type="button" onClick={() => setRequiresPermission(false)} className={`h-7 flex-1 rounded-md px-3 text-xs ${!requiresPermission ? 'bg-emerald-600 text-white' : 'text-muted-foreground'}`}>{t('menuMgmt.permEveryone')}</button>
-            <button type="button" onClick={() => setRequiresPermission(true)} className={`h-7 flex-1 rounded-md px-3 text-xs ${requiresPermission ? 'bg-emerald-600 text-white' : 'text-muted-foreground'}`}>{t('menuMgmt.permRestricted')}</button>
-          </div>
-        </div>
-        {requiresPermission ? (
-          <div className="sm:col-span-2">
-            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{t('menuMgmt.resourceLabel')}</label>
-            <Input value={resource} onChange={(e) => setResource(e.target.value)} placeholder={t('menuMgmt.resourcePlaceholder')} maxLength={128} />
-          </div>
-        ) : null}
-        {requiresPermission ? (
-          <div className="sm:col-span-2">
-            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{t('menuMgmt.requiredActions')}</label>
-            <div className="flex flex-wrap gap-2">
-              {ACTIONS.map((a) => {
-                const on = actions.includes(Number(a.value));
-                return (
-                  <button key={a.value} type="button" onClick={() => toggleAction(Number(a.value))} className={`h-8 rounded-lg border px-3 text-xs ${on ? 'border-emerald-600 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40' : 'border-border text-muted-foreground'}`}>
-                    {a.label}
-                  </button>
-                );
-              })}
+      }
+    >
+      <form onSubmit={(e) => { e.preventDefault(); submit(); }} className="flex flex-col min-h-full justify-between">
+        <div className="space-y-4 sm:space-y-5">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5">
+            <div className="col-span-1">
+              <label className="mb-1.5 block text-xs font-semibold text-muted-foreground">
+                {t('menuMgmt.keyLabel')} <span className="text-rose-500">*</span>
+              </label>
+              <Input
+                value={key}
+                disabled={isEdit}
+                onChange={(e) => setKey(e.target.value)}
+                placeholder={t('menuMgmt.keyPlaceholder')}
+                maxLength={100}
+                className="h-10 sm:h-9 rounded-xl text-xs font-mono"
+              />
+            </div>
+            <div className="col-span-1">
+              <label className="mb-1.5 block text-xs font-semibold text-muted-foreground">
+                {t('menuMgmt.labelLabel')} <span className="text-rose-500">*</span>
+              </label>
+              <Input
+                autoFocus
+                value={label}
+                onChange={(e) => setLabel(e.target.value)}
+                placeholder={t('menuMgmt.labelPlaceholder')}
+                maxLength={200}
+                className="h-10 sm:h-9 rounded-xl text-xs"
+              />
+            </div>
+            <div className="col-span-1">
+              <SelectField
+                label={t('menuMgmt.colSurface')}
+                value={surface}
+                options={surfaceOptions}
+                onChange={setSurface}
+              />
+            </div>
+            <div className="col-span-1">
+              <SearchableSelect
+                label={t('menuMgmt.parentLabel')}
+                value={parentId}
+                options={parentSelectOptions}
+                placeholder={t('menuMgmt.topLevel')}
+                searchPlaceholder="Search parent menu..."
+                emptyText="No matching parent menu found"
+                onChange={setParentId}
+              />
+            </div>
+            <div className="col-span-1 sm:col-span-2">
+              <label className="mb-1.5 block text-xs font-semibold text-muted-foreground">
+                {t('menuMgmt.colRoute')}
+              </label>
+              <Input
+                value={route}
+                onChange={(e) => setRoute(e.target.value)}
+                placeholder={t('menuMgmt.routePlaceholder')}
+                maxLength={200}
+                className="h-10 sm:h-9 rounded-xl text-xs font-mono"
+              />
+            </div>
+            <div className="col-span-1 sm:col-span-2">
+              <MenuIconPicker
+                value={icon}
+                onChange={setIcon}
+                label={t('menuMgmt.colIcon')}
+                placeholder={t('menuMgmt.iconPlaceholder')}
+              />
+            </div>
+            <div className="col-span-1 sm:col-span-2">
+              <label className="mb-1.5 block text-xs font-semibold text-muted-foreground">
+                {t('menuMgmt.requiresPermission')}
+              </label>
+              <div className="flex items-center rounded-xl bg-muted/80 p-1">
+                <button
+                  type="button"
+                  onClick={() => setRequiresPermission(false)}
+                  className={cn(
+                    'h-8.5 flex-1 rounded-lg text-xs font-semibold transition-all',
+                    !requiresPermission ? 'bg-card text-emerald-600 shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                  )}
+                >
+                  {t('menuMgmt.permEveryone')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRequiresPermission(true)}
+                  className={cn(
+                    'h-8.5 flex-1 rounded-lg text-xs font-semibold transition-all',
+                    requiresPermission ? 'bg-card text-emerald-600 shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                  )}
+                >
+                  {t('menuMgmt.permRestricted')}
+                </button>
+              </div>
+            </div>
+            {requiresPermission ? (
+              <>
+                <div className="col-span-1 sm:col-span-2">
+                  <label className="mb-1.5 block text-xs font-semibold text-muted-foreground">
+                    {t('menuMgmt.resourceLabel')} <span className="text-rose-500">*</span>
+                  </label>
+                  <Input
+                    value={resource}
+                    onChange={(e) => setResource(e.target.value)}
+                    placeholder={t('menuMgmt.resourcePlaceholder')}
+                    maxLength={128}
+                    className="h-10 sm:h-9 rounded-xl text-xs font-mono"
+                  />
+                </div>
+                <div className="col-span-1 sm:col-span-2">
+                  <label className="mb-1.5 block text-xs font-semibold text-muted-foreground">
+                    {t('menuMgmt.requiredActions')}
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {ACTIONS.map((a) => {
+                      const on = actions.includes(Number(a.value));
+                      return (
+                        <button
+                          key={a.value}
+                          type="button"
+                          onClick={() => toggleAction(Number(a.value))}
+                          className={cn(
+                            'h-8 rounded-lg border px-3 text-xs font-semibold transition-all active:scale-95',
+                            on
+                              ? 'border-emerald-600 bg-emerald-50 text-emerald-700 shadow-xs dark:bg-emerald-950/40 dark:text-emerald-300'
+                              : 'border-border text-muted-foreground hover:border-input hover:text-foreground'
+                          )}
+                        >
+                          {a.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </>
+            ) : null}
+            <div className="col-span-1">
+              <label className="mb-1.5 block text-xs font-semibold text-muted-foreground">
+                {t('menuMgmt.sortOrderLabel')}
+              </label>
+              <Input
+                type="number"
+                min={0}
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value)}
+                className="h-10 sm:h-9 rounded-xl text-xs"
+              />
+            </div>
+            <div className="col-span-1 flex flex-col justify-end gap-2.5">
+              <label className="flex items-center gap-2.5 rounded-xl border border-border/60 bg-muted/30 p-2.5 text-xs font-medium text-foreground hover:bg-muted/60 transition-colors cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={isActive}
+                  onChange={(e) => setIsActive(e.target.checked)}
+                  className="h-4 w-4 rounded border-input accent-emerald-600"
+                />
+                <div className="flex flex-col">
+                  <span className="font-semibold">{t('menuMgmt.activeLabel')}</span>
+                  <span className="text-[11px] text-muted-foreground">Enable this menu item</span>
+                </div>
+              </label>
+              <label className="flex items-center gap-2.5 rounded-xl border border-border/60 bg-muted/30 p-2.5 text-xs font-medium text-foreground hover:bg-muted/60 transition-colors cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={showInSidebar}
+                  onChange={(e) => setShowInSidebar(e.target.checked)}
+                  className="h-4 w-4 rounded border-input accent-emerald-600"
+                />
+                <div className="flex flex-col">
+                  <span className="font-semibold">{t('menuMgmt.sidebarLabel')}</span>
+                  <span className="text-[11px] text-muted-foreground">Show in navigation menu</span>
+                </div>
+              </label>
             </div>
           </div>
-        ) : null}
-        <div>
-          <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{t('menuMgmt.sortOrderLabel')}</label>
-          <Input type="number" min={0} value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} />
         </div>
-        <div className="flex items-end gap-4">
-          <label className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-            <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} className="h-4 w-4 rounded border-input" />
-            {t('menuMgmt.activeLabel')}
-          </label>
-          <label className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-            <input type="checkbox" checked={showInSidebar} onChange={(e) => setShowInSidebar(e.target.checked)} className="h-4 w-4 rounded border-input" />
-            {t('menuMgmt.sidebarLabel')}
-          </label>
+
+        <div className="sticky bottom-0 -mx-4 -mb-4 mt-6 flex items-center justify-end gap-3 border-t border-border bg-card/95 px-4 py-3 backdrop-blur-sm sm:-mx-6 sm:-mb-6 sm:px-6">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            className="h-9 rounded-xl px-4 text-xs font-semibold"
+          >
+            {t('orgs.cancel')}
+          </Button>
+          <Button
+            type="submit"
+            disabled={busy || !canSubmit}
+            className="h-9 rounded-xl bg-emerald-600 px-5 text-xs font-bold text-white hover:bg-emerald-700 shadow-sm"
+          >
+            {busy ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : null}
+            {isEdit ? t('menuMgmt.saveChanges') : t('menuMgmt.save')}
+          </Button>
         </div>
-      </div>
-      <DialogFooter>
-        <Button variant="outline" onClick={onClose} className="h-9 rounded-lg text-xs">{t('orgs.cancel')}</Button>
-        <Button onClick={submit} disabled={busy || !canSubmit} className="h-9 rounded-lg bg-emerald-600 text-xs hover:bg-emerald-700">{isEdit ? t('menuMgmt.saveChanges') : t('menuMgmt.save')}</Button>
-      </DialogFooter>
-    </Dialog>
+      </form>
+    </Drawer>
   );
 }

@@ -13,7 +13,7 @@ import { resolvePersona } from '@shared/lib/roles';
 import { cn } from '@shared/lib/utils';
 import { TopBar } from '@app/components/TopBar';
 import { LanguageSwitcher } from '@shared/components/LanguageSwitcher';
-import { getThemeMode, setThemeMode, type ThemeMode } from '@app/lib/theme';
+import { useAppTheme } from '@shared/lib/useTheme';
 
 function initialsOf(name: string): string {
   const parts = name.replace(/@.*$/, '').replace(/[^a-zA-Z0-9 ]/g, ' ').trim().split(/\s+/).filter(Boolean);
@@ -205,7 +205,7 @@ function PresenceRow() {
   );
 }
 
-const THEME_OPTIONS: { mode: ThemeMode; icon: LucideIcon; labelKey: string }[] = [
+const THEME_OPTIONS: { mode: 'light' | 'dark' | 'system'; icon: LucideIcon; labelKey: string }[] = [
   { mode: 'light', icon: Sun, labelKey: 'profile.themeLight' },
   { mode: 'dark', icon: Moon, labelKey: 'profile.themeDark' },
   { mode: 'system', icon: Monitor, labelKey: 'profile.themeSystem' },
@@ -213,12 +213,7 @@ const THEME_OPTIONS: { mode: ThemeMode; icon: LucideIcon; labelKey: string }[] =
 
 function ThemeRow() {
   const { t } = useTranslation();
-  const [mode, setMode] = useState<ThemeMode>(() => getThemeMode());
-
-  const choose = (next: ThemeMode) => {
-    setMode(next);
-    setThemeMode(next);
-  };
+  const { theme, setTheme } = useAppTheme();
 
   return (
     <div className="flex items-center gap-3 border-t border-border px-4 py-3">
@@ -231,9 +226,18 @@ function ThemeRow() {
       </span>
       <div className="flex rounded-full bg-muted p-1">
         {THEME_OPTIONS.map((o) => {
-          const active = o.mode === mode;
+          const active = o.mode === theme;
           return (
-            <button key={o.mode} type="button" onClick={() => choose(o.mode)} aria-label={t(o.labelKey)} className={cn('flex h-7 w-7 items-center justify-center rounded-full transition-colors', active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground')}>
+            <button
+              key={o.mode}
+              type="button"
+              onClick={() => setTheme(o.mode)}
+              aria-label={t(o.labelKey)}
+              className={cn(
+                'flex h-7 w-7 items-center justify-center rounded-full transition-colors',
+                active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground',
+              )}
+            >
               <o.icon className="h-4 w-4" />
             </button>
           );
