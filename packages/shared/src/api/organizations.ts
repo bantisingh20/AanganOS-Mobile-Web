@@ -2,6 +2,7 @@ import type { ApiClient } from './client';
 import type { PagedData } from './types';
 import { buildQuery, listQueryParams, type ListQuery } from './query';
 import { cacheWrap, cacheInvalidate } from '../lib/cache';
+import { SubscriptionStatus } from './subscriptions';
 
 export interface Organization {
   id: string;
@@ -9,6 +10,7 @@ export interface Organization {
   isArchived: boolean;
   hasActiveAdmin: boolean;
   communityCount: number;
+  expiryData: SubscriptionStatus;
 }
 
 export class OrganizationsClient {

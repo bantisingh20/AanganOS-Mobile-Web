@@ -58,6 +58,13 @@ const ALL = '__all__';
 const PAID_STATUS = 'paid';
 const WAIVED_STATUS = 'waived';
 const FALLBACK_STATUSES = ['unpaid', 'partially_paid', 'paid', 'waived', 'overdue'];
+const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  cash: 'Cash',
+  upi: 'UPI',
+  card: 'Card',
+  bank_transfer: 'Bank Transfer',
+  cheque: 'Cheque',
+};
 const PAYMENT_METHODS = ['cash', 'upi', 'card', 'bank_transfer', 'cheque'];
 
 function formatAmount(n: number): string {
@@ -305,7 +312,7 @@ export function MaintenanceBillingView({ mode = 'admin', permKey, onBack }: Main
       />
       <RecordPaymentDialog
         bill={payingBill}
-        methodOptions={PAYMENT_METHODS.map((m) => ({ value: m, label: t(`billing.method.${m}`) }))}
+        methodOptions={PAYMENT_METHODS.map((m) => ({ value: m, label: PAYMENT_METHOD_LABELS[m] ?? m }))}
         onClose={() => setPayingBill(null)}
         onDone={() => {
           setPayingBill(null);

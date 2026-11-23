@@ -47,38 +47,19 @@ export function OrganizationsPage() {
   const [view, setView] = useState<'table' | 'cards'>('table');
   const isSmall = useIsSmallScreen();
   const effectiveView = isSmall ? 'cards' : view;
+  // const { } = useper();  
 
   const orgQuery = useAsync(
     (signal) => organizations.list({ search: search.trim() || undefined, page, pageSize }, { signal }).catch(() => null),
     [search, page, pageSize, reloadKey],
   );
-  // const commQuery = useAsync(
-  //   (signal) => communities.list({ pageSize: 200 }, {}, { signal }).catch(() => null),
-  //   [reloadKey],
-  // );
+ 
   const renewalsQuery = useAsync(
     (signal) => subscriptions.pendingRenewals({ signal }).catch(() => [] as RenewalRequest[]),
     [reloadKey],
   );
 
   const items = useMemo(() => orgQuery.data?.items ?? [], [orgQuery.data]);
-  const orgIds = useMemo(() => items.map((o) => o.id).join(','), [items]);
-
-  const subsQuery = useAsync(async (signal) => {
-    const ids = orgIds ? orgIds.split(',') : [];
-    const results = await Promise.all(ids.map((id) => subscriptions.byOrg(id, { signal }).catch(() => null)));
-    const map = new Map<string, SubscriptionStatus>();
-    results.forEach((s, i) => { if (s) map.set(ids[i]!, s); });
-    return map;
-  }, [orgIds]);
-  const subByOrg = subsQuery.data ?? new Map<string, SubscriptionStatus>();
-
-  // const commCountByOrg = useMemo(() => {
-  //   const m = new Map<string, number>();
-  //   (commQuery.data?.items ?? []).forEach((c: Community) => m.set(c.organizationId, (m.get(c.organizationId) ?? 0) + 1));
-  //   return m;
-  // }, [commQuery.data]);
-
   const renewals = renewalsQuery.data ?? [];
   const reload = () => setReloadKey((k) => k + 1);
 
@@ -130,10 +111,7 @@ export function OrganizationsPage() {
               <p className="mt-0.5 truncate text-xs text-muted-foreground">{t('orgs.subtitle')}</p>
             </div>
           </div>
-          <Button onClick={() => setCreating(true)} className="h-9 gap-1.5 rounded-xl bg-emerald-600 text-xs hover:bg-emerald-700">
-            <Plus className="h-4 w-4" />
-            {t('orgs.add')}
-          </Button>
+          <Button onClick={() => setCreating(true)} icon={<Plus className="h-4 w-4" />} label={t('orgs.add')} className="h-9 gap-1.5 rounded-xl bg-emerald-600 text-xs hover:bg-emerald-700" />
         </div>
       </Card>
 
@@ -166,16 +144,12 @@ export function OrganizationsPage() {
             {t('orgs.total')}: <span className="text-foreground">{orgQuery.data?.totalCount ?? 0}</span>
           </span>
           <div className="hidden items-center rounded-lg border border-border p-0.5 md:flex">
-            <button type="button" onClick={() => setView('table')} aria-label="Table view" className={`flex h-7 w-7 items-center justify-center rounded-md ${view === 'table' ? 'bg-emerald-600 text-white' : 'text-muted-foreground hover:bg-accent'}`}>
-              <TableIcon className="h-4 w-4" />
-            </button>
-            <button type="button" onClick={() => setView('cards')} aria-label="Card view" className={`flex h-7 w-7 items-center justify-center rounded-md ${view === 'cards' ? 'bg-emerald-600 text-white' : 'text-muted-foreground hover:bg-accent'}`}>
-              <LayoutGrid className="h-4 w-4" />
-            </button>
+            <Button type="button" variant={effectiveView === 'table' ? 'default' : 'outline'} onClick={() => setView('table')} aria-label="Table view" icon={<TableIcon className="h-4 w-4" />} className={`flex h-7 w-7 items-center justify-center rounded-md ${view === 'table' ? 'bg-emerald-600 text-white' : 'text-muted-foreground hover:bg-accent'}`} />
+            <Button type="button" variant={effectiveView === 'cards' ? 'default' : 'outline'} onClick={() => setView('cards')} aria-label="Card view" icon={<LayoutGrid className="h-4 w-4" />} className={`flex h-7 w-7 items-center justify-center rounded-md ${view === 'cards' ? 'bg-emerald-600 text-white' : 'text-muted-foreground hover:bg-accent'}`} />
           </div>
-          <button type="button" onClick={reload} aria-label="Refresh" className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-emerald-600">
-            <RefreshCw className={`h-4 w-4 ${orgQuery.loading ? 'animate-spin' : ''}`} />
-          </button>
+
+          <Button type="button" variant="outline" onClick={reload} aria-label="Refresh" icon={<RefreshCw className={`h-4 w-4 ${orgQuery.loading ? 'animate-spin' : ''}`} />} className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-emerald-600" />
+
         </div>
       </Card>
 
@@ -198,8 +172,6 @@ export function OrganizationsPage() {
             </THead>
             <TBody>
               {items.map((org, i) => {
-                const sub = subByOrg.get(org.id);
-                // const count = 9;
                 return (
                   <TR key={org.id}>
                     <TD className="text-center text-[11px] text-muted-foreground">{(page - 1) * pageSize + i + 1}</TD>
@@ -216,7 +188,7 @@ export function OrganizationsPage() {
                     </TD>
                     <TD><CommunitiesPill count={org.communityCount} onClick={() => navigate(`/communities?organizationId=${org.id}`)} /></TD>
                     <TD><StatusBadge org={org} /></TD>
-                    <TD><SubBadge sub={sub} /></TD>
+                    <TD><SubBadge sub={org.expiryData} /></TD>
                     <TD>
                       <div className="flex items-center justify-end gap-1.5">
                         <OrgActions org={org} onExpiry={() => setExpiryOrg(org)} onEdit={() => setEditing(org)} onDelete={() => setConfirmDelete(org)} onActivate={() => setConfirmActivate(org)} />
@@ -231,8 +203,6 @@ export function OrganizationsPage() {
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {items.map((org) => {
-            const sub = subByOrg.get(org.id);
-            // const count =commCou ntByOrg.get(org.id) ?? 0;
             return (
               <Card key={org.id} className="flex flex-col gap-3 rounded-2xl p-4">
                 <div className="flex items-center gap-2.5">
@@ -246,7 +216,7 @@ export function OrganizationsPage() {
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <StatusBadge org={org} />
-                  <SubBadge sub={sub} />
+                  <SubBadge sub={org.expiryData} />
                   <CommunitiesPill count={org.communityCount} onClick={() => navigate(`/communities?organizationId=${org.id}`)} />
                 </div>
                 <div className="flex items-center justify-end gap-1.5 border-t border-border pt-3">
@@ -272,8 +242,14 @@ export function OrganizationsPage() {
 
       <OrgFormDialog open={creating} onClose={() => setCreating(false)} onSaved={() => { setCreating(false); reload(); }} />
       <OrgFormDialog open={!!editing} org={editing} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); reload(); }} />
-      <SetExpiryDialog open={!!expiryOrg} org={expiryOrg} current={expiryOrg ? subByOrg.get(expiryOrg.id) ?? null : null} onClose={() => setExpiryOrg(null)} onSaved={() => { setExpiryOrg(null); reload(); }} />
-      <ApproveRenewalDialog open={!!approveReq} request={approveReq} onClose={() => setApproveReq(null)} onSaved={() => { setApproveReq(null); reload(); }} />
+      <SetExpiryDialog open={!!expiryOrg} 
+        org={expiryOrg} 
+        current={expiryOrg ? orgQuery.data?.items.find((o) => o.id === expiryOrg.id)?.expiryData ?? null : null} 
+        onClose={() => setExpiryOrg(null)} onSaved={() => { setExpiryOrg(null); reload(); }}
+        request={approveReq} 
+        isApprovalRequired={false}
+        />
+      {/* <ApproveRenewalDialog open={!!approveReq} request={approveReq} onClose={() => setApproveReq(null)} onSaved={() => { setApproveReq(null); reload(); }} /> */}
 
       <ConfirmDialog
         open={!!confirmActivate}
@@ -305,14 +281,10 @@ export function OrganizationsPage() {
 function CommunitiesPill({ count, onClick }: { count: number; onClick: () => void }) {
   const { t } = useTranslation();
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground transition-colors hover:border-emerald-500 hover:text-emerald-600"
-    >
+    <Button type="button" onClick={onClick} className="bg-muted text-[11px] font-medium text-muted-foreground hover:bg-accent">
       <Building className="h-3 w-3" />
       {t('orgs.communityCount', { count })}
-    </button>
+    </Button>
   );
 }
 
@@ -326,6 +298,7 @@ function StatusBadge({ org }: { org: Organization }) {
 }
 
 function SubBadge({ sub }: { sub: SubscriptionStatus | undefined }) {
+  console.log(sub)
   const { t } = useTranslation();
   if (!sub || !sub.hasSubscription) return <Badge tone="muted">{t('orgs.notSet')}</Badge>;
   if (sub.isExpired) return <Badge tone="danger">{t('orgs.expired')}</Badge>;
@@ -337,21 +310,14 @@ function OrgActions({ org, onExpiry, onEdit, onDelete, onActivate }: { org: Orga
   const { t } = useTranslation();
   return (
     <>
-      <button type="button" onClick={onExpiry} title={t('orgs.setExpiry')} className="flex h-8 w-8 items-center justify-center rounded-lg border border-emerald-500/40 text-emerald-600 hover:border-emerald-500">
-        <CalendarClock className="h-4 w-4" />
-      </button>
-      {!org.hasActiveAdmin ? (
-        <button type="button" onClick={onActivate} title={t('orgs.activate')} className="flex h-8 items-center justify-center gap-1 rounded-lg border border-emerald-500/40 px-2 text-[11px] font-medium text-emerald-600 hover:border-emerald-500">
-          <CheckCircle2 className="h-4 w-4" />
-          {t('orgs.activate')}
-        </button>
-      ) : null}
-      <button type="button" onClick={onEdit} title={t('orgs.edit')} className="flex h-8 w-8 items-center justify-center rounded-lg border border-emerald-500/40 text-emerald-600 hover:border-emerald-500">
-        <Pencil className="h-4 w-4" />
-      </button>
-      <button type="button" onClick={onDelete} title={t('orgs.delete')} className="flex h-8 w-8 items-center justify-center rounded-lg border border-rose-300 text-rose-600 hover:bg-rose-50">
-        <Trash2 className="h-4 w-4" />
-      </button>
+      <Button type="button" variant="outline" icon={<CalendarClock className="h-4 w-4" />} onClick={onExpiry} title={t('orgs.setExpiry')} className="flex h-8 w-8 items-center justify-center rounded-lg border border-emerald-500/40 text-emerald-600 hover:border-emerald-500" />
+      <Button type="button" variant="outline" icon={<CheckCircle2 className="h-4 w-4" />} 
+        onClick={onActivate} canShow={!org.hasActiveAdmin} title={t('orgs.activate')} 
+        label={t('orgs.activate')}
+        className="flex h-8 items-center justify-center gap-1 rounded-lg border border-emerald-500/40 px-2 text-[11px] font-medium text-emerald-600 hover:border-emerald-500" />
+
+      <Button type="button" variant="outline" icon={<Pencil className="h-4 w-4" />} onClick={onEdit} title={t('orgs.edit')} className="flex h-8 w-8 items-center justify-center rounded-lg border border-emerald-500/40 text-emerald-600 hover:border-emerald-500" />
+      <Button type="button" variant="outline" icon={<Trash2 className="h-4 w-4" />} onClick={onDelete} title={t('orgs.delete')} className="flex h-8 w-8 items-center justify-center rounded-lg border border-rose-300 text-rose-600 hover:bg-rose-50" />
     </>
   );
 }
@@ -400,7 +366,7 @@ function defaultExpiry(months: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-function SetExpiryDialog({ open, org, current, onClose, onSaved }: { open: boolean; org?: Organization | null; current: SubscriptionStatus | null; onClose: () => void; onSaved: () => void }) {
+function SetExpiryDialog({ open, org, current, onClose, onSaved, isApprovalRequired, request }: { open: boolean; org?: Organization | null; current: SubscriptionStatus | null; onClose: () => void; onSaved: () => void; isApprovalRequired: boolean, request?: RenewalRequest | null }) {
   const { t } = useTranslation();
   const initialMonths = current?.planMonths && current.planMonths > 0 ? String(current.planMonths) : '12';
   const [planMonths, setPlanMonths] = useState(initialMonths);
@@ -411,12 +377,26 @@ function SetExpiryDialog({ open, org, current, onClose, onSaved }: { open: boole
     if (busy || !org || !expiresAt) return;
     setBusy(true);
     try {
-      await subscriptions.setExpiry({
+      if(isApprovalRequired) {
+        if(!request) {
+          setBusy(false);
+          toast.error('No renewal request found');
+          return;
+        }
+        await subscriptions.approveRenewal( request!.id, {
+        planMonths: Number(planMonths),
+        startsAtUtc: new Date().toISOString(),
+        expiresAtUtc: new Date(expiresAt).toISOString(),
+      });
+      }
+      else{
+        await subscriptions.setExpiry({
         organizationId: org.id,
         planMonths: Number(planMonths),
         startsAtUtc: new Date().toISOString(),
         expiresAtUtc: new Date(expiresAt).toISOString(),
       });
+      }
       toast.success('Subscription updated');
       onSaved();
     } catch (err) {

@@ -8,16 +8,26 @@ export function PageLayout({
   onBack,
   right,
   children,
+  mode = 'mobile',
 }: {
   title: string;
   subtitle?: string;
   onBack?: () => void;
   right?: ReactNode;
   children: ReactNode;
+  mode?: 'mobile' | 'admin';
 }) {
   const navigate = useNavigate();
   const back = onBack ?? (() => navigate(-1));
 
+  if(mode === 'admin') {
+    console.log('admin mode');
+    return (
+      <>
+        {children}
+      </>
+    );
+  }
   return (
     <div className="mx-auto flex h-[100dvh] w-full max-w-2xl flex-col overflow-hidden bg-background">
       <header className="safe-top flex shrink-0 items-center gap-2 bg-primary px-3 pb-3 pt-3 text-primary-foreground">

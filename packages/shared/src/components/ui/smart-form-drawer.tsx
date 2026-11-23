@@ -22,6 +22,11 @@ export interface SmartFormDrawerProps {
   isSaving?: boolean;
   saveDisabled?: boolean;
   /**
+   * Whether to display 'cross' (X icon) or 'cancel' (text button).
+   * Default is 'cross' so only one close control is shown.
+   */
+  closeButton?: 'cross' | 'cancel';
+  /**
    * Optional custom header action elements placed alongside Save/Cancel.
    */
   headerActions?: ReactNode;
@@ -40,6 +45,7 @@ export function SmartFormDrawer({
   cancelLabel = 'Cancel',
   isSaving = false,
   saveDisabled = false,
+  closeButton = 'cross',
   headerActions,
   children,
   className,
@@ -77,23 +83,25 @@ export function SmartFormDrawer({
         {/* description={subtitle}  */}
         <div className="py-2">{children}</div>
         <DialogFooter>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={isSaving}
-            onClick={onClose}
-            className="h-9 rounded-xl text-xs font-semibold"
-          >
-            {cancelLabel}
-          </Button>
+          {closeButton === 'cancel' ? (
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isSaving}
+              onClick={onClose}
+              className="h-10 rounded-xl px-4 text-xs sm:text-sm font-semibold hover:bg-muted active:scale-95 transition-all"
+            >
+              {cancelLabel}
+            </Button>
+          ) : null}
           {onSave ? (
             <Button
               type="button"
               disabled={saveDisabled || isSaving}
               onClick={onSave}
-              className="h-9 rounded-xl bg-primary text-xs font-bold text-white hover:bg-primary/90"
+              className="h-10 rounded-xl bg-primary px-4 sm:px-5 text-xs sm:text-sm font-bold text-white hover:bg-primary/90 active:scale-95 transition-all"
             >
-              {isSaving ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : null}
+              {isSaving ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : null}
               {saveLabel}
             </Button>
           ) : null}
@@ -128,59 +136,64 @@ export function SmartFormDrawer({
       >
         {/* Sticky Header with Title and Top-Right Action Buttons */}
         <header className="safe-top sticky top-0 z-10 flex shrink-0 items-center justify-between border-b border-border/70 bg-card/95 px-4 py-3 backdrop-blur-sm">
-          {/* Left: Title & Subtitle */}
+          {/* Left: Title & Subtitle (subtitle hidden on mobile screen per requirements) */}
           <div className="min-w-0 flex-1 pr-3">
             <h2 className="truncate text-base font-extrabold text-foreground sm:text-lg">
               {title}
             </h2>
             {subtitle ? (
-              <p className="truncate text-xs font-medium text-muted-foreground">
+              <p className="hidden sm:block truncate text-xs font-medium text-muted-foreground mt-0.5">
                 {subtitle}
               </p>
             ) : null}
           </div>
 
-          {/* Top-Right: Cancel + Save + Close Button */}
+          {/* Top-Right: Action Buttons (Cancel OR Cross, Medium size h-10 buttons) */}
           <div className="flex shrink-0 items-center gap-2">
             {headerActions}
 
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={isSaving}
-              onClick={onClose}
-              className="h-8.5 rounded-xl px-3 text-xs font-semibold hover:bg-muted active:scale-95 transition-all"
-            >
-              {cancelLabel}
-            </Button>
+            {/* Cancel Button (only shown if closeButton === 'cancel') */}
+            {closeButton === 'cancel' ? (
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isSaving}
+                onClick={onClose}
+                className="h-10 rounded-xl px-4 text-xs sm:text-sm font-semibold hover:bg-muted active:scale-95 transition-all"
+              >
+                {cancelLabel}
+              </Button>
+            ) : null}
 
+            {/* Save / Submit Button (medium size h-10) */}
             {onSave ? (
               <Button
                 type="button"
-                size="sm"
                 disabled={saveDisabled || isSaving}
                 onClick={onSave}
-                className="h-8.5 rounded-xl bg-primary px-3.5 text-xs font-bold text-primary-foreground shadow-sm hover:bg-primary/90 active:scale-95 transition-all"
+                className="h-10 rounded-xl bg-primary px-4 sm:px-5 text-xs sm:text-sm font-bold text-primary-foreground shadow-sm hover:bg-primary/90 active:scale-95 transition-all"
               >
                 {isSaving ? (
-                  <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
                 ) : (
-                  <Check className="mr-1 h-3.5 w-3.5 stroke-[2.5]" />
+                  <Check className="mr-1.5 h-4 w-4 stroke-[2.5]" />
                 )}
                 {saveLabel}
               </Button>
             ) : null}
 
-            <button
-              type="button"
-              disabled={isSaving}
-              onClick={onClose}
-              aria-label="Close"
-              className="ml-1 flex h-8.5 w-8.5 items-center justify-center rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground active:scale-95 transition-all"
-            >
-              <X className="h-4 w-4" />
-            </button>
+            {/* Cross Button (only shown if closeButton === 'cross') */}
+            {closeButton === 'cross' ? (
+              <button
+                type="button"
+                disabled={isSaving}
+                onClick={onClose}
+                aria-label="Close"
+                className="flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground active:scale-95 transition-all"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            ) : null}
           </div>
         </header>
 

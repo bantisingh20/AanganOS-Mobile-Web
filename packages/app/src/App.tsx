@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { ThemeProvider } from '@shared/lib/useTheme';
 import { AuthProvider, useAuth } from '@shared/store/AuthContext';
+import { Toaster } from '@shared/components/ui/sonner';
 import { WelcomeScreen } from '@app/screens/WelcomeScreen';
 import { SplashScreen, hasSeenSplash } from '@app/screens/SplashScreen';
 import { LoginScreen } from '@app/screens/LoginScreen';
@@ -13,9 +14,7 @@ import { useBackButton } from '@app/lib/useBackButton';
 import { AnnouncementsScreen } from '@app/screens/features/AnnouncementsScreen';
 import { NotificationsScreen } from '@app/screens/features/NotificationsScreen';
 import { MyProfileScreen } from '@app/screens/features/MyProfileScreen';
-import { MyTicketsScreen } from '@app/screens/features/MyTicketsScreen';
-import { RaiseTicketScreen } from '@app/screens/features/RaiseTicketScreen';
-import { TicketDetailScreen } from '@app/screens/features/TicketDetailScreen';
+import { TicketsListPage, SubmitTicketPage, TicketDetailsPage } from '@shared/help-desk';
 import { MyHouseholdScreen } from '@app/screens/features/MyHouseholdScreen';
 import { MaintenanceScreen } from '@app/screens/features/MaintenanceScreen';
 import { BillingScreen } from '@app/screens/features/BillingScreen';
@@ -75,10 +74,10 @@ export function App() {
           <Route path="/announcements" element={<RequireAuth><AnnouncementsScreen /></RequireAuth>} />
           <Route path="/notifications" element={<RequireAuth><NotificationsScreen /></RequireAuth>} />
           <Route path="/my-profile" element={<RequireAuth><MyProfileScreen /></RequireAuth>} />
-          <Route path="/my-tickets" element={<RequireAuth><MyTicketsScreen /></RequireAuth>} />
-          <Route path="/helpdesk" element={<RequireAuth><MyTicketsScreen /></RequireAuth>} />
-          <Route path="/my-tickets/:id" element={<RequireAuth><TicketDetailScreen /></RequireAuth>} />
-          <Route path="/raise-ticket" element={<RequireAuth><RaiseTicketScreen /></RequireAuth>} />
+          <Route path="/my-tickets" element={<RequireAuth><TicketsListPage mode="mobile" submitPath="/raise-ticket" detailsPathPrefix="/my-tickets/" /></RequireAuth>} />
+          <Route path="/helpdesk" element={<RequireAuth><TicketsListPage mode="mobile" submitPath="/raise-ticket" detailsPathPrefix="/my-tickets/" /></RequireAuth>} />
+          <Route path="/my-tickets/:id" element={<RequireAuth><TicketDetailsPage mode="mobile" listPath="/my-tickets" /></RequireAuth>} />
+          <Route path="/raise-ticket" element={<RequireAuth><SubmitTicketPage mode="mobile" listPath="/my-tickets" /></RequireAuth>} />
           <Route path="/my-household" element={<RequireAuth><MyHouseholdScreen /></RequireAuth>} />
           <Route path="/maintenance" element={<RequireAuth><MaintenanceScreen /></RequireAuth>} />
           <Route path="/billing" element={<RequireAuth><BillingScreen /></RequireAuth>} />
@@ -102,6 +101,7 @@ export function App() {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
+      <Toaster position="top-center" richColors />
     </AuthProvider>
     </ThemeProvider>
   );

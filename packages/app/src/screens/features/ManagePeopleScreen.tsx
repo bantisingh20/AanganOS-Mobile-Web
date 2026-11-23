@@ -10,6 +10,7 @@ import { Badge } from '@shared/components/ui/badge';
 import { SmartFormDrawer } from '@shared/components/ui/smart-form-drawer';
 import { ConfirmDialog } from '@shared/components/ui/confirm-dialog';
 import { Input } from '@shared/components/ui/input';
+import { PhoneField } from '@shared/components/PhoneField';
 import { SelectField } from '@shared/components/SelectField';
 import { residents, users, units as unitsApi } from '@shared/services';
 import type { Resident } from '@shared/api/residents';
@@ -406,7 +407,7 @@ function PersonDialog({
       onSave={submit}
       isSaving={busy}
       saveLabel={isEdit ? 'Update' : 'Add Person'}
-      cancelLabel="Cancel"
+      closeButton="cross"
     >
       <div className="flex flex-col gap-4 text-xs">
         <div>
@@ -415,17 +416,21 @@ function PersonDialog({
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Ramesh Kumar"
-            className="h-10 text-xs sm:text-sm"
+            className="h-10 text-xs sm:text-sm rounded-xl"
           />
         </div>
 
         <div>
-          <label className="mb-1.5 block font-bold text-foreground">Mobile Phone *</label>
-          <Input
+          <PhoneField
+            label="Mobile Phone *"
             value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="+91 98765 43210"
-            className="h-10 text-xs sm:text-sm"
+            onChange={setPhone}
+            enableContactPicker
+            onContactPicked={(c) => {
+              if (c.name && !name.trim()) {
+                setName(c.name);
+              }
+            }}
           />
         </div>
 

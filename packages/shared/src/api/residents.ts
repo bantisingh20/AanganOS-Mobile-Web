@@ -1,6 +1,7 @@
 import type { ApiClient } from './client';
 import type { PagedData } from './types';
 import { buildQuery, listQueryParams, type ListQuery } from './query';
+import { cacheGet, cacheSet } from '../lib/cache';
 
 export const ResidentVerificationStatus = {
   Draft: 'draft',
@@ -157,8 +158,15 @@ export interface ResidentLoginResult {
 export class ResidentsClient {
   constructor(private readonly api: ApiClient) {}
 
-  me(options?: { signal?: AbortSignal }): Promise<ResidentMe> {
-    return this.api.get<ResidentMe>('/api/v1/residents/me', options);
+  async me(options?: { signal?: AbortSignal; forceRefresh?: boolean }): Promise<ResidentMe> {
+    const key = 'residents_me';
+    if (!options?.forceRefresh) {
+      const cached = cacheGet<ResidentMe>(key);
+      if (cached) return cached;
+    }
+    const data = await this.api.get<ResidentMe>('/api/v1/residents/me', options);
+    cacheSet(key, data, 15 * 60 * 1000);
+    return data;
   }
 
   list(query: ListQuery = {}, filters: ResidentListFilters = {}, options?: { signal?: AbortSignal }): Promise<PagedData<Resident>> {

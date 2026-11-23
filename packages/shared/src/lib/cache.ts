@@ -9,12 +9,18 @@ interface CacheEntry<T> {
 
 const memoryCache = new Map<string, CacheEntry<unknown>>();
 
-function isStorageAvailable(): boolean {
+function getStorage(): Storage | null {
   try {
-    return typeof window !== 'undefined' && typeof window.sessionStorage !== 'undefined';
+    if (typeof window !== 'undefined' && typeof window.localStorage !== 'undefined') {
+      return window.localStorage;
+    }
+    if (typeof window !== 'undefined' && typeof window.sessionStorage !== 'undefined') {
+      return window.sessionStorage;
+    }
   } catch {
-    return false;
+    // Ignore
   }
+  return null;
 }
 
 export function cacheGet<T>(key: string): T | null {
@@ -29,10 +35,11 @@ export function cacheGet<T>(key: string): T | null {
     memoryCache.delete(key);
   }
 
-  // 2. Check sessionStorage
-  if (isStorageAvailable()) {
+  // 2. Check localStorage / sessionStorage
+  const storage = getStorage();
+  if (storage) {
     try {
-      const raw = window.sessionStorage.getItem(STORAGE_PREFIX + key);
+      const raw = storage.getItem(STORAGE_PREFIX + key);
       if (raw) {
         const parsed = JSON.parse(raw) as CacheEntry<T>;
         if (now - parsed.timestamp < parsed.ttlMs) {
@@ -40,7 +47,7 @@ export function cacheGet<T>(key: string): T | null {
           memoryCache.set(key, parsed as CacheEntry<unknown>);
           return parsed.data;
         }
-        window.sessionStorage.removeItem(STORAGE_PREFIX + key);
+        storage.removeItem(STORAGE_PREFIX + key);
       }
     } catch {
       // Ignore serialization or storage quota errors
@@ -59,9 +66,10 @@ export function cacheSet<T>(key: string, data: T, ttlMs: number = DEFAULT_TTL_MS
 
   memoryCache.set(key, entry as CacheEntry<unknown>);
 
-  if (isStorageAvailable()) {
+  const storage = getStorage();
+  if (storage) {
     try {
-      window.sessionStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(entry));
+      storage.setItem(STORAGE_PREFIX + key, JSON.stringify(entry));
     } catch {
       // Ignore quota errors
     }
@@ -71,14 +79,15 @@ export function cacheSet<T>(key: string, data: T, ttlMs: number = DEFAULT_TTL_MS
 export function cacheInvalidate(prefixOrKey?: string): void {
   if (!prefixOrKey) {
     memoryCache.clear();
-    if (isStorageAvailable()) {
+    const storage = getStorage();
+    if (storage) {
       try {
         const keysToRemove: string[] = [];
-        for (let i = 0; i < window.sessionStorage.length; i++) {
-          const k = window.sessionStorage.key(i);
+        for (let i = 0; i < storage.length; i++) {
+          const k = storage.key(i);
           if (k?.startsWith(STORAGE_PREFIX)) keysToRemove.push(k);
         }
-        keysToRemove.forEach((k) => window.sessionStorage.removeItem(k));
+        keysToRemove.forEach((k) => storage.removeItem(k));
       } catch {
         // Ignore
       }
@@ -93,17 +102,18 @@ export function cacheInvalidate(prefixOrKey?: string): void {
     }
   }
 
-  if (isStorageAvailable()) {
+  const storage = getStorage();
+  if (storage) {
     try {
       const fullPrefix = STORAGE_PREFIX + prefixOrKey;
       const keysToRemove: string[] = [];
-      for (let i = 0; i < window.sessionStorage.length; i++) {
-        const k = window.sessionStorage.key(i);
+      for (let i = 0; i < storage.length; i++) {
+        const k = storage.key(i);
         if (k && (k === fullPrefix || k.startsWith(fullPrefix))) {
           keysToRemove.push(k);
         }
       }
-      keysToRemove.forEach((k) => window.sessionStorage.removeItem(k));
+      keysToRemove.forEach((k) => storage.removeItem(k));
     } catch {
       // Ignore
     }

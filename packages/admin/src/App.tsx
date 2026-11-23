@@ -12,7 +12,7 @@ import { UnitsPage } from '@admin/pages/UnitsPage';
 import { ResidentsPage } from '@admin/pages/ResidentsPage';
 import { AnnouncementsPage } from '@admin/pages/AnnouncementsPage';
 import { AdminUsersPage } from '@admin/pages/AdminUsersPage';
-import { TicketsPage } from '@admin/pages/TicketsPage';
+import { TicketsListPage, SubmitTicketPage, TicketDetailsPage } from '@shared/help-desk';
 import { AmenitiesPage } from '@admin/pages/AmenitiesPage';
 import { MaintenanceBillingPage } from '@admin/pages/MaintenanceBillingPage';
 import { VisitorsPage } from '@admin/pages/VisitorsPage';
@@ -51,9 +51,14 @@ export function App() {
           <Route path="/residents" element={<RequireAuth><ResidentsPage /></RequireAuth>} />
           <Route path="/announcements" element={<RequireAuth><AnnouncementsPage /></RequireAuth>} />
           <Route path="/admin-users" element={<RequireAuth><AdminUsersPage /></RequireAuth>} />
-          <Route path="/maintenance" element={<RequireAuth><TicketsPage /></RequireAuth>} />
+          <Route path="/maintenance" element={<RequireAuth><TicketsListPage mode="admin" submitPath="/maintenance/new" detailsPathPrefix="/maintenance/" /></RequireAuth>} />
+          <Route path="/maintenance/new" element={<RequireAuth><SubmitTicketPage mode="admin" listPath="/maintenance" /></RequireAuth>} />
+          <Route path="/maintenance/:id" element={<RequireAuth><TicketDetailsPage mode="admin" listPath="/maintenance" /></RequireAuth>} />
+          <Route path="/tickets" element={<RequireAuth><TicketsListPage mode="admin" submitPath="/tickets/new" detailsPathPrefix="/tickets/" /></RequireAuth>} />
+          <Route path="/tickets/new" element={<RequireAuth><SubmitTicketPage mode="admin" listPath="/tickets" /></RequireAuth>} />
+          <Route path="/tickets/:id" element={<RequireAuth><TicketDetailsPage mode="admin" listPath="/tickets" /></RequireAuth>} />
           <Route path="/amenities" element={<RequireAuth><AmenitiesPage /></RequireAuth>} />
-          <Route path="/maintenance-billing" element={<RequireAuth><MaintenanceBillingPage /></RequireAuth>} />
+          <Route path="/billing" element={<RequireAuth><MaintenanceBillingPage /></RequireAuth>} />
           <Route path="/visitors" element={<RequireAuth><VisitorsPage /></RequireAuth>} />
           <Route path="/notifications" element={<RequireAuth><NotificationsPage /></RequireAuth>} />
           <Route path="/notification-templates" element={<RequireAuth><NotificationTemplatesPage /></RequireAuth>} />

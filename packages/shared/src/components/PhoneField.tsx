@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import { Contact2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@shared/components/ui/select';
 import { Input } from '@shared/components/ui/input';
 import { cn } from '@shared/lib/utils';
@@ -33,6 +35,8 @@ export interface PhoneFieldProps {
   onEnter?: () => void;
   defaultCountry?: string;
   size?: 'sm' | 'lg';
+  enableContactPicker?: boolean;
+  onContactPicked?: (contact: { name?: string; phone: string }) => void;
 }
 
 export function PhoneField({
@@ -45,6 +49,8 @@ export function PhoneField({
   onEnter,
   defaultCountry = 'IN',
   size = 'sm',
+  enableContactPicker = false,
+  onContactPicked,
 }: PhoneFieldProps) {
   const [countryCode, setCountryCode] = useState<string>(() => {
     const matched = [...COUNTRIES].sort((a, b) => b.dialCode.length - a.dialCode.length).find((c) => value.startsWith(c.dialCode));
@@ -68,6 +74,38 @@ export function PhoneField({
   const onNumber = (e: React.ChangeEvent<HTMLInputElement>) => {
     const digits = e.target.value.replace(/\D/g, '').slice(0, country.length);
     onChange(digits ? `${country.dialCode}${digits}` : '');
+  };
+
+  const handlePickContact = async () => {
+    if (typeof navigator !== 'undefined' && 'contacts' in navigator && 'ContactsManager' in window) {
+      try {
+        const results = await (navigator as any).contacts.select(['name', 'tel'], { multiple: false });
+        if (results && results.length > 0) {
+          const c = results[0];
+          const rawPhone = Array.isArray(c.tel) ? c.tel[0] : c.tel;
+          const rawName = Array.isArray(c.name) ? c.name[0] : c.name;
+          if (rawPhone) {
+            const cleaned = String(rawPhone).replace(/[^\d+]/g, '');
+            const matched = [...COUNTRIES].sort((a, b) => b.dialCode.length - a.dialCode.length).find((co) => cleaned.startsWith(co.dialCode));
+            let full = '';
+            if (matched) {
+              setCountryCode(matched.code);
+              const digits = cleaned.slice(matched.dialCode.length).replace(/\D/g, '').slice(0, matched.length);
+              full = `${matched.dialCode}${digits}`;
+            } else {
+              const digits = cleaned.replace(/\D/g, '').slice(-country.length);
+              full = `${country.dialCode}${digits}`;
+            }
+            onChange(full);
+            onContactPicked?.({ name: rawName, phone: full });
+          }
+        }
+      } catch {
+        // User cancelled or dismissed picker
+      }
+    } else {
+      toast.info('Contact picker is available on mobile devices (Chrome on Android).');
+    }
   };
 
   const h = size === 'lg' ? 'h-12' : 'h-10';
@@ -106,6 +144,21 @@ export function PhoneField({
           onKeyDown={(e) => { if (e.key === 'Enter') onEnter?.(); }}
           className={cn(h, 'flex-1', size === 'lg' ? 'text-base' : 'text-sm', error ? 'border-destructive' : '')}
         />
+        {enableContactPicker || onContactPicked ? (
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={handlePickContact}
+            title="Pick from contacts"
+            aria-label="Pick from contacts"
+            className={cn(
+              h,
+              'flex items-center justify-center rounded-xl border border-input bg-card px-3 text-muted-foreground transition-all hover:bg-muted hover:text-foreground active:scale-95 shrink-0 shadow-xs'
+            )}
+          >
+            <Contact2 className="h-4 w-4" />
+          </button>
+        ) : null}
       </div>
     </Field>
   );

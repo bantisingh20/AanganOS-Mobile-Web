@@ -2,6 +2,10 @@
 
 export const gu: Translation = {
   common: {
+    common: 'સામાન્ય',
+    close: 'બંધ કરો',
+    more: 'વધુ',
+    details: 'વિગતો',
     appName: 'AanganOS',
     tagline: 'સ્માર્ટ લિવિંગ. મજબૂત સમુદાય.',
     login: 'લોગિન',
@@ -548,6 +552,8 @@ export const gu: Translation = {
     ownerAdded: 'માલિક ઉમેરાયો',
   },
   myTasks: {
+    viewAlert: 'ચેતવણી જુઓ',
+    reviewPayment: 'ચુકવણીની સમીક્ષા કરો',
     title: 'તમારી ક્રિયા જરૂરી',
     subtitleEmpty: 'બધું પૂર્ણ છે',
     itemsOne: '{{count}} આઇટમ પર ધ્યાન આપો',
@@ -604,6 +610,8 @@ export const gu: Translation = {
     submitHint: 'તમારી ચુકવણીની સમીક્ષા કરી એડમિન દ્વારા મંજૂર કરાશે.',
   },
   myVisitors: {
+    visitorRejected: 'મુલાકાતી અસ્વીકાર્ય',
+    visitorApproved: 'મુલાકાતી મંજૂર',
     title: 'મારા મુલાકાતીઓ',
     subtitle: 'આમંત્રણો, પાસ અને મંજૂરીઓ',
     empty: 'હજી સુધી કોઈ મુલાકાતી નથી.',
@@ -1088,6 +1096,26 @@ export const gu: Translation = {
   tickets: {
     title: 'હેલ્પડેસ્ક',
     subtitle: 'રહેવાસી ટિકિટ જુઓ અને મેનેજ કરો',
+    add: 'નવી ટિકિટ',
+    createTitle: 'નવી ટિકિટ બનાવો',
+    createSubtitle: 'રહેવાસી યુનિટ માટે ટિકિટ દાખલ કરો',
+    createBtn: 'ટિકિટ બનાવો',
+    unitLabel: 'યુનિટ',
+    selectUnit: 'યુનિટ શોધો અને પસંદ કરો',
+    titleLabel: 'ટિકિટ શીર્ષક',
+    titlePlaceholder: 'દા.ત. બાથરૂમમાં પાણી લીકેજ',
+    selectCategory: 'શ્રેણી પસંદ કરો',
+    subcategoryLabel: 'પેટા-શ્રેણી',
+    selectSubcategory: 'પેટા-શ્રેણી પસંદ કરો (વૈકલ્પિક)',
+    selectPriority: 'પ્રાથમિકતા પસંદ કરો',
+    descriptionLabel: 'વર્ણન',
+    descriptionPlaceholder: 'સમસ્યા અથવા વિનંતીનું વિગતવાર વર્ણન...',
+    created: 'ટિકિટ સફળતાપૂર્વક બનાવી',
+    needCommunity: 'કૃપા કરીને સમુદાય પસંદ કરો',
+    needUnit: 'કૃપા કરીને યુનિટ પસંદ કરો',
+    needTitle: 'કૃપા કરીને ટિકિટ શીર્ષક દાખલ કરો',
+    needCategory: 'કૃપા કરીને શ્રેણી પસંદ કરો',
+    needDescription: 'કૃપા કરીને વર્ણન આપો',
     searchPlaceholder: 'ટિકિટ શોધો...',
     filterOrg: 'બધી સંસ્થાઓ',
     filterCommunity: 'બધા સમુદાય',
@@ -1155,6 +1183,15 @@ export const gu: Translation = {
     saveChanges: 'ફેરફારો સાચવો',
   },
   billing: {
+    allCommunities: 'બધા સમુદાયો',
+    waiveConfirmDesc: 'શું તમે ખરેખર આ બિલ માફ કરવા માંગો છો? આ પૂર્વવત્ કરી શકાતું નથી.',
+    waiveConfirmTitle: 'બિલ માફ કરો',
+    noPendingApprovals: 'કોઈ બાકી મંજૂરી નથી',
+    direction: 'દિશા',
+    chargesFound: '{{count}} ચાર્જ મળ્યા',
+    chargeDeactivated: 'ચાર્જ નિષ્ક્રિય કર્યો',
+    colDueDate: 'ચુકવણી તારીખ',
+    colPeriod: 'સમયગાળો',
     title: 'મેન્ટેનન્સ બિલિંગ',
     subtitle: 'બિલ બનાવો, ચુકવણી નોંધો અને બાકી ટ્રેક કરો',
     tabBills: 'બિલ',
@@ -1374,6 +1411,8 @@ export const gu: Translation = {
     updated: 'ટેમ્પલેટ અપડેટ કર્યું',
   },
   users: {
+    deleteTitle: 'વ્યક્તિ કાઢી નાખો',
+    deleteDesc: 'શું તમે ખરેખર {{name}} ને દૂર કરવા માંગો છો? તેમનો ખાતાનો ઉપયોગ પણ રદ કરવામાં આવશે.',
     title: 'લોકોનું સંચાલન',
     subtitle: 'રહેવાસી અને સુરક્ષા લોગિન ઉમેરો અને તેમની ઍક્સેસ મેનેજ કરો',
     addPerson: 'વ્યક્તિ ઉમેરો',
@@ -1436,6 +1475,7 @@ export const gu: Translation = {
     selectWingTower: 'એક વિંગ / ટાવર પસંદ કરો',
   },
   menuMgmt: {
+    surfaceCommon: 'સામાન્ય',
     title: 'મેનુ મેનેજમેન્ટ',
     subtitle: 'લોગિન પછી દરેક ભૂમિકાને દેખાતા એડમિન અને એપ મેનુ વ્યાખ્યાયિત કરો',
     add: 'મેનુ આઇટમ ઉમેરો',
@@ -1541,6 +1581,7 @@ export const gu: Translation = {
     sameAsOld: 'નવો પાસવર્ડ વર્તમાનથી અલગ હોવો જોઈએ',
   },
   roles: {
+    permissionCount: '{{count}} પરવાનગીઓ',
     title: 'ભૂમિકાઓ અને પરવાનગીઓ',
     subtitle: 'ભૂમિકાઓ અને તેમને સોંપેલ પરવાનગીઓ વ્યાખ્યાયિત કરો',
     add: 'ભૂમિકા ઉમેરો',
@@ -1588,5 +1629,16 @@ export const gu: Translation = {
     actionExport: 'નિકાસ',
     actionAssign: 'સોંપો',
     actionAccess: 'ઍક્સેસ',
+  },
+  app: {
+    common: 'સામાન્ય',
+  },
+  managePeople: {
+    title: 'લોકોનું સંચાલન કરો',
+    subtitle: 'સોસાયટીના રહેવાસીઓ, ભાડૂતો અને સ્ટાફ',
+  },
+  residentApprovals: {
+    title: 'રહેવાસી મંજૂરીઓ',
+    subtitle: 'બાકી રહેવાસી KYC ની સમીક્ષા અને ચકાસણી કરો',
   },
 };

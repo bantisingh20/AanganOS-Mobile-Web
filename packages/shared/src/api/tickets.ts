@@ -52,7 +52,7 @@ export interface TicketListFilters {
 }
 
 export interface CreateTicketBody {
-  hostUnitId: string;
+  hostUnitId?: string;
   title: string;
   description: string;
   category: string;

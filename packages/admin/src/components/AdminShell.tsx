@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Menu, PanelLeftClose, PanelLeft, Search, Bell, LogOut, X, HelpCircle, KeyRound, CheckCheck } from 'lucide-react';
+import { Menu, PanelLeftClose, PanelLeft, Bell, LogOut, X, HelpCircle, KeyRound, CheckCheck } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { MenuNode } from '@shared/api/menu';
 import logoUrl from '@shared/assets/logo.png';
@@ -69,24 +69,24 @@ export function AdminShell({ children }: { children: ReactNode }) {
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="safe-top sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 border-b border-slate-200 bg-white px-3 sm:px-4 dark:border-slate-800 dark:bg-slate-900">
-          <button type="button" onClick={() => setDrawerOpen(true)} aria-label="Menu" className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 md:hidden dark:text-slate-300 dark:hover:bg-slate-800">
+          <button type="button" onClick={() => setDrawerOpen(true)} aria-label="Menu" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 md:hidden dark:text-slate-300 dark:hover:bg-slate-800">
             <Menu className="h-5 w-5" />
           </button>
-          <button type="button" onClick={() => setCollapsed((c) => !c)} aria-label="Collapse" className="hidden h-9 w-9 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 md:flex dark:text-slate-300 dark:hover:bg-slate-800">
+          <button type="button" onClick={() => setCollapsed((c) => !c)} aria-label="Collapse" className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 md:flex dark:text-slate-300 dark:hover:bg-slate-800">
             {collapsed ? <PanelLeft className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
           </button>
 
-          {/* <div className="relative hidden flex-1 sm:block">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input
-              type="search"
-              placeholder={t('admin.search')}
-              className="h-9 w-full max-w-md rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm outline-none focus:border-emerald-400 focus:bg-white dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
-            />
-          </div> */}
+          {/* Logo/Branding on mobile when sidebar is hidden */}
+          <div className="flex items-center gap-2 md:hidden">
+            <img src={logoUrl} alt="AanganOS" className="h-7 w-7 rounded-lg object-cover shrink-0" />
+            <span className="text-sm font-bold tracking-tight">
+              <span>Aangan</span>
+              <span className="text-emerald-600">OS</span>
+            </span>
+          </div>
 
-          <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
-            <a href={HELP_URL} target="_blank" rel="noreferrer" aria-label={t('admin.help')} title={t('admin.help')} className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">
+          <div className="ml-auto flex items-center gap-1 sm:gap-2">
+            <a href={HELP_URL} target="_blank" rel="noreferrer" aria-label={t('admin.help')} title={t('admin.help')} className="hidden sm:flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">
               <HelpCircle className="h-5 w-5" />
             </a>
             <div className="relative">

@@ -1,5 +1,5 @@
 import { useTheme as useNextTheme, ThemeProvider as NextThemeProvider } from 'next-themes';
-import type { ComponentProps, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 export const THEME_STORAGE_KEY = 'aanganos-theme';
 

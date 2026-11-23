@@ -1,5 +1,9 @@
 export const en = {
   common: {
+    common: 'Common',
+    close: 'Close',
+    more: 'More',
+    details: 'Details',
     appName: 'AanganOS',
     tagline: 'Smart Living. Stronger Communities.',
     login: 'Login',
@@ -546,6 +550,8 @@ export const en = {
     ownerAdded: 'Owner added',
   },
   myTasks: {
+    viewAlert: 'View Alert',
+    reviewPayment: 'Review Payment',
     title: 'Needs Your Action',
     subtitleEmpty: "You're all caught up",
     itemsOne: '{{count}} item needs your attention',
@@ -602,6 +608,8 @@ export const en = {
     submitHint: 'Your payment will be reviewed and approved by the admin.',
   },
   myVisitors: {
+    visitorRejected: 'Visitor rejected',
+    visitorApproved: 'Visitor approved',
     title: 'My Visitors',
     subtitle: 'Invites, passes and approvals',
     empty: 'No visitors yet.',
@@ -1086,6 +1094,26 @@ export const en = {
   tickets: {
     title: 'Helpdesk',
     subtitle: 'View and manage resident tickets',
+    add: 'New Ticket',
+    createTitle: 'Create Ticket',
+    createSubtitle: 'Raise a ticket for a resident unit',
+    createBtn: 'Create Ticket',
+    unitLabel: 'Unit',
+    selectUnit: 'Search and select unit',
+    titleLabel: 'Ticket Title',
+    titlePlaceholder: 'e.g. Water leakage in bathroom',
+    selectCategory: 'Select category',
+    subcategoryLabel: 'Subcategory',
+    selectSubcategory: 'Select subcategory (optional)',
+    selectPriority: 'Select priority',
+    descriptionLabel: 'Description',
+    descriptionPlaceholder: 'Detailed description of the issue or request...',
+    created: 'Ticket created successfully',
+    needCommunity: 'Please select a community',
+    needUnit: 'Please select a unit',
+    needTitle: 'Please enter a ticket title',
+    needCategory: 'Please select a category',
+    needDescription: 'Please provide a description',
     searchPlaceholder: 'Search tickets...',
     filterOrg: 'All organizations',
     filterCommunity: 'All communities',
@@ -1153,6 +1181,15 @@ export const en = {
     saveChanges: 'Save Changes',
   },
   billing: {
+    allCommunities: 'All communities',
+    waiveConfirmDesc: 'Are you sure you want to waive this bill? This cannot be undone.',
+    waiveConfirmTitle: 'Waive bill',
+    noPendingApprovals: 'No pending approvals',
+    direction: 'Direction',
+    chargesFound: '{{count}} charge(s) found',
+    chargeDeactivated: 'Charge deactivated',
+    colDueDate: 'Due date',
+    colPeriod: 'Period',
     title: 'Maintenance Billing',
     subtitle: 'Generate bills, record payments and track dues',
     tabBills: 'Bills',
@@ -1372,6 +1409,8 @@ export const en = {
     updated: 'Template updated',
   },
   users: {
+    deleteTitle: 'Delete Person',
+    deleteDesc: 'Are you sure you want to remove {{name}}? Their account access will also be revoked.',
     title: 'Manage People',
     subtitle: 'Add residents & security logins and manage their access',
     addPerson: 'Add Person',
@@ -1434,6 +1473,7 @@ export const en = {
     selectWingTower: 'Select a wing / tower',
   },
   menuMgmt: {
+    surfaceCommon: 'Common',
     title: 'Menu Management',
     subtitle: 'Define the admin & app menus shown to each role after login',
     add: 'Add Menu Item',
@@ -1539,6 +1579,7 @@ export const en = {
     sameAsOld: 'New password must be different from the current one',
   },
   roles: {
+    permissionCount: '{{count}} permissions',
     title: 'Roles & Permissions',
     subtitle: 'Define roles and the permissions assigned to them',
     add: 'Add Role',
@@ -1586,6 +1627,17 @@ export const en = {
     actionExport: 'Export',
     actionAssign: 'Assign',
     actionAccess: 'Access',
+  },
+  app: {
+    common: 'Common',
+  },
+  managePeople: {
+    title: 'Manage People',
+    subtitle: 'Society residents, tenants & staff',
+  },
+  residentApprovals: {
+    title: 'Resident Approvals',
+    subtitle: 'Review and verify pending resident KYC',
   },
 };
 

@@ -3,6 +3,7 @@ import { auth, tokenStore, notifications } from '@shared/services';
 import type { LoginRequest, LoginResponse } from '@shared/api/auth';
 import { resetMenuCache } from '@shared/lib/useMenu';
 import { resetHomeTilesCache } from '@shared/lib/appTiles';
+import { cacheInvalidate } from '@shared/lib/cache';
 
 interface AuthContextValue {
   isAuthenticated: boolean;
@@ -82,6 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const result = await auth.login(request);
     resetMenuCache();
     resetHomeTilesCache();
+    cacheInvalidate();
     setUser(result.user);
     setIsAuthenticated(true);
     return result;
@@ -89,6 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const adoptSession = useCallback((result: LoginResponse) => {
     tokenStore.setFromLogin(result);
+    cacheInvalidate();
     setUser(result.user);
     setIsAuthenticated(true);
   }, []);
@@ -101,6 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       resetMenuCache();
       resetHomeTilesCache();
+      cacheInvalidate();
       setUser(null);
       setIsAuthenticated(false);
     }

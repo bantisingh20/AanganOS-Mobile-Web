@@ -18,7 +18,8 @@ import { tickets, files } from '@shared/services';
 import type { TicketAttachment } from '@shared/api/tickets';
 import { useAsync, useAsyncAction } from '@shared/lib/useAsync';
 import { cn } from '@shared/lib/utils';
-import { PageLayout } from '@app/components/PageLayout';
+import { PageLayout } from '../../../app/src/components/PageLayout';
+// import { useIsSmallScreen } from '@shared/lib/useMediaQuery';
 
 const RATING_CHOICES = [1, 2, 3, 4, 5] as const;
 
@@ -31,6 +32,14 @@ const HERO_TONE: Record<string, string> = {
   closed: 'bg-slate-600',
   reopened: 'bg-rose-600',
 };
+
+export interface TicketDetailsPageProps {
+  ticketId?: string;
+  mode?: 'admin' | 'mobile';
+  title?: string;
+  listPath?: string;
+  onBack?: () => void;
+}
 
 function humanize(code: string): string {
   return code
@@ -128,10 +137,12 @@ function AttachmentThumb({ attachment }: { attachment: TicketAttachment }) {
   );
 }
 
-export function TicketDetailScreen() {
-  const { t } = useTranslation();
-  const { id = '' } = useParams<{ id: string }>();
+export function TicketDetailsPage({ ticketId: propId, mode, onBack }: TicketDetailsPageProps) {
 
+// export function TicketDetailsPage() {
+  const { t } = useTranslation();
+  // const { id = '' } = useParams<{ id: string }>();
+  const id = propId ?? useParams<{ id: string }>().id ?? '';
   const ticketState = useAsync((signal) => tickets.get(id, { signal }), [id]);
   const attachmentsState = useAsync((signal) => tickets.attachments(id, { signal }).catch(() => []), [id]);
   const commentsState = useAsync((signal) => tickets.comments(id, { signal }), [id]);
@@ -158,10 +169,14 @@ export function TicketDetailScreen() {
 
   const attachments = attachmentsState.data ?? [];
   const comments = commentsState.data ?? [];
+  // const isSmall = useIsSmallScreen();
   const tone = ticket ? HERO_TONE[ticket.status] ?? 'bg-primary' : 'bg-primary';
+  // const isMobile = (mode ?? (isSmall ? 'mobile' : 'admin')) === 'mobile';
+
+  // const resolvedListPath = listPath ?? (isMobile ? '/my-tickets' : '/tickets');
 
   return (
-    <PageLayout title={t('myTickets.detailTitle')}>
+    <PageLayout title={t('myTickets.detailTitle')} mode={mode} onBack={onBack} >
       {ticketState.loading && !ticket ? (
         <p className="py-10 text-center text-sm text-muted-foreground">{t('common.loading')}</p>
       ) : !ticket ? (

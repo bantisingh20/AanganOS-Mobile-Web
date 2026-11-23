@@ -2,6 +2,10 @@
 
 export const hi: Translation = {
   common: {
+    common: 'सामान्य',
+    close: 'बंद करें',
+    more: 'अधिक',
+    details: 'विवरण',
     appName: 'AanganOS',
     tagline: 'स्मार्ट लिविंग. मजबूत समुदाय.',
     login: 'लॉगिन',
@@ -548,6 +552,8 @@ export const hi: Translation = {
     ownerAdded: 'मालिक जोड़ा गया',
   },
   myTasks: {
+    viewAlert: 'अलर्ट देखें',
+    reviewPayment: 'भुगतान की समीक्षा करें',
     title: 'आपकी कार्रवाई आवश्यक',
     subtitleEmpty: 'सब कुछ पूरा है',
     itemsOne: '{{count}} आइटम पर ध्यान दें',
@@ -604,6 +610,8 @@ export const hi: Translation = {
     submitHint: 'आपके भुगतान की समीक्षा कर एडमिन द्वारा स्वीकृत किया जाएगा।',
   },
   myVisitors: {
+    visitorRejected: 'आगंतुक अस्वीकृत',
+    visitorApproved: 'आगंतुक स्वीकृत',
     title: 'मेरे आगंतुक',
     subtitle: 'निमंत्रण, पास और अनुमोदन',
     empty: 'अभी तक कोई आगंतुक नहीं।',
@@ -1088,6 +1096,26 @@ export const hi: Translation = {
   tickets: {
     title: 'हेल्पडेस्क',
     subtitle: 'निवासी टिकट देखें और प्रबंधित करें',
+    add: 'नया टिकट',
+    createTitle: 'नया टिकट बनाएं',
+    createSubtitle: 'निवासी यूनिट के लिए टिकट दर्ज करें',
+    createBtn: 'टिकट बनाएं',
+    unitLabel: 'यूनिट',
+    selectUnit: 'यूनिट खोजें और चुनें',
+    titleLabel: 'टिकट शीर्षक',
+    titlePlaceholder: 'उदा. बाथरूम में पानी का रिसाव',
+    selectCategory: 'श्रेणी चुनें',
+    subcategoryLabel: 'उप-श्रेणी',
+    selectSubcategory: 'उप-श्रेणी चुनें (वैकल्पिक)',
+    selectPriority: 'प्राथमिकता चुनें',
+    descriptionLabel: 'विवरण',
+    descriptionPlaceholder: 'समस्या या अनुरोध का विस्तृत विवरण...',
+    created: 'टिकट सफलतापूर्वक बनाया गया',
+    needCommunity: 'कृपया एक समुदाय चुनें',
+    needUnit: 'कृपया एक यूनिट चुनें',
+    needTitle: 'कृपया टिकट का शीर्षक दर्ज करें',
+    needCategory: 'कृपया एक श्रेणी चुनें',
+    needDescription: 'कृपया विवरण प्रदान करें',
     searchPlaceholder: 'टिकट खोजें...',
     filterOrg: 'सभी संगठन',
     filterCommunity: 'सभी समुदाय',
@@ -1155,6 +1183,15 @@ export const hi: Translation = {
     saveChanges: 'परिवर्तन सहेजें',
   },
   billing: {
+    allCommunities: 'सभी समुदाय',
+    waiveConfirmDesc: 'क्या आप वाकई इस बिल को माफ करना चाहते हैं? इसे पूर्ववत नहीं किया जा सकता।',
+    waiveConfirmTitle: 'बिल माफ करें',
+    noPendingApprovals: 'कोई लंबित स्वीकृति नहीं है',
+    direction: 'प्रकार / दिशा',
+    chargesFound: '{{count}} शुल्क मिले',
+    chargeDeactivated: 'शुल्क निष्क्रिय किया गया',
+    colDueDate: 'नियत तिथि',
+    colPeriod: 'अवधि',
     title: 'रखरखाव बिलिंग',
     subtitle: 'बिल बनाएं, भुगतान दर्ज करें और बकाया ट्रैक करें',
     tabBills: 'बिल',
@@ -1374,6 +1411,8 @@ export const hi: Translation = {
     updated: 'टेम्पलेट अपडेट किया गया',
   },
   users: {
+    deleteTitle: 'व्यक्ति हटाएं',
+    deleteDesc: 'क्या आप वाकई {{name}} को हटाना चाहते हैं? उनका खाता एक्सेस भी रद्द कर दिया जाएगा।',
     title: 'लोग प्रबंधित करें',
     subtitle: 'निवासी और सुरक्षा लॉगिन जोड़ें और उनकी पहुंच प्रबंधित करें',
     addPerson: 'व्यक्ति जोड़ें',
@@ -1436,6 +1475,7 @@ export const hi: Translation = {
     selectWingTower: 'एक विंग / टावर चुनें',
   },
   menuMgmt: {
+    surfaceCommon: 'सामान्य',
     title: 'मेन्यू प्रबंधन',
     subtitle: 'लॉगिन के बाद प्रत्येक भूमिका को दिखने वाले एडमिन और ऐप मेन्यू परिभाषित करें',
     add: 'मेन्यू आइटम जोड़ें',
@@ -1541,6 +1581,7 @@ export const hi: Translation = {
     sameAsOld: 'नया पासवर्ड वर्तमान से अलग होना चाहिए',
   },
   roles: {
+    permissionCount: '{{count}} अनुमतियाँ',
     title: 'भूमिकाएं और अनुमतियां',
     subtitle: 'भूमिकाएं और उन्हें सौंपी गई अनुमतियां परिभाषित करें',
     add: 'भूमिका जोड़ें',
@@ -1588,5 +1629,16 @@ export const hi: Translation = {
     actionExport: 'निर्यात',
     actionAssign: 'असाइन',
     actionAccess: 'एक्सेस',
+  },
+  app: {
+    common: 'सामान्य',
+  },
+  managePeople: {
+    title: 'लोग प्रबंधित करें',
+    subtitle: 'सोसायटी निवासी, किरायेदार और कर्मचारी',
+  },
+  residentApprovals: {
+    title: 'निवासी अनुमोदन',
+    subtitle: 'लंबित निवासी केवाईसी की समीक्षा और सत्यापन करें',
   },
 };

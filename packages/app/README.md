@@ -16,4 +16,20 @@ npx cap sync android
 
 # 3. Run on connected Android device
 npx cap run android
+
+# 4. Build Path
+packages/app/android/app/build/outputs/apk/release/app-release.apk
+
+# 1. Build the web app
+cd "C:\Banti Work\React\AanganOS\AanganOS-Mobile-Web\packages\app"
+npm run build
+
+# 2. Sync web assets to Android
+npx cap sync android
+
+# 3. Assemble Release APK
+cd android
+.\gradlew.bat assembleRelease
 ```
+
+
