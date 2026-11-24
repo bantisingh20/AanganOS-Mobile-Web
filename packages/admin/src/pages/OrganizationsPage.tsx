@@ -29,6 +29,26 @@ const PLAN_OPTIONS = [
   { value: '12', label: '12 months' },
 ];
 
+const TYPE_OPTIONS = [
+  { value: 'apartment_society', label: 'Apartment Society' },
+  { value: 'gated_community', label: 'Gated Community' },
+  { value: 'villa_bungalow', label: 'Villa / Bungalow' },
+  { value: 'townhouse', label: 'Townhouse' },
+  { value: 'mixed', label: 'Mixed Development' },
+];
+
+function typeLabel(type?: string | null): string {
+  return TYPE_OPTIONS.find((o) => o.value === type)?.label ?? type ?? 'Apartment Society';
+}
+
+function typeTone(type?: string | null): 'success' | 'info' | 'default' | 'warning' {
+  const t = (type || '').toLowerCase();
+  if (t.includes('apartment')) return 'success';
+  if (t.includes('gated')) return 'info';
+  if (t.includes('villa') || t.includes('townhouse')) return 'default';
+  return 'warning';
+}
+
 function fmtDate(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
 }
@@ -164,6 +184,7 @@ export function OrganizationsPage() {
               <TR>
                 <TH className="w-14 text-center">#</TH>
                 <TH>{t('orgs.colOrganization')}</TH>
+                <TH className="w-36">{t('orgs.colType')}</TH>
                 <TH className="w-40">{t('orgs.colCommunities')}</TH>
                 <TH className="w-36">{t('orgs.colStatus')}</TH>
                 <TH className="w-40">{t('orgs.colSubscription')}</TH>
@@ -186,6 +207,7 @@ export function OrganizationsPage() {
                         </div>
                       </div>
                     </TD>
+                    <TD><Badge tone={typeTone(org.propertyType)}>{typeLabel(org.propertyType)}</Badge></TD>
                     <TD><CommunitiesPill count={org.communityCount} onClick={() => navigate(`/communities?organizationId=${org.id}`)} /></TD>
                     <TD><StatusBadge org={org} /></TD>
                     <TD><SubBadge sub={org.expiryData} /></TD>
@@ -215,6 +237,7 @@ export function OrganizationsPage() {
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
+                  <Badge tone={typeTone(org.propertyType)}>{typeLabel(org.propertyType)}</Badge>
                   <StatusBadge org={org} />
                   <SubBadge sub={org.expiryData} />
                   <CommunitiesPill count={org.communityCount} onClick={() => navigate(`/communities?organizationId=${org.id}`)} />
@@ -326,18 +349,22 @@ function OrgFormDialog({ open, org, onClose, onSaved }: { open: boolean; org?: O
   const { t } = useTranslation();
   const isEdit = !!org;
   const [name, setName] = useState('');
+  const [propertyType, setPropertyType] = useState('apartment_society');
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (open) setName(org?.name ?? '');
+    if (open) {
+      setName(org?.name ?? '');
+      setPropertyType(org?.propertyType ?? 'apartment_society');
+    }
   }, [open, org]);
 
   const submit = async () => {
     if (busy || !name.trim()) return;
     setBusy(true);
     try {
-      if (isEdit) await organizations.update(org!.id, name.trim());
-      else await organizations.create(name.trim());
+      if (isEdit) await organizations.update(org!.id, name.trim(), propertyType);
+      else await organizations.create(name.trim(), propertyType);
       toast.success(isEdit ? t('orgs.updated') : t('orgs.created'));
       onSaved();
     } catch (err) {
@@ -350,8 +377,13 @@ function OrgFormDialog({ open, org, onClose, onSaved }: { open: boolean; org?: O
   return (
     <Dialog open={open} onClose={onClose}>
       <DialogHeader title={isEdit ? t('orgs.editTitle') : t('orgs.addTitle')} />
-      <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{t('orgs.orgName')}</label>
-      <Input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder={t('orgs.orgNamePlaceholder')} maxLength={256} onKeyDown={(e) => { if (e.key === 'Enter') submit(); }} />
+      <div className="flex flex-col gap-3">
+        <div>
+          <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{t('orgs.orgName')}</label>
+          <Input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder={t('orgs.orgNamePlaceholder')} maxLength={256} onKeyDown={(e) => { if (e.key === 'Enter') submit(); }} />
+        </div>
+        <SelectField label={t('orgs.propertyType')} value={propertyType} options={TYPE_OPTIONS} onChange={setPropertyType} />
+      </div>
       <DialogFooter>
         <Button variant="outline" onClick={onClose} className="h-9 rounded-lg text-xs">{t('orgs.cancel')}</Button>
         <Button onClick={submit} disabled={busy || !name.trim()} className="h-9 rounded-lg bg-emerald-600 text-xs hover:bg-emerald-700">{isEdit ? t('orgs.saveChanges') : t('orgs.createOrg')}</Button>
@@ -419,49 +451,6 @@ function SetExpiryDialog({ open, org, current, onClose, onSaved, isApprovalRequi
       <DialogFooter>
         <Button variant="outline" onClick={onClose} className="h-9 rounded-lg text-xs">{t('orgs.cancel')}</Button>
         <Button onClick={submit} disabled={busy} className="h-9 rounded-lg bg-emerald-600 text-xs hover:bg-emerald-700">{t('orgs.save')}</Button>
-      </DialogFooter>
-    </Dialog>
-  );
-}
-
-function ApproveRenewalDialog({ open, request, onClose, onSaved }: { open: boolean; request?: RenewalRequest | null; onClose: () => void; onSaved: () => void }) {
-  const { t } = useTranslation();
-  const initialMonths = request ? String(request.requestedPlanMonths) : '12';
-  const [planMonths, setPlanMonths] = useState(initialMonths);
-  const [expiresAt, setExpiresAt] = useState(defaultExpiry(Number(initialMonths)));
-  const [busy, setBusy] = useState(false);
-
-  const submit = async () => {
-    if (busy || !request || !expiresAt) return;
-    setBusy(true);
-    try {
-      await subscriptions.approveRenewal(request.id, {
-        planMonths: Number(planMonths),
-        startsAtUtc: new Date().toISOString(),
-        expiresAtUtc: new Date(expiresAt).toISOString(),
-      });
-      toast.success('Renewal approved');
-      onSaved();
-    } catch (err) {
-      toast.error(toFormError(err).message);
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <Dialog open={open} onClose={onClose}>
-      <DialogHeader title={t('orgs.approveTitle')} description={request?.organizationName} />
-      <div className="flex flex-col gap-3">
-        <SelectField label={t('orgs.planDuration')} value={planMonths} options={PLAN_OPTIONS} onChange={setPlanMonths} />
-        <div>
-          <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{t('orgs.newExpiryDate')}</label>
-          <Input type="date" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} />
-        </div>
-      </div>
-      <DialogFooter>
-        <Button variant="outline" onClick={onClose} className="h-9 rounded-lg text-xs">{t('orgs.cancel')}</Button>
-        <Button onClick={submit} disabled={busy} className="h-9 rounded-lg bg-emerald-600 text-xs hover:bg-emerald-700">{t('orgs.approve')}</Button>
       </DialogFooter>
     </Dialog>
   );

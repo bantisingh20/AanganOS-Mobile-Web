@@ -5,6 +5,7 @@ import { buildQuery, listQueryParams, type ListQuery } from './query';
 export interface Announcement {
   id: string;
   communityId: string;
+  organizationId?: string | null;
   title: string;
   body: string;
   category: string;
@@ -12,6 +13,7 @@ export interface Announcement {
   isActive: boolean;
   communityName?: string | null;
   organizationName?: string | null;
+  scope?: string | null;
 }
 
 export interface AnnouncementListFilters {
@@ -22,7 +24,8 @@ export interface AnnouncementListFilters {
 }
 
 export interface CreateAnnouncementBody {
-  communityId: string;
+  communityId?: string;
+  organizationId?: string;
   title: string;
   body: string;
   category: string;

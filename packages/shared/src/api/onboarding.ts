@@ -4,7 +4,13 @@ import type { LoginResponse } from './auth';
 export interface PublicCommunity {
   id: string;
   name: string;
-  communityType: string;
+  communityType?: string | null;
+}
+
+export interface PublicSociety {
+  id: string;
+  name: string;
+  propertyType?: string | null;
 }
 
 export interface PublicWing {
@@ -46,7 +52,8 @@ export interface SelfRegisterResult {
 export interface RegisterSocietyBody {
   organizationName: string;
   communityName: string;
-  communityType: string;
+  propertyType?: string;
+  communityType?: string;
   adminName: string;
   adminEmail?: string;
   adminPhone?: string;
@@ -77,9 +84,17 @@ export class OnboardingClient {
     return this.api.get<OnboardingConfig>('/api/v1/public/onboarding-config', { ...options, anonymous: true });
   }
 
-  searchCommunities(search?: string, options?: { signal?: AbortSignal }): Promise<PublicCommunity[]> {
-    const qs = search ? `?search=${encodeURIComponent(search)}` : '?search=';
+  searchCommunities(search?: string,societyId?: string, options?: { signal?: AbortSignal }): Promise<PublicCommunity[]> {
+    let qs = search ? `?search=${encodeURIComponent(search)}` : '?search=';
+    if (societyId) {
+      qs += `&SocietyId=${encodeURIComponent(societyId)}`;
+    }
     return this.api.get<PublicCommunity[]>(`/api/v1/public/communities${qs}`, { ...options, anonymous: true });
+  }
+
+  searchSociety(search?: string, options?: { signal?: AbortSignal }): Promise<PublicSociety[]> {
+    const qs = search ? `?search=${encodeURIComponent(search)}` : '?search=';
+    return this.api.get<PublicSociety[]>(`/api/v1/public/societies${qs}`, { ...options, anonymous: true });
   }
 
   listWings(communityId: string, options?: { signal?: AbortSignal }): Promise<PublicWing[]> {

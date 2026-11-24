@@ -1,4 +1,4 @@
-﻿import type { Translation } from './en';
+import type { Translation } from './en';
 
 export const gu: Translation = {
   common: {
@@ -845,6 +845,7 @@ export const gu: Translation = {
     searchPlaceholder: 'સંસ્થાનું નામ શોધો...',
     total: 'કુલ',
     colOrganization: 'સંસ્થા',
+    colType: 'પ્રોપર્ટીનો પ્રકાર',
     colCommunities: 'સમુદાયો',
     colStatus: 'સ્થિતિ',
     colSubscription: 'સબ્સ્ક્રિપ્શન',
@@ -871,6 +872,7 @@ export const gu: Translation = {
     addTitle: 'સંસ્થા ઉમેરો',
     editTitle: 'સંસ્થા સંપાદિત કરો',
     orgName: 'સંસ્થાનું નામ',
+    propertyType: 'પ્રોપર્ટીનો પ્રકાર',
     orgNamePlaceholder: 'દા.ત. સનરાઇઝ ગ્રુપ',
     cancel: 'રદ કરો',
     createOrg: 'સંસ્થા બનાવો',

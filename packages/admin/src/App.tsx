@@ -10,7 +10,7 @@ import { OrganizationsPage } from '@admin/pages/OrganizationsPage';
 import { CommunitiesPage } from '@admin/pages/CommunitiesPage';
 import { UnitsPage } from '@admin/pages/UnitsPage';
 import { ResidentsPage } from '@admin/pages/ResidentsPage';
-import { AnnouncementsPage } from '@admin/pages/AnnouncementsPage';
+import { AnnouncementsPage } from '@shared/components/AnnouncementsPage';
 import { AdminUsersPage } from '@admin/pages/AdminUsersPage';
 import { TicketsListPage, SubmitTicketPage, TicketDetailsPage } from '@shared/help-desk';
 import { AmenitiesPage } from '@admin/pages/AmenitiesPage';
@@ -22,6 +22,7 @@ import { UsersPage } from '@admin/pages/UsersPage';
 import { MenuManagementPage } from '@admin/pages/MenuManagementPage';
 import { ConfigPage } from '@admin/pages/ConfigPage';
 import { RolesPage } from '@admin/pages/RolesPage';
+import { CommunicationTestPage } from '@admin/pages/CommunicationTestPage';
 import { PlaceholderPage } from '@admin/pages/PlaceholderPage';
 
 function RequireAuth({ children }: { children: ReactElement }) {
@@ -49,7 +50,7 @@ export function App() {
           <Route path="/communities" element={<RequireAuth><CommunitiesPage /></RequireAuth>} />
           <Route path="/units" element={<RequireAuth><UnitsPage /></RequireAuth>} />
           <Route path="/residents" element={<RequireAuth><ResidentsPage /></RequireAuth>} />
-          <Route path="/announcements" element={<RequireAuth><AnnouncementsPage /></RequireAuth>} />
+          <Route path="/announcements" element={<RequireAuth><AnnouncementsPage mode="admin" /></RequireAuth>} />
           <Route path="/admin-users" element={<RequireAuth><AdminUsersPage /></RequireAuth>} />
           <Route path="/maintenance" element={<RequireAuth><TicketsListPage mode="admin" submitPath="/maintenance/new" detailsPathPrefix="/maintenance/" /></RequireAuth>} />
           <Route path="/maintenance/new" element={<RequireAuth><SubmitTicketPage mode="admin" listPath="/maintenance" /></RequireAuth>} />
@@ -66,6 +67,7 @@ export function App() {
           <Route path="/menu-management" element={<RequireAuth><MenuManagementPage /></RequireAuth>} />
           <Route path="/config" element={<RequireAuth><ConfigPage /></RequireAuth>} />
           <Route path="/roles" element={<RequireAuth><RolesPage /></RequireAuth>} />
+          <Route path="/communication-test" element={<RequireAuth><CommunicationTestPage /></RequireAuth>} />
           {PLACEHOLDERS.map((p) => (
             <Route key={p.path} path={p.path} element={<RequireAuth><PlaceholderPage titleKey={p.titleKey} /></RequireAuth>} />
           ))}

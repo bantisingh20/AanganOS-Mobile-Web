@@ -104,6 +104,7 @@ export function RegisterSociety({
       const result = await onboarding.registerSociety({
         organizationName: organizationName.trim(),
         communityName: wings[0] ?? '',
+        propertyType: communityType,
         communityType,
         adminName: adminName.trim(),
         adminPassword,

@@ -10,7 +10,6 @@ import { Badge } from '@shared/components/ui/badge';
 import { Dialog, DialogHeader, DialogFooter } from '@shared/components/ui/dialog';
 import { ConfirmDialog } from '@shared/components/ui/confirm-dialog';
 import { SelectField } from '@shared/components/SelectField';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@shared/components/ui/select';
 import { Table, THead, TBody, TR, TH, TD } from '@shared/components/ui/table';
 import { Pagination } from '@shared/components/ui/pagination';
 import { Toaster } from '@shared/components/ui/sonner';
@@ -21,26 +20,6 @@ import { useAsync } from '@shared/lib/useAsync';
 import { useIsSmallScreen } from '@shared/lib/useMediaQuery';
 import { toFormError } from '@shared/api/errors';
 
-const TYPE_OPTIONS = [
-  { value: 'apartment_society', label: 'Apartment Society' },
-  { value: 'gated_community', label: 'Gated Community' },
-  { value: 'villa_bungalow', label: 'Villa / Bungalow' },
-  { value: 'townhouse', label: 'Townhouse' },
-  { value: 'mixed', label: 'Mixed Development' },
-];
-
-function typeLabel(type: string): string {
-  return TYPE_OPTIONS.find((o) => o.value === type)?.label ?? type ?? 'Residential';
-}
-
-function typeTone(type: string): 'success' | 'info' | 'default' | 'warning' {
-  const t = (type || '').toLowerCase();
-  if (t.includes('apartment')) return 'success';
-  if (t.includes('gated')) return 'info';
-  if (t.includes('villa') || t.includes('townhouse')) return 'default';
-  return 'warning';
-}
-
 export function CommunitiesPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -48,7 +27,6 @@ export function CommunitiesPage() {
   const orgFilter = searchParams.get('organizationId') ?? undefined;
 
   const [search, setSearch] = useState('');
-  const [typeFilter, setTypeFilter] = useState('all');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [view, setView] = useState<'table' | 'cards'>('table');
@@ -65,11 +43,10 @@ export function CommunitiesPage() {
       { search: search.trim() || undefined, page, pageSize },
       {
         ...(orgFilter ? { organizationId: orgFilter } : {}),
-        ...(typeFilter !== 'all' ? { communityType: typeFilter } : {}),
       },
       { signal },
     ).catch(() => null),
-    [search, orgFilter, typeFilter, page, pageSize, reloadKey],
+    [search, orgFilter, page, pageSize, reloadKey],
   );
 
   const items = useMemo(() => query.data?.items ?? [], [query.data]);
@@ -130,15 +107,6 @@ export function CommunitiesPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Select value={typeFilter} onValueChange={(v) => { setTypeFilter(v); setPage(1); }}>
-            <SelectTrigger className="h-9 w-[150px] text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t('communities.allTypes')}</SelectItem>
-              {TYPE_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
-            </SelectContent>
-          </Select>
           <span className="pr-1 text-[11px] font-medium text-muted-foreground">
             {t('orgs.total')}: <span className="text-foreground">{query.data?.totalCount ?? 0}</span>
           </span>
@@ -168,7 +136,6 @@ export function CommunitiesPage() {
                 <TH className="w-14 text-center">#</TH>
                 <TH className="w-40">{t('communities.colName')}</TH>
                 <TH className="w-40">{t('communities.colOrganization')}</TH>
-                <TH className="w-40">{t('communities.colType')}</TH>
                 <TH className="w-28">{t('communities.colStatus')}</TH>
                 <TH className="w-32">{t('communities.colUnits')}</TH>
                 <TH className="w-28 text-right">{t('orgs.colActions')}</TH>
@@ -190,7 +157,6 @@ export function CommunitiesPage() {
                     </div>
                   </TD>
                   <TD className="text-[11px] text-muted-foreground">{c.organizationName ?? '—'}</TD>
-                  <TD><Badge tone={typeTone(c.communityType)}>{typeLabel(c.communityType)}</Badge></TD>
                   <TD><Badge tone="success"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />{t('communities.active')}</Badge></TD>
                   <TD>
                     <button type="button" onClick={() => openUnits(c)} className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground transition-colors hover:border-emerald-500 hover:text-emerald-600">
@@ -221,7 +187,7 @@ export function CommunitiesPage() {
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
                   <Building className="h-5 w-5" />
                 </span>
-                <Badge tone={typeTone(c.communityType)}>{typeLabel(c.communityType)}</Badge>
+                <Badge tone="success"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />{t('communities.active')}</Badge>
               </div>
               <div className="min-w-0">
                 <div className="truncate text-sm font-semibold">{c.name}</div>
@@ -283,7 +249,6 @@ function CommunityFormDialog({ open, community, presetOrgId, onClose, onSaved }:
   const { t } = useTranslation();
   const isEdit = !!community;
   const [name, setName] = useState('');
-  const [type, setType] = useState('apartment_society');
   const [orgId, setOrgId] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -299,7 +264,6 @@ function CommunityFormDialog({ open, community, presetOrgId, onClose, onSaved }:
   useEffect(() => {
     if (!open) return;
     setName(community?.name ?? '');
-    setType(community?.communityType ?? 'apartment_society');
     setOrgId(presetOrgId ?? '');
   }, [open, community, presetOrgId]);
 
@@ -308,8 +272,8 @@ function CommunityFormDialog({ open, community, presetOrgId, onClose, onSaved }:
     if (!isEdit && !orgId) { toast.error(t('communities.selectOrg')); return; }
     setBusy(true);
     try {
-      if (isEdit) await communities.update(community!.id, { name: name.trim(), communityType: type });
-      else await communities.create({ organizationId: orgId, name: name.trim(), communityType: type });
+      if (isEdit) await communities.update(community!.id, { name: name.trim() });
+      else await communities.create({ organizationId: orgId, name: name.trim() });
       toast.success(isEdit ? t('communities.updated') : t('communities.created'));
       onSaved();
     } catch (err) {
@@ -330,7 +294,6 @@ function CommunityFormDialog({ open, community, presetOrgId, onClose, onSaved }:
           <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{t('communities.name')}</label>
           <Input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder={t('communities.namePlaceholder')} maxLength={256} onKeyDown={(e) => { if (e.key === 'Enter') submit(); }} />
         </div>
-        <SelectField label={t('communities.type')} value={type} options={TYPE_OPTIONS} onChange={setType} />
       </div>
       <DialogFooter>
         <Button variant="outline" onClick={onClose} className="h-9 rounded-lg text-xs">{t('orgs.cancel')}</Button>

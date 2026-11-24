@@ -17,12 +17,12 @@ import { Button } from '@shared/components/ui/button';
 import { onboarding } from '@shared/services';
 import { useAuth } from '@shared/store/AuthContext';
 import { toFormError, type FormErrorView } from '@shared/api/errors';
-import type { PublicCommunity, PublicUnit, PublicWing } from '@shared/api/onboarding';
+import type { PublicCommunity, PublicSociety, PublicUnit } from '@shared/api/onboarding';
 import { countryFromValue, validatePhoneNumber } from '@shared/lib/countries';
 import { compressImageToDataUrl } from '@shared/lib/image';
 
-type Step = 'community' | 'mobile' | 'otp' | 'selfie' | 'preview' | 'personal' | 'id' | 'done';
-const STEP_ORDER: Step[] = ['community', 'mobile', 'otp', 'selfie', 'preview', 'personal', 'id'];
+type Step = 'society' | 'mobile' | 'otp' | 'selfie' | 'preview' | 'personal' | 'id' | 'done';
+const STEP_ORDER: Step[] = ['society', 'mobile', 'otp', 'selfie', 'preview', 'personal', 'id'];
 const NO_ERROR: FormErrorView = { message: '', fieldErrors: {} };
 const RESEND_SECONDS = 24;
 
@@ -53,20 +53,24 @@ export function RegisterScreen() {
     { value: 'other', label: t('register.other') },
   ];
 
-  const [step, setStep] = useState<Step>('community');
+  const [step, setStep] = useState<Step>('society');
   const [error, setError] = useState<FormErrorView>(NO_ERROR);
   const [busy, setBusy] = useState(false);
 
-  const [communitySearch, setCommunitySearch] = useState('');
-  const [communities, setCommunities] = useState<PublicCommunity[]>([]);
+  const [societySearch, setSocietySearch] = useState('');
+  const [societies, setSocieties] = useState<PublicSociety[]>([]);
+  const [societyId, setSocietyId] = useState<string | null>(null);
   const [searching, setSearching] = useState(false);
   const [searched, setSearched] = useState(false);
   const [searchError, setSearchError] = useState('');
+
   const [communityId, setCommunityId] = useState<string | null>(null);
-  const [wings, setWings] = useState<PublicWing[]>([]);
+  const [communities, setCommunities] = useState<PublicCommunity[]>([]);
+  const [loadingCommunities, setLoadingCommunities] = useState(false);
+
   const [units, setUnits] = useState<PublicUnit[]>([]);
-  const [wingId, setWingId] = useState<string | null>(null);
   const [unitId, setUnitId] = useState<string | null>(null);
+  const [loadingUnits, setLoadingUnits] = useState(false);
   const [residentType, setResidentType] = useState<string | null>('owner');
 
   const [phone, setPhone] = useState('');
@@ -91,29 +95,69 @@ export function RegisterScreen() {
   const idBackInput = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
-    const q = communitySearch.trim();
-    if (communityId || q.length < 2) { setCommunities([]); setSearching(false); setSearched(false); setSearchError(''); return; }
+    const q = societySearch.trim();
+    if (societyId || q.length < 2) {
+      setSocieties([]);
+      setSearching(false);
+      setSearched(false);
+      setSearchError('');
+      return;
+    }
     const controller = new AbortController();
     setSearching(true);
     setSearchError('');
     const id = setTimeout(() => {
-      void onboarding.searchCommunities(q, { signal: controller.signal })
-        .then((list) => { setCommunities(list); setSearched(true); })
-        .catch((err) => { if (controller.signal.aborted) return; setCommunities([]); setSearched(true); setSearchError(toFormError(err).message); })
-        .finally(() => { if (!controller.signal.aborted) setSearching(false); });
+      void onboarding.searchSociety(q, { signal: controller.signal })
+        .then((list) => {
+          setSocieties(list);
+          setSearched(true);
+        })
+        .catch((err) => {
+          if (controller.signal.aborted) return;
+          setSocieties([]);
+          setSearched(true);
+          setSearchError(toFormError(err).message);
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) setSearching(false);
+        });
     }, 300);
-    return () => { clearTimeout(id); controller.abort(); };
-  }, [communitySearch, communityId]);
+    return () => {
+      clearTimeout(id);
+      controller.abort();
+    };
+  }, [societySearch, societyId]);
 
   useEffect(() => {
-    if (!communityId) { setWings([]); return; }
-    void onboarding.listWings(communityId).then(setWings).catch(() => setWings([]));
+    if (!societyId) {
+      setCommunities([]);
+      setCommunityId(null);
+      return;
+    }
+    setLoadingCommunities(true);
+    void onboarding.searchCommunities('', societyId)
+      .then((list) => {
+        setCommunities(list);
+        if (list.length === 1) {
+          setCommunityId(list[0].id);
+        }
+      })
+      .catch(() => setCommunities([]))
+      .finally(() => setLoadingCommunities(false));
+  }, [societyId]);
+
+  useEffect(() => {
+    if (!communityId) {
+      setUnits([]);
+      setUnitId(null);
+      return;
+    }
+    setLoadingUnits(true);
+    void onboarding.listUnits(communityId)
+      .then(setUnits)
+      .catch(() => setUnits([]))
+      .finally(() => setLoadingUnits(false));
   }, [communityId]);
-
-  useEffect(() => {
-    if (!communityId) { setUnits([]); return; }
-    void onboarding.listUnits(communityId, wingId ?? undefined).then(setUnits).catch(() => setUnits([]));
-  }, [communityId, wingId]);
 
   useEffect(() => {
     if (step !== 'otp' || countdown <= 0) return;
@@ -121,8 +165,14 @@ export function RegisterScreen() {
     return () => clearInterval(id);
   }, [step, countdown]);
 
-  const wingOptions: SelectOption[] = useMemo(() => wings.map((w) => ({ value: w.id, label: w.name })), [wings]);
-  const unitOptions: SelectOption[] = useMemo(() => units.map((u) => ({ value: u.id, label: `${t('register.unit')} ${u.unitNumber}` })), [units, t]);
+  const communityOptions: SelectOption[] = useMemo(
+    () => communities.map((c) => ({ value: c.id, label: c.name })),
+    [communities]
+  );
+  const unitOptions: SelectOption[] = useMemo(
+    () => units.map((u) => ({ value: u.id, label: `${u.unitNumber}` })), //${t('register.unit')}
+    [units, t]
+  );
 
   const stepIndex = STEP_ORDER.indexOf(step);
   const warn = (msg: string) => setError({ message: msg, fieldErrors: {} });
@@ -134,14 +184,17 @@ export function RegisterScreen() {
     setError(NO_ERROR);
   };
 
-  const chooseCommunity = (c: PublicCommunity) => {
-    setCommunityId(c.id);
-    setCommunitySearch(c.name);
-    setCommunities([]);
+  const chooseSociety = (s: PublicSociety) => {
+    setSocietyId(s.id);
+    setSocietySearch(s.name);
+    setSocieties([]);
+    setCommunityId(null);
+    setUnitId(null);
   };
 
   const nextFromCommunity = () => {
-    if (!communityId) { warn(t('register.selectSociety')); return; }
+    if (!societyId) { warn(t('register.selectSociety')); return; }
+    if (!communityId) { warn(t('register.towerPlaceholder')); return; }
     if (!unitId) { warn(t('register.unitPlaceholder')); return; }
     setError(NO_ERROR);
     setStep('mobile');
@@ -252,7 +305,7 @@ export function RegisterScreen() {
       <StepIndicator current={Math.min(stepIndex, 6)} total={7} />
 
       <div className="mx-auto flex w-full max-w-md flex-col gap-3">
-        {step === 'community' ? (
+        {step === 'society' ? (
           <>
             <BrandLogo size="sm" className="mb-1" />
             <h1 className="text-xl font-extrabold">{t('register.createTitle')}</h1>
@@ -261,31 +314,43 @@ export function RegisterScreen() {
             <TextField
               label={t('register.selectSociety')}
               icon={Search}
-              value={communitySearch}
-              onChange={(e) => { setCommunitySearch(e.target.value); setCommunityId(null); setWingId(null); setUnitId(null); }}
+              value={societySearch}
+              onChange={(e) => { setSocietySearch(e.target.value); setSocietyId(null); setCommunityId(null); setUnitId(null); }}
               placeholder={t('register.societyPlaceholder')}
             />
-            {!communityId && communities.length > 0 ? (
+            {!societyId && societies.length > 0 ? (
               <div className="overflow-hidden rounded-xl border border-border bg-card">
-                {communities.map((c) => (
-                  <button key={c.id} type="button" onClick={() => chooseCommunity(c)} className="block w-full border-b border-border px-3 py-3 text-left text-sm last:border-b-0 hover:bg-accent">
-                    {c.name}
+                {societies.map((s) => (
+                  <button key={s.id} type="button" onClick={() => chooseSociety(s)} className="block w-full border-b border-border px-3 py-3 text-left text-sm last:border-b-0 hover:bg-accent">
+                    {s.name}
                   </button>
                 ))}
               </div>
-            ) : !communityId && searching ? (
+            ) : !societyId && searching ? (
               <p className="px-1 text-sm text-muted-foreground">{t('register.searching')}</p>
-            ) : !communityId && searchError ? (
+            ) : !societyId && searchError ? (
               <p className="px-1 text-sm text-destructive">{searchError}</p>
-            ) : !communityId && searched && communities.length === 0 ? (
+            ) : !societyId && searched && societies.length === 0 ? (
               <p className="px-1 text-sm text-muted-foreground">{t('register.noSocieties')}</p>
             ) : null}
-            {communityId ? (
+            {societyId ? (
               <>
-                {wingOptions.length > 0 ? (
-                  <SelectField label={t('register.towerBlock')} value={wingId} options={wingOptions} placeholder={t('register.towerPlaceholder')} onChange={(v) => { setWingId(v); setUnitId(null); }} />
+                <SelectField
+                  label={t('register.towerBlock')}
+                  value={communityId}
+                  options={communityOptions}
+                  placeholder={loadingCommunities ? t('register.searching') : t('register.towerPlaceholder')}
+                  onChange={(v) => { setCommunityId(v); setUnitId(null); }}
+                />
+                {communityId ? (
+                  <SelectField
+                    label={t('register.unit')}
+                    value={unitId}
+                    options={unitOptions}
+                    placeholder={loadingUnits ? t('register.searching') : t('register.unitPlaceholder')}
+                    onChange={setUnitId}
+                  />
                 ) : null}
-                <SelectField label={t('register.unit')} value={unitId} options={unitOptions} placeholder={t('register.unitPlaceholder')} onChange={setUnitId} />
                 <SelectField label={t('register.residentType')} value={residentType} options={RESIDENT_TYPES} onChange={setResidentType} />
               </>
             ) : null}

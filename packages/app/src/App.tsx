@@ -11,7 +11,7 @@ import { RegisterSocietyScreen } from '@app/screens/RegisterSocietyScreen';
 import { PublicPassScreen } from '@app/screens/PublicPassScreen';
 import { HomeScreen } from '@app/screens/HomeScreen';
 import { useBackButton } from '@app/lib/useBackButton';
-import { AnnouncementsScreen } from '@app/screens/features/AnnouncementsScreen';
+import { AnnouncementsPage } from '@shared/components/AnnouncementsPage';
 import { NotificationsScreen } from '@app/screens/features/NotificationsScreen';
 import { MyProfileScreen } from '@app/screens/features/MyProfileScreen';
 import { TicketsListPage, SubmitTicketPage, TicketDetailsPage } from '@shared/help-desk';
@@ -71,7 +71,7 @@ export function App() {
           <Route path="/register-society" element={<RegisterSocietyScreen />} />
           <Route path="/pass/:token" element={<PublicPassScreen />} />
           <Route path="/home" element={<RequireAuth><HomeScreen /></RequireAuth>} />
-          <Route path="/announcements" element={<RequireAuth><AnnouncementsScreen /></RequireAuth>} />
+          <Route path="/announcements" element={<RequireAuth><AnnouncementsPage mode="mobile" /></RequireAuth>} />
           <Route path="/notifications" element={<RequireAuth><NotificationsScreen /></RequireAuth>} />
           <Route path="/my-profile" element={<RequireAuth><MyProfileScreen /></RequireAuth>} />
           <Route path="/my-tickets" element={<RequireAuth><TicketsListPage mode="mobile" submitPath="/raise-ticket" detailsPathPrefix="/my-tickets/" /></RequireAuth>} />

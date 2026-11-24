@@ -7,7 +7,7 @@ export interface Community {
   id: string;
   organizationId: string;
   name: string;
-  communityType: string;
+  communityType?: string | null;
   organizationName: string | null;
 }
 
@@ -32,7 +32,7 @@ export class CommunitiesClient {
     return cacheWrap(`community_${id}`, () => this.api.get<Community>(`/api/v1/communities/${id}`, options), 15 * 60 * 1000, options?.forceRefresh);
   }
 
-  async create(body: { organizationId: string; name: string; communityType: string }): Promise<Community> {
+  async create(body: { organizationId: string; name: string; communityType?: string }): Promise<Community> {
     const res = await this.api.post<Community>('/api/v1/communities', { body });
     cacheInvalidate('communit');
     return res;

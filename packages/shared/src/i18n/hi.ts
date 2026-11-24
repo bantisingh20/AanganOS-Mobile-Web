@@ -1,4 +1,4 @@
-﻿import type { Translation } from './en';
+import type { Translation } from './en';
 
 export const hi: Translation = {
   common: {
@@ -845,6 +845,7 @@ export const hi: Translation = {
     searchPlaceholder: 'संगठन का नाम खोजें...',
     total: 'कुल',
     colOrganization: 'संगठन',
+    colType: 'प्रॉपर्टी का प्रकार',
     colCommunities: 'समुदाय',
     colStatus: 'स्थिति',
     colSubscription: 'सदस्यता',
@@ -871,6 +872,7 @@ export const hi: Translation = {
     addTitle: 'संगठन जोड़ें',
     editTitle: 'संगठन संपादित करें',
     orgName: 'संगठन का नाम',
+    propertyType: 'प्रॉपर्टी का प्रकार',
     orgNamePlaceholder: 'जैसे सनराइज़ ग्रुप',
     cancel: 'रद्द करें',
     createOrg: 'संगठन बनाएँ',

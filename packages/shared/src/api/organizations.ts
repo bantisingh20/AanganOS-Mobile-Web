@@ -7,6 +7,7 @@ import { SubscriptionStatus } from './subscriptions';
 export interface Organization {
   id: string;
   name: string;
+  propertyType?: string | null;
   isArchived: boolean;
   hasActiveAdmin: boolean;
   communityCount: number;
@@ -25,14 +26,14 @@ export class OrganizationsClient {
     return cacheWrap(`org_${id}`, () => this.api.get<Organization>(`/api/v1/organizations/${id}`, options), 15 * 60 * 1000, options?.forceRefresh);
   }
 
-  async create(name: string): Promise<Organization> {
-    const res = await this.api.post<Organization>('/api/v1/organizations', { body: { name } });
+  async create(name: string, propertyType?: string): Promise<Organization> {
+    const res = await this.api.post<Organization>('/api/v1/organizations', { body: { name, propertyType } });
     cacheInvalidate('org');
     return res;
   }
 
-  async update(id: string, name: string): Promise<Organization> {
-    const res = await this.api.put<Organization>(`/api/v1/organizations/${id}`, { body: { name } });
+  async update(id: string, name: string, propertyType?: string): Promise<Organization> {
+    const res = await this.api.put<Organization>(`/api/v1/organizations/${id}`, { body: { name, propertyType } });
     cacheInvalidate('org');
     return res;
   }
