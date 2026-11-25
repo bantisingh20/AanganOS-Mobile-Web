@@ -1,52 +1,43 @@
 import { useMemo, useState } from 'react';
-import { Users, Check, X, Search, RefreshCw, Mail, Phone, Table as TableIcon, LayoutGrid, ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Users, Check, X, Search, RefreshCw, Mail, Phone } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { Card } from './ui/card';
 import { Input } from './ui/input';
 import { Badge } from './ui/badge';
-import { Dialog, DialogHeader, DialogFooter } from './ui/dialog';
+import { Dialog, DialogHeader } from './ui/dialog';
 import { Button } from './ui/button';
 import { Table, THead, TBody, TR, TH, TD } from './ui/table';
 import { Pagination } from './ui/pagination';
 import { Toaster } from './ui/sonner';
 import { EntitySelect, type EntityPage } from './EntitySelect';
+import { HelpDeskHeader } from '@shared/help-desk/HelpDeskHeader';
 import { residents, organizations, communities } from '@shared/services';
 import type { Resident } from '@shared/api/residents';
 import { useAsync } from '@shared/lib/useAsync';
-import { useIsSmallScreen } from '@shared/lib/useMediaQuery';
 import { useScope } from '@shared/lib/useScope';
 import { toFormError } from '@shared/api/errors';
 import { cn } from '@shared/lib/utils';
 
-async function fetchOrgPage(search: string, page: number, pageSize: number, signal: AbortSignal): Promise<EntityPage> {
-  const d = await organizations.list({ search: search || undefined, page, pageSize }, { signal });
-  return { items: d.items.map((o) => ({ value: o.id, label: o.name })), total: d.totalCount };
-}
-
-function makeCommunityFetch(organizationId?: string) {
-  return async (search: string, page: number, pageSize: number, signal: AbortSignal): Promise<EntityPage> => {
-    const d = await communities.list({ search: search || undefined, page, pageSize }, organizationId ? { organizationId } : {}, { signal });
-    return { items: d.items.map((c) => ({ value: c.id, label: c.name })), total: d.totalCount };
-  };
-}
-
-async function resolveCommunityLabel(id: string, signal: AbortSignal): Promise<string | null> {
-  try { const c = await communities.get(id, { signal }); return c.name; } catch { return null; }
-}
-
-async function resolveOrgLabel(id: string, signal: AbortSignal): Promise<string | null> {
-  try { const o = await organizations.get(id, { signal }); return o.name; } catch { return null; }
-}
-
 export const RESIDENT_STATUS_TABS = ['pending', 'draft', 'verified', 'rejected', 'all'] as const;
 export type ResidentStatusTab = (typeof RESIDENT_STATUS_TABS)[number];
+
+const fetchOrgPage = (search: string, page: number, pageSize: number, signal: AbortSignal): Promise<EntityPage> =>
+  organizations.list({ search: search || undefined, page, pageSize }, { signal })
+    .then((d) => ({ items: d.items.map((o) => ({ value: o.id, label: o.name })), total: d.totalCount }));
+
+const makeCommunityFetch = (organizationId?: string) =>
+  (search: string, page: number, pageSize: number, signal: AbortSignal): Promise<EntityPage> =>
+    communities.list({ search: search || undefined, page, pageSize }, organizationId ? { organizationId } : {}, { signal })
+      .then((d) => ({ items: d.items.map((c) => ({ value: c.id, label: c.name })), total: d.totalCount }));
+
+const resolveCommunityLabel = (id: string, signal: AbortSignal) => communities.get(id, { signal }).then((c) => c.name).catch(() => null);
+const resolveOrgLabel = (id: string, signal: AbortSignal) => organizations.get(id, { signal }).then((o) => o.name).catch(() => null);
 
 function kycTone(v: string): 'success' | 'warning' | 'danger' | 'muted' {
   if (v === 'verified') return 'success';
   if (v === 'rejected') return 'danger';
-  if (v === 'draft') return 'muted';
-  return 'warning';
+  return v === 'draft' ? 'muted' : 'warning';
 }
 
 export interface ResidentsManagementViewProps {
@@ -54,7 +45,7 @@ export interface ResidentsManagementViewProps {
   allowedTabs?: readonly ResidentStatusTab[];
   title?: string;
   subtitle?: string;
-  defaultView?: 'table' | 'cards';
+  mode?: 'admin' | 'mobile';
   showHeader?: boolean;
   onBack?: () => void;
 }
@@ -62,23 +53,19 @@ export interface ResidentsManagementViewProps {
 export function ResidentsManagementView({
   initialStatusTab = 'pending',
   allowedTabs = RESIDENT_STATUS_TABS,
-  title,
-  subtitle,
-  defaultView = 'table',
-  showHeader = true,
-  onBack,
+  title, subtitle, mode = 'admin', showHeader = true, onBack,
 }: ResidentsManagementViewProps) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const scope = useScope();
+  const isMobile = mode === 'mobile';
+
   const [status, setStatus] = useState<ResidentStatusTab>(initialStatusTab);
   const [search, setSearch] = useState('');
   const [filterOrgId, setFilterOrgId] = useState<string | null>(null);
   const [filterCommunityId, setFilterCommunityId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [view, setView] = useState<'table' | 'cards'>(defaultView);
-  const isSmall = useIsSmallScreen();
-  const effectiveView = isSmall ? 'cards' : view;
+  const [pageSize, setPageSize] = useState(isMobile ? 20 : 10);
   const [rejecting, setRejecting] = useState<Resident | null>(null);
   const [actingId, setActingId] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
@@ -90,11 +77,7 @@ export function ResidentsManagementView({
   const query = useAsync(
     (signal) => residents.list(
       { search: search.trim() || undefined, page, pageSize },
-      {
-        ...(verificationStatus ? { verificationStatus } : {}),
-        ...(effectiveCommunityId ? { communityId: effectiveCommunityId } : {}),
-        ...(effectiveOrgId ? { organizationId: effectiveOrgId } : {}),
-      },
+      { ...(verificationStatus ? { verificationStatus } : {}), ...(effectiveCommunityId ? { communityId: effectiveCommunityId } : {}), ...(effectiveOrgId ? { organizationId: effectiveOrgId } : {}) },
       { signal },
     ).catch(() => null),
     [search, status, effectiveCommunityId, effectiveOrgId, page, pageSize, reloadKey],
@@ -110,11 +93,8 @@ export function ResidentsManagementView({
       await residents.verify(r.id);
       toast.success(t('residents.approved', 'Resident approved successfully'));
       reload();
-    } catch (err) {
-      toast.error(toFormError(err).message);
-    } finally {
-      setActingId(null);
-    }
+    } catch (err) { toast.error(toFormError(err).message); }
+    finally { setActingId(null); }
   };
 
   const kycLabel = (v: string) =>
@@ -123,217 +103,223 @@ export function ResidentsManagementView({
       : v === 'draft' ? t('residents.draft', 'Draft')
       : t('residents.pending', 'Pending');
 
-  const StatusBadge = ({ v }: { v: string }) => (
-    <Badge tone={kycTone(v)}><span className="h-1.5 w-1.5 rounded-full bg-current opacity-70" />{kycLabel(v)}</Badge>
-  );
+  const pageTitle = title || t('residents.title', 'Residents');
+  const pageSubtitle = subtitle || t('residents.subtitle', 'Manage residents and KYC approvals');
 
-  const Actions = ({ r }: { r: Resident }) =>
+  const renderActions = (r: Resident) =>
     r.verificationStatus === 'pending' ? (
-      <div className="flex items-center justify-end gap-1.5">
+      <div className="flex items-center justify-end gap-1">
         <button
           type="button"
           disabled={actingId === r.id}
           onClick={() => approve(r)}
-          className="flex h-8 items-center gap-1 rounded-lg bg-emerald-600 px-2.5 text-xs font-semibold text-white hover:bg-emerald-700 active:scale-95 transition-all disabled:opacity-50"
+          className="flex h-6 items-center gap-1 px-2 rounded-[3px] bg-emerald-600 text-white text-[10.5px] font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50"
         >
-          <Check className="h-4 w-4" />{t('residents.approve', 'Approve')}
+          <Check className="h-3 w-3 stroke-[2.5]" />
+          {t('residents.approve', 'Approve')}
         </button>
         <button
           type="button"
           onClick={() => setRejecting(r)}
-          className="flex h-8 items-center gap-1 rounded-lg border border-rose-300 px-2.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:border-rose-800 dark:hover:bg-rose-950/40 active:scale-95 transition-all"
+          className="flex h-6 items-center gap-1 px-2 rounded-[3px] border border-rose-300 text-rose-600 text-[10.5px] font-medium hover:bg-rose-50 dark:border-rose-800 dark:hover:bg-rose-950/40 transition-colors"
         >
-          <X className="h-4 w-4" />{t('residents.reject', 'Reject')}
+          <X className="h-3 w-3 stroke-[2.5]" />
+          {t('residents.reject', 'Reject')}
         </button>
       </div>
     ) : (
-      <span className="text-xs capitalize text-muted-foreground">{r.verificationStatus}</span>
+      <span className="text-[11px] capitalize text-muted-foreground">{r.verificationStatus}</span>
     );
 
-  return (
-    <div className="space-y-3 sm:space-y-4">
-      {showHeader ? (
-        <Card className="relative overflow-hidden rounded-2xl p-0 shadow-sm border border-border/60">
-          <span className="absolute left-0 top-0 h-full w-1 bg-emerald-600" />
-          <div className="flex items-center gap-3 py-3.5 pl-4 pr-3.5">
-            {onBack ? (
-              <button
-                type="button"
-                onClick={onBack}
-                aria-label="Back"
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-muted text-foreground hover:bg-accent active:scale-95 transition-all"
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </button>
-            ) : null}
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-violet-600 dark:bg-violet-950/50 dark:text-violet-300">
-              <Users className="h-5 w-5" />
-            </span>
-            <div className="min-w-0">
-              <h1 className="text-base font-semibold leading-tight">{title || t('residents.title', 'Residents')}</h1>
-              <p className="mt-0.5 truncate text-xs text-muted-foreground">{subtitle || t('residents.subtitle', 'Manage residents and KYC approvals')}</p>
-            </div>
-          </div>
-        </Card>
-      ) : null}
+  const content = (
+    <div className="w-full space-y-2">
+      <Toaster position="top-right" richColors />
 
-      <Card className="flex flex-col gap-3 rounded-2xl p-3 sm:flex-row sm:items-center sm:justify-between shadow-sm border border-border/60">
-        <div className="flex flex-wrap gap-1 rounded-xl bg-muted p-1 overflow-x-auto">
-          {allowedTabs.map((s) => (
-            <button
-              key={s}
-              type="button"
-              onClick={() => { setStatus(s); setPage(1); }}
-              className={cn('rounded-lg px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors', status === s ? 'bg-card text-emerald-600 shadow-sm' : 'text-muted-foreground hover:text-foreground')}
-            >
-              {t(`residents.tab_${s}`, s.charAt(0).toUpperCase() + s.slice(1))}
-            </button>
-          ))}
+      {!isMobile && showHeader && (
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between py-0.5">
+          <div>
+            <h1 className="text-sm font-semibold tracking-tight text-foreground flex items-center gap-1.5">
+              <Users className="h-3.5 w-3.5 text-primary" />{pageTitle}
+            </h1>
+            <p className="text-[11px] text-muted-foreground leading-tight">{pageSubtitle}</p>
+          </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="relative min-w-[160px] flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+      )}
+
+      {/* Tabs & Filter Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-1.5 rounded-md border border-border/80 bg-card/60 p-1.5 text-xs">
+        <div className="flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
+          <div className="flex items-center gap-0.5 rounded-[4px] bg-muted/60 p-0.5">
+            {allowedTabs.map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => { setStatus(s); setPage(1); }}
+                className={cn('h-6 px-2 rounded-[3px] text-[10.5px] font-medium transition-colors', status === s ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground')}
+              >
+                {t(`residents.tab_${s}`, s.charAt(0).toUpperCase() + s.slice(1))}
+              </button>
+            ))}
+          </div>
+
+          <div className="relative min-w-[130px] max-w-xs flex-1">
+            <Search className="pointer-events-none absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
               placeholder={t('residents.searchPlaceholder', 'Search by name, phone…')}
-              className="h-9 max-w-xs pl-9 text-xs sm:text-sm"
+              className="h-7.5 w-full rounded-[4px] pl-7 pr-2 text-[11px] bg-background"
             />
           </div>
-          {scope.showOrgFilter ? (
+
+          {scope.showOrgFilter && (
             <EntitySelect
-              className="w-40 sm:w-44 text-xs"
+              className="w-36 text-xs [&>button]:h-7.5 [&>button]:rounded-[4px] [&>button]:text-[11px] [&>button]:px-2"
               value={filterOrgId}
               onChange={(v) => { setFilterOrgId(v); setFilterCommunityId(null); setPage(1); }}
               fetchPage={fetchOrgPage}
               resolveLabel={resolveOrgLabel}
               placeholder={t('residents.filterOrg', 'All Organizations')}
             />
-          ) : null}
-          {scope.showCommunityFilter ? (
+          )}
+
+          {scope.showCommunityFilter && (
             <EntitySelect
-              className="w-40 sm:w-44 text-xs"
+              className="w-36 text-xs [&>button]:h-7.5 [&>button]:rounded-[4px] [&>button]:text-[11px] [&>button]:px-2"
               value={filterCommunityId}
               onChange={(v) => { setFilterCommunityId(v); setPage(1); }}
               fetchPage={makeCommunityFetch(filterOrgId ?? undefined)}
               resolveLabel={resolveCommunityLabel}
               placeholder={t('residents.filterCommunity', 'All Communities')}
             />
-          ) : null}
-          <div className="hidden items-center rounded-lg border border-border p-0.5 md:flex">
-            <button
-              type="button"
-              onClick={() => setView('table')}
-              aria-label="Table view"
-              className={`flex h-7 w-7 items-center justify-center rounded-md ${view === 'table' ? 'bg-emerald-600 text-white' : 'text-muted-foreground hover:bg-accent'}`}
-            >
-              <TableIcon className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setView('cards')}
-              aria-label="Card view"
-              className={`flex h-7 w-7 items-center justify-center rounded-md ${view === 'cards' ? 'bg-emerald-600 text-white' : 'text-muted-foreground hover:bg-accent'}`}
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </button>
-          </div>
-          <button
-            type="button"
-            onClick={reload}
-            aria-label="Refresh"
-            className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-muted-foreground hover:bg-accent hover:text-emerald-600 active:scale-95 transition-all"
-          >
-            <RefreshCw className={`h-4 w-4 ${query.loading ? 'animate-spin' : ''}`} />
-          </button>
+          )}
         </div>
-      </Card>
 
-      {items.length === 0 ? (
-        <Card className="rounded-2xl p-10 text-center text-sm text-muted-foreground shadow-sm border border-border/60">
-          {query.loading ? t('common.loading', 'Loading…') : t('residents.empty', 'No residents found in this category.')}
-        </Card>
-      ) : effectiveView === 'table' ? (
-        <Card className="overflow-hidden rounded-2xl p-0 shadow-sm border border-border/60">
-          <Table>
-            <THead>
-              <TR>
-                <TH className="w-14 text-center">#</TH>
-                <TH>{t('residents.colProfile', 'Profile')}</TH>
-                {showCommunityCol ? <TH className="w-44">{t('residents.colCommunity', 'Community')}</TH> : null}
-                <TH className="w-40">{t('residents.colPhone', 'Phone')}</TH>
-                <TH className="w-32">{t('residents.colOwnership', 'Tenancy')}</TH>
-                <TH className="w-36">{t('residents.colKyc', 'KYC Status')}</TH>
-                <TH className="w-44 text-right">{t('orgs.colActions', 'Actions')}</TH>
-              </TR>
-            </THead>
-            <TBody>
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="text-[11px] text-muted-foreground">{t('orgs.total')}: <span className="font-semibold text-foreground">{query.data?.totalCount ?? 0}</span></span>
+          <Button type="button" variant="outline" size="sm" onClick={reload} aria-label="Refresh" className="h-7.5 w-7.5 p-0 rounded-[4px] border-border/80">
+            <RefreshCw className={cn('h-3 w-3', query.loading && 'animate-spin text-primary')} />
+          </Button>
+        </div>
+      </div>
+
+      {/* Residents Container */}
+      <div className="rounded-md border border-border/80 bg-card overflow-hidden">
+        {query.loading && items.length === 0 ? (
+          <div className="flex items-center justify-center py-10 text-xs text-muted-foreground">
+            <RefreshCw className="mr-1.5 h-3.5 w-3.5 animate-spin text-primary" />{t('common.loading', 'Loading…')}
+          </div>
+        ) : items.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-10 text-center">
+            <Users className="h-6 w-6 text-muted-foreground/50 mb-1.5" />
+            <p className="text-xs font-semibold text-foreground">{t('residents.empty', 'No residents found in this category.')}</p>
+          </div>
+        ) : (
+          <>
+            {/* Mobile View: Cards */}
+            <div className={cn('divide-y divide-border/60', !isMobile && 'md:hidden')}>
               {items.map((r, i) => (
-                <TR key={r.id}>
-                  <TD className="text-center text-[11px] text-muted-foreground">{(page - 1) * pageSize + i + 1}</TD>
-                  <TD>
-                    <div className="flex items-center gap-2.5">
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-muted text-sm font-semibold">
+                <div key={r.id} className="p-2.5 flex flex-col gap-2 hover:bg-muted/20 transition-colors">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-[3px] bg-primary/10 text-primary text-xs font-bold">
                         {r.name?.charAt(0)?.toUpperCase() ?? '?'}
                       </span>
                       <div className="min-w-0">
-                        <div className="truncate text-[13px] font-semibold">{r.name}</div>
-                        <div className="flex items-center gap-1 truncate text-[11px] text-muted-foreground">
-                          <Mail className="h-3 w-3" />{r.email ?? t('residents.noEmail', 'No email provided')}
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-semibold text-xs text-foreground truncate">{r.name}</span>
+                          <span className="font-mono text-[9px] text-muted-foreground">#{(page - 1) * pageSize + i + 1}</span>
                         </div>
+                        {showCommunityCol && r.communityName && <span className="block truncate text-[11px] text-muted-foreground">{r.communityName}</span>}
                       </div>
                     </div>
-                  </TD>
-                  {showCommunityCol ? <TD className="text-[11px] text-muted-foreground">{r.communityName ?? '—'}</TD> : null}
-                  <TD className="text-xs font-medium"><span className="flex items-center gap-1.5"><Phone className="h-3 w-3 text-muted-foreground" />{r.phone ?? '—'}</span></TD>
-                  <TD><Badge tone={r.residentType?.toLowerCase() === 'owner' ? 'info' : 'default'}>{r.residentType || 'Resident'}</Badge></TD>
-                  <TD><StatusBadge v={r.verificationStatus} /></TD>
-                  <TD><Actions r={r} /></TD>
-                </TR>
-              ))}
-            </TBody>
-          </Table>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {items.map((r) => (
-            <Card key={r.id} className="flex flex-col gap-3 rounded-2xl p-4 shadow-sm border border-border/60">
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex min-w-0 items-center gap-2.5">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted text-sm font-semibold">
-                    {r.name?.charAt(0)?.toUpperCase() ?? '?'}
-                  </span>
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-semibold">{r.name}</div>
-                    {showCommunityCol ? <div className="truncate text-[11px] text-muted-foreground">{r.communityName ?? '—'}</div> : null}
+                    <Badge tone={kycTone(r.verificationStatus)} className="text-[10px] px-1.5 py-0 rounded-[3px] shrink-0">
+                      <span className="h-1 w-1 rounded-full bg-current opacity-70 mr-1" />{kycLabel(r.verificationStatus)}
+                    </Badge>
                   </div>
+                  <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                    <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{r.phone ?? '—'}</span>
+                    <span className="flex items-center gap-1 truncate"><Mail className="h-3 w-3" />{r.email ?? t('residents.noEmail', 'No email')}</span>
+                    <Badge tone={r.residentType?.toLowerCase() === 'owner' ? 'info' : 'default'} className="text-[10px] px-1.5 py-0 rounded-[3px]">{r.residentType || 'Resident'}</Badge>
+                  </div>
+                  <div className="flex items-center justify-end gap-2 pt-0.5 border-t border-border/50">{renderActions(r)}</div>
                 </div>
-                <StatusBadge v={r.verificationStatus} />
-              </div>
-              <div className="flex flex-col gap-1 border-t border-border pt-2 text-[11px] text-muted-foreground">
-                <span className="flex items-center gap-1.5"><Mail className="h-3 w-3" />{r.email ?? t('residents.noEmail', 'No email provided')}</span>
-                <span className="flex items-center gap-1.5"><Phone className="h-3 w-3" />{r.phone ?? '—'}</span>
-                <div>
-                  <Badge tone={r.residentType?.toLowerCase() === 'owner' ? 'info' : 'default'}>{r.residentType || 'Resident'}</Badge>
-                </div>
-              </div>
-              <div className="flex items-center justify-end border-t border-border pt-3"><Actions r={r} /></div>
-            </Card>
-          ))}
-        </div>
-      )}
+              ))}
+            </div>
 
-      {(query.data?.totalCount ?? 0) > 0 ? (
-        <Card className="rounded-xl p-1 shadow-sm border border-border/60">
-          <Pagination page={page} pageSize={pageSize} total={query.data?.totalCount ?? 0} onPageChange={setPage} onPageSizeChange={(s) => { setPageSize(s); setPage(1); }} />
-        </Card>
-      ) : null}
+            {/* Desktop View: Table */}
+            {!isMobile && (
+              <div className="hidden md:block overflow-x-auto">
+                <Table>
+                  <THead>
+                    <TR className="border-b border-border bg-muted/40">
+                      <TH className="w-10 py-1.5 px-2 text-center text-[10.5px] font-semibold">#</TH>
+                      <TH className="py-1.5 px-2 text-[10.5px] font-semibold">{t('residents.colProfile', 'Profile')}</TH>
+                      {showCommunityCol && <TH className="py-1.5 px-2 text-[10.5px] font-semibold">{t('residents.colCommunity', 'Community')}</TH>}
+                      <TH className="py-1.5 px-2 text-[10.5px] font-semibold">{t('residents.colPhone', 'Phone')}</TH>
+                      <TH className="py-1.5 px-2 text-[10.5px] font-semibold">{t('residents.colOwnership', 'Tenancy')}</TH>
+                      <TH className="py-1.5 px-2 text-[10.5px] font-semibold">{t('residents.colKyc', 'KYC Status')}</TH>
+                      <TH className="w-32 py-1.5 px-2 text-right text-[10.5px] font-semibold">{t('orgs.colActions', 'Actions')}</TH>
+                    </TR>
+                  </THead>
+                  <TBody>
+                    {items.map((r, i) => (
+                      <TR key={r.id} className="hover:bg-muted/30 transition-colors">
+                        <TD className="py-1 px-2 text-center text-[10.5px] text-muted-foreground font-mono">{(page - 1) * pageSize + i + 1}</TD>
+                        <TD className="py-1 px-2">
+                          <div className="flex items-center gap-1.5">
+                            <span className="flex h-5.5 w-5.5 shrink-0 items-center justify-center rounded-[3px] bg-primary/10 text-primary text-[11px] font-bold">
+                              {r.name?.charAt(0)?.toUpperCase() ?? '?'}
+                            </span>
+                            <div>
+                              <span className="font-semibold text-xs text-foreground leading-none">{r.name}</span>
+                              <span className="flex items-center gap-1 font-mono text-[9px] text-muted-foreground leading-none mt-0.5"><Mail className="h-2.5 w-2.5" />{r.email ?? t('residents.noEmail', 'No email')}</span>
+                            </div>
+                          </div>
+                        </TD>
+                        {showCommunityCol && <TD className="py-1 px-2 text-xs text-muted-foreground font-medium">{r.communityName ?? '—'}</TD>}
+                        <TD className="py-1 px-2 text-xs text-muted-foreground"><span className="flex items-center gap-1"><Phone className="h-3 w-3" />{r.phone ?? '—'}</span></TD>
+                        <TD className="py-1 px-2"><Badge tone={r.residentType?.toLowerCase() === 'owner' ? 'info' : 'default'} className="text-[10px] px-1.5 py-0 rounded-[3px]">{r.residentType || 'Resident'}</Badge></TD>
+                        <TD className="py-1 px-2"><Badge tone={kycTone(r.verificationStatus)} className="text-[10px] px-1.5 py-0 rounded-[3px]"><span className="h-1 w-1 rounded-full bg-current opacity-70 mr-1" />{kycLabel(r.verificationStatus)}</Badge></TD>
+                        <TD className="py-1 px-2">{renderActions(r)}</TD>
+                      </TR>
+                    ))}
+                  </TBody>
+                </Table>
+              </div>
+            )}
+          </>
+        )}
+
+        {(query.data?.totalCount ?? 0) > 0 && (
+          <div className="border-t border-border px-2.5 py-1 bg-muted/20">
+            <Pagination page={page} pageSize={pageSize} total={query.data?.totalCount ?? 0} onPageChange={setPage} onPageSizeChange={(s) => { setPageSize(s); setPage(1); }} />
+          </div>
+        )}
+      </div>
 
       <RejectDialog resident={rejecting} onClose={() => setRejecting(null)} onDone={() => { setRejecting(null); reload(); }} />
-
-      <Toaster position="top-center" richColors />
     </div>
   );
+
+  if (isMobile) {
+    return (
+      <div className="mx-auto flex h-[100dvh] flex-col overflow-hidden bg-background">
+        <HelpDeskHeader
+          title={pageTitle}
+          subtitle={pageSubtitle}
+          mode="mobile"
+          showBack
+          onBack={onBack ?? (() => (window.history.state?.idx > 0 ? navigate(-1) : navigate('/home')))}
+        />
+        <div className="min-h-0 flex-1 overflow-y-auto px-3 py-2 space-y-2">
+          {content}
+        </div>
+      </div>
+    );
+  }
+
+  return content;
 }
 
 function RejectDialog({ resident, onClose, onDone }: { resident: Resident | null; onClose: () => void; onDone: () => void }) {
@@ -349,22 +335,21 @@ function RejectDialog({ resident, onClose, onDone }: { resident: Resident | null
       toast.success(t('residents.rejectedDone', 'Resident application rejected'));
       setReason('');
       onDone();
-    } catch (err) {
-      toast.error(toFormError(err).message);
-    } finally {
-      setBusy(false);
-    }
+    } catch (err) { toast.error(toFormError(err).message); }
+    finally { setBusy(false); }
   };
 
   return (
-    <Dialog open={!!resident} onClose={onClose}>
+    <Dialog open={!!resident} onClose={onClose} className="max-w-md rounded-lg p-5">
       <DialogHeader title={t('residents.rejectTitle', 'Reject Resident')} description={resident?.name} />
-      <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{t('residents.rejectReason', 'Reason for rejection')}</label>
-      <Input autoFocus value={reason} onChange={(e) => setReason(e.target.value)} placeholder={t('residents.rejectReasonPlaceholder', 'e.g. Incomplete KYC document')} onKeyDown={(e) => { if (e.key === 'Enter') submit(); }} />
-      <DialogFooter>
-        <Button variant="outline" onClick={onClose} className="h-9 rounded-lg text-xs">{t('orgs.cancel', 'Cancel')}</Button>
-        <Button onClick={submit} disabled={busy || !reason.trim()} className="h-9 rounded-lg bg-rose-600 text-xs hover:bg-rose-700">{t('residents.reject', 'Reject')}</Button>
-      </DialogFooter>
+      <div className="flex flex-col gap-2 pt-1">
+        <label className="block text-xs font-medium text-foreground">{t('residents.rejectReason', 'Reason for rejection')} *</label>
+        <Input autoFocus value={reason} onChange={(e) => setReason(e.target.value)} placeholder={t('residents.rejectReasonPlaceholder', 'e.g. Incomplete KYC document')} onKeyDown={(e) => { if (e.key === 'Enter') submit(); }} className="h-9 text-xs rounded-[4px]" />
+      </div>
+      <div className="mt-5 pt-3.5 border-t border-border/70 flex items-center justify-end gap-2.5">
+        <Button type="button" variant="outline" onClick={onClose} className="h-8.5 px-4 rounded-[4px] text-xs font-medium border-border/80">{t('orgs.cancel', 'Cancel')}</Button>
+        <Button type="button" onClick={submit} disabled={busy || !reason.trim()} className="h-8.5 px-4 rounded-[4px] text-xs font-medium bg-rose-600 hover:bg-rose-700 text-white">{t('residents.reject', 'Reject')}</Button>
+      </div>
     </Dialog>
   );
 }

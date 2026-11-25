@@ -27,43 +27,45 @@ function isGroup(node: MenuNode): boolean {
   return !node.route && node.children.length > 0;
 }
 
-function flattenLeaves(nodes: MenuNode[]): MenuNode[] {
-  const out: MenuNode[] = [];
-  for (const n of nodes) {
-    if (n.route) out.push(n);
-    if (n.children.length > 0) out.push(...flattenLeaves(n.children));
-  }
-  return out;
-}
-
 export function SidebarNav({ items, currentPath, onNavigate, collapsed = false }: SidebarNavProps) {
   const { t } = useTranslation();
 
   if (collapsed) {
     return (
-      <nav className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto p-2">
-        {flattenLeaves(items).map((node) => (
-          <NavRow key={node.key} node={node} currentPath={currentPath} onNavigate={onNavigate} collapsed depth={0} />
+      <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-1.5 scrollbar-thin">
+        {items.map((node, idx) => (
+          <div key={node.key} className="flex flex-col gap-1">
+            {idx > 0 && <div className="my-1 border-t border-slate-200/80 dark:border-slate-800" />}
+            {isGroup(node)
+              ? node.children.map((child) => (
+                  <NavRow key={child.key} node={child} currentPath={currentPath} onNavigate={onNavigate} collapsed depth={0} />
+                ))
+              : (
+                  <NavRow key={node.key} node={node} currentPath={currentPath} onNavigate={onNavigate} collapsed depth={0} />
+                )}
+          </div>
         ))}
       </nav>
     );
   }
 
   return (
-    <nav className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto p-2">
+    <nav className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-2 py-2 scrollbar-thin">
       {items.map((node) =>
         isGroup(node) ? (
-          <div key={node.key} className="mb-1">
-            <div className="px-3 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+          <div key={node.key} className="mb-1.5">
+            <div className="px-2.5 pb-1 pt-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-400/90 dark:text-slate-500">
               {t(`menu.${node.key}`, { defaultValue: node.label })}
             </div>
-            {node.children.map((child) => (
-              <NavRow key={child.key} node={child} currentPath={currentPath} onNavigate={onNavigate} collapsed={false} depth={0} />
-            ))}
+            <div className="flex flex-col gap-0.5">
+              {node.children.map((child) => (
+                <NavRow key={child.key} node={child} currentPath={currentPath} onNavigate={onNavigate} collapsed={false} depth={0} />
+              ))}
+            </div>
           </div>
         ) : (
           <NavRow key={node.key} node={node} currentPath={currentPath} onNavigate={onNavigate} collapsed={false} depth={0} />
-        ),
+        )
       )}
     </nav>
   );
@@ -104,25 +106,29 @@ function NavRow({
         onClick={onClick}
         title={collapsed ? label : undefined}
         className={cn(
-          'flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium transition-all sm:text-[13px]',
-          collapsed ? 'justify-center px-0' : '',
-          depth > 0 && !collapsed ? 'ml-3' : '',
+          'group relative flex items-center transition-colors font-medium text-xs rounded-[4px]',
+          collapsed
+            ? 'h-8.5 w-8.5 mx-auto justify-center'
+            : cn('w-full gap-2.5 px-2.5', depth > 0 ? 'h-7.5 text-[11.5px]' : 'h-8 text-xs'),
           active
-            ? 'bg-[#05b872] text-white shadow-sm shadow-[#05b872]/25'
-            : 'text-slate-600 hover:bg-slate-100/70 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-[#111928] dark:hover:text-slate-100',
+            ? 'bg-emerald-600 text-white font-semibold shadow-xs'
+            : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100'
         )}
       >
-        <Icon className="h-5 w-5 shrink-0" />
-        {!collapsed ? <span className="flex-1 truncate text-left">{label}</span> : null}
-        {!collapsed && hasChildren && !node.route ? (
-          <ChevronDown className={cn('h-4 w-4 shrink-0 transition-transform', open ? 'rotate-180' : '')} />
-        ) : null}
+        <Icon className={cn('shrink-0', depth > 0 ? 'h-3.5 w-3.5' : 'h-4 w-4')} />
+        {!collapsed && <span className="flex-1 truncate text-left">{label}</span>}
+        {!collapsed && hasChildren && !node.route && (
+          <ChevronDown className={cn('h-3.5 w-3.5 shrink-0 opacity-60 transition-transform duration-200', open && 'rotate-180')} />
+        )}
       </button>
-      {hasChildren && open && !collapsed
-        ? node.children.map((child) => (
+
+      {hasChildren && open && !collapsed && (
+        <div className="ml-3.5 mt-0.5 flex flex-col gap-0.5 border-l border-slate-200/80 pl-2 dark:border-slate-800">
+          {node.children.map((child) => (
             <NavRow key={child.key} node={child} currentPath={currentPath} onNavigate={onNavigate} collapsed={collapsed} depth={depth + 1} />
-          ))
-        : null}
+          ))}
+        </div>
+      )}
     </>
   );
 }

@@ -1,57 +1,24 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, Plus, Pencil, Trash2, Search, RefreshCw, CalendarClock, Building, CheckCircle2, LayoutGrid, Table as TableIcon } from 'lucide-react';
+import { Building2, Plus, Pencil, Trash2, Search, RefreshCw, CalendarClock, Building, CheckCircle2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { Card } from '@shared/components/ui/card';
 import { Button } from '@shared/components/ui/button';
 import { Input } from '@shared/components/ui/input';
 import { Badge } from '@shared/components/ui/badge';
-import { Dialog, DialogHeader, DialogFooter } from '@shared/components/ui/dialog';
 import { ConfirmDialog } from '@shared/components/ui/confirm-dialog';
-import { SelectField } from '@shared/components/SelectField';
 import { Table, THead, TBody, TR, TH, TD } from '@shared/components/ui/table';
 import { Pagination } from '@shared/components/ui/pagination';
 import { Toaster } from '@shared/components/ui/sonner';
 import { organizations, subscriptions } from '@shared/services';
 import type { Organization } from '@shared/api/organizations';
-import type { SubscriptionStatus, RenewalRequest } from '@shared/api/subscriptions';
-// import type { Community } from '@shared/api/communities';
+import type { RenewalRequest } from '@shared/api/subscriptions';
 import { useAsync } from '@shared/lib/useAsync';
-import { useIsSmallScreen } from '@shared/lib/useMediaQuery';
 import { toFormError } from '@shared/api/errors';
-
-const PLAN_OPTIONS = [
-  { value: '1', label: '1 month' },
-  { value: '3', label: '3 months' },
-  { value: '6', label: '6 months' },
-  { value: '9', label: '9 months' },
-  { value: '12', label: '12 months' },
-];
-
-const TYPE_OPTIONS = [
-  { value: 'apartment_society', label: 'Apartment Society' },
-  { value: 'gated_community', label: 'Gated Community' },
-  { value: 'villa_bungalow', label: 'Villa / Bungalow' },
-  { value: 'townhouse', label: 'Townhouse' },
-  { value: 'mixed', label: 'Mixed Development' },
-];
-
-function typeLabel(type?: string | null): string {
-  return TYPE_OPTIONS.find((o) => o.value === type)?.label ?? type ?? 'Apartment Society';
-}
-
-function typeTone(type?: string | null): 'success' | 'info' | 'default' | 'warning' {
-  const t = (type || '').toLowerCase();
-  if (t.includes('apartment')) return 'success';
-  if (t.includes('gated')) return 'info';
-  if (t.includes('villa') || t.includes('townhouse')) return 'default';
-  return 'warning';
-}
-
-function fmtDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
-}
+import { cn } from '@shared/lib/utils';
+import { OrgFormDialog } from './orgs/OrgFormDialog';
+import { SetExpiryDialog } from './orgs/SetExpiryDialog';
+import { PLAN_OPTIONS, TYPE_OPTIONS, typeLabel, typeTone, fmtDate, SubBadge } from './orgs/orgConstants';
 
 export function OrganizationsPage() {
   const { t } = useTranslation();
@@ -63,17 +30,15 @@ export function OrganizationsPage() {
   const [editing, setEditing] = useState<Organization | null>(null);
   const [expiryOrg, setExpiryOrg] = useState<Organization | null>(null);
   const [approveReq, setApproveReq] = useState<RenewalRequest | null>(null);
+  const [confirmActivate, setConfirmActivate] = useState<Organization | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<Organization | null>(null);
+  const [confirmBusy, setConfirmBusy] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
-  const [view, setView] = useState<'table' | 'cards'>('table');
-  const isSmall = useIsSmallScreen();
-  const effectiveView = isSmall ? 'cards' : view;
-  // const { } = useper();  
 
   const orgQuery = useAsync(
     (signal) => organizations.list({ search: search.trim() || undefined, page, pageSize }, { signal }).catch(() => null),
     [search, page, pageSize, reloadKey],
   );
- 
   const renewalsQuery = useAsync(
     (signal) => subscriptions.pendingRenewals({ signal }).catch(() => [] as RenewalRequest[]),
     [reloadKey],
@@ -83,10 +48,6 @@ export function OrganizationsPage() {
   const renewals = renewalsQuery.data ?? [];
   const reload = () => setReloadKey((k) => k + 1);
 
-  const [confirmActivate, setConfirmActivate] = useState<Organization | null>(null);
-  const [confirmDelete, setConfirmDelete] = useState<Organization | null>(null);
-  const [confirmBusy, setConfirmBusy] = useState(false);
-
   const doActivate = async () => {
     if (!confirmActivate || confirmBusy) return;
     setConfirmBusy(true);
@@ -95,11 +56,8 @@ export function OrganizationsPage() {
       toast.success(t('orgs.activated'));
       setConfirmActivate(null);
       reload();
-    } catch (err) {
-      toast.error(toFormError(err).message);
-    } finally {
-      setConfirmBusy(false);
-    }
+    } catch (err) { toast.error(toFormError(err).message); }
+    finally { setConfirmBusy(false); }
   };
 
   const doDelete = async () => {
@@ -110,173 +68,309 @@ export function OrganizationsPage() {
       toast.success(t('orgs.deleted'));
       setConfirmDelete(null);
       reload();
-    } catch (err) {
-      toast.error(toFormError(err).message);
-    } finally {
-      setConfirmBusy(false);
-    }
+    } catch (err) { toast.error(toFormError(err).message); }
+    finally { setConfirmBusy(false); }
   };
 
-  return (
-    <div className="space-y-3 sm:space-y-4">
-      <Card className="relative overflow-hidden rounded-2xl p-0">
-        <span className="absolute left-0 top-0 h-full w-1 bg-emerald-600" />
-        <div className="flex flex-wrap items-center justify-between gap-3 py-3.5 pl-4 pr-3.5">
-          <div className="flex min-w-0 items-center gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
-              <Building2 className="h-5 w-5" />
-            </span>
-            <div className="min-w-0">
-              <h1 className="text-base font-semibold leading-tight">{t('admin.nav.organizations')}</h1>
-              <p className="mt-0.5 truncate text-xs text-muted-foreground">{t('orgs.subtitle')}</p>
-            </div>
-          </div>
-          <Button onClick={() => setCreating(true)} icon={<Plus className="h-4 w-4" />} label={t('orgs.add')} className="h-9 gap-1.5 rounded-xl bg-emerald-600 text-xs hover:bg-emerald-700" />
-        </div>
-      </Card>
+  const renderActions = (org: Organization) => (
+    <div className="flex items-center justify-end gap-1">
+      <button
+        type="button"
+        onClick={() => setExpiryOrg(org)}
+        title={t('orgs.setExpiry')}
+        className="flex h-6 w-6 items-center justify-center rounded-[3px] border border-border/80 text-muted-foreground hover:text-primary hover:border-primary/50 transition-colors"
+      >
+        <CalendarClock className="h-3 w-3" />
+      </button>
+      {!org.hasActiveAdmin && (
+        <button
+          type="button"
+          onClick={() => setConfirmActivate(org)}
+          title={t('orgs.activate')}
+          className="flex h-6 items-center gap-1 px-1.5 rounded-[3px] border border-emerald-500/40 text-[10.5px] font-medium text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors"
+        >
+          <CheckCircle2 className="h-3 w-3" />
+          {t('orgs.activate')}
+        </button>
+      )}
+      <button
+        type="button"
+        onClick={() => setEditing(org)}
+        title={t('orgs.edit')}
+        className="flex h-6 w-6 items-center justify-center rounded-[3px] border border-border/80 text-muted-foreground hover:text-primary hover:border-primary/50 transition-colors"
+      >
+        <Pencil className="h-3 w-3" />
+      </button>
+      <button
+        type="button"
+        onClick={() => setConfirmDelete(org)}
+        title={t('orgs.delete')}
+        className="flex h-6 w-6 items-center justify-center rounded-[3px] border border-rose-300 text-rose-600 hover:bg-rose-50 dark:border-rose-800 dark:hover:bg-rose-950/40 transition-colors"
+      >
+        <Trash2 className="h-3 w-3" />
+      </button>
+    </div>
+  );
 
-      {renewals.length > 0 ? (
-        <Card className="overflow-hidden rounded-2xl border-amber-200 bg-amber-50 p-0">
-          <div className="border-b border-amber-200/60 px-4 py-2.5 text-xs font-semibold text-amber-700">
+  return (
+    <div className="w-full space-y-2">
+      <Toaster position="top-right" richColors />
+
+      {/* Page Header: Compact Title & Action Button */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between py-0.5">
+        <div>
+          <h1 className="text-sm font-semibold tracking-tight text-foreground flex items-center gap-1.5">
+            <Building2 className="h-3.5 w-3.5 text-primary" />
+            {t('admin.nav.organizations')}
+          </h1>
+          <p className="text-[11px] text-muted-foreground leading-tight">
+            {t('orgs.subtitle')}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <Button
+            size="sm"
+            onClick={() => setCreating(true)}
+            className="h-7 px-2.5 gap-1 rounded-[4px] text-[11px] font-medium"
+          >
+            <Plus className="h-3 w-3 stroke-[2.5]" />
+            {t('orgs.add')}
+          </Button>
+        </div>
+      </div>
+
+      {/* Pending Renewals Alert Banner */}
+      {renewals.length > 0 && (
+        <div className="rounded-md border border-amber-300 bg-amber-500/10 p-2 space-y-1.5">
+          <div className="text-[11px] font-semibold text-amber-800 dark:text-amber-300">
             {t('orgs.pendingRenewals')} ({renewals.length})
           </div>
-          <div className="divide-y divide-amber-100">
-            {renewals.map((r) => (
-              <div key={r.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
-                <div className="min-w-0">
-                  <div className="truncate text-xs font-medium">{r.organizationName}</div>
-                  <div className="text-[11px] text-muted-foreground">{t('orgs.requestedPlan', { months: r.requestedPlanMonths })} · {fmtDate(r.requestedAtUtc)}</div>
-                </div>
-                <Button onClick={() => setApproveReq(r)} className="h-8 rounded-lg bg-emerald-600 text-[11px] hover:bg-emerald-700">{t('orgs.reviewSetDate')}</Button>
+          {renewals.map((r) => (
+            <div key={r.id} className="flex flex-wrap items-center justify-between gap-2 rounded bg-background/80 px-2 py-1 text-xs">
+              <div>
+                <span className="font-semibold text-xs text-foreground">{r.organizationName}</span>
+                <span className="text-muted-foreground ml-2 text-[11px]">({r.requestedPlanMonths} mos) · {fmtDate(r.requestedAtUtc)}</span>
               </div>
-            ))}
-          </div>
-        </Card>
-      ) : null}
-
-      <Card className="flex flex-wrap items-center justify-between gap-2 rounded-xl p-2.5">
-        <div className="relative min-w-[240px] flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder={t('orgs.searchPlaceholder')} className="h-9 max-w-xs pl-9 text-sm" />
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="pr-1 text-[11px] font-medium text-muted-foreground">
-            {t('orgs.total')}: <span className="text-foreground">{orgQuery.data?.totalCount ?? 0}</span>
-          </span>
-          <div className="hidden items-center rounded-lg border border-border p-0.5 md:flex">
-            <Button type="button" variant={effectiveView === 'table' ? 'default' : 'outline'} onClick={() => setView('table')} aria-label="Table view" icon={<TableIcon className="h-4 w-4" />} className={`flex h-7 w-7 items-center justify-center rounded-md ${view === 'table' ? 'bg-emerald-600 text-white' : 'text-muted-foreground hover:bg-accent'}`} />
-            <Button type="button" variant={effectiveView === 'cards' ? 'default' : 'outline'} onClick={() => setView('cards')} aria-label="Card view" icon={<LayoutGrid className="h-4 w-4" />} className={`flex h-7 w-7 items-center justify-center rounded-md ${view === 'cards' ? 'bg-emerald-600 text-white' : 'text-muted-foreground hover:bg-accent'}`} />
-          </div>
-
-          <Button type="button" variant="outline" onClick={reload} aria-label="Refresh" icon={<RefreshCw className={`h-4 w-4 ${orgQuery.loading ? 'animate-spin' : ''}`} />} className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-emerald-600" />
-
-        </div>
-      </Card>
-
-      {items.length === 0 ? (
-        <Card className="rounded-2xl p-10 text-center text-sm text-muted-foreground">
-          {orgQuery.loading ? t('common.loading') : t('orgs.empty')}
-        </Card>
-      ) : effectiveView === 'table' ? (
-        <Card className="overflow-hidden rounded-2xl p-0">
-          <Table>
-            <THead>
-              <TR>
-                <TH className="w-14 text-center">#</TH>
-                <TH>{t('orgs.colOrganization')}</TH>
-                <TH className="w-36">{t('orgs.colType')}</TH>
-                <TH className="w-40">{t('orgs.colCommunities')}</TH>
-                <TH className="w-36">{t('orgs.colStatus')}</TH>
-                <TH className="w-40">{t('orgs.colSubscription')}</TH>
-                <TH className="w-52 text-right">{t('orgs.colActions')}</TH>
-              </TR>
-            </THead>
-            <TBody>
-              {items.map((org, i) => {
-                return (
-                  <TR key={org.id}>
-                    <TD className="text-center text-[11px] text-muted-foreground">{(page - 1) * pageSize + i + 1}</TD>
-                    <TD>
-                      <div className="flex items-center gap-2.5">
-                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
-                          <Building2 className="h-4 w-4" />
-                        </span>
-                        <div className="min-w-0">
-                          <div className="truncate text-[13px] font-semibold">{org.name}</div>
-                          <div className="mt-0.5 truncate font-mono text-[10px] text-muted-foreground">ID: {org.id.slice(0, 8)}</div>
-                        </div>
-                      </div>
-                    </TD>
-                    <TD><Badge tone={typeTone(org.propertyType)}>{typeLabel(org.propertyType)}</Badge></TD>
-                    <TD><CommunitiesPill count={org.communityCount} onClick={() => navigate(`/communities?organizationId=${org.id}`)} /></TD>
-                    <TD><StatusBadge org={org} /></TD>
-                    <TD><SubBadge sub={org.expiryData} /></TD>
-                    <TD>
-                      <div className="flex items-center justify-end gap-1.5">
-                        <OrgActions org={org} onExpiry={() => setExpiryOrg(org)} onEdit={() => setEditing(org)} onDelete={() => setConfirmDelete(org)} onActivate={() => setConfirmActivate(org)} />
-                      </div>
-                    </TD>
-                  </TR>
-                );
-              })}
-            </TBody>
-          </Table>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {items.map((org) => {
-            return (
-              <Card key={org.id} className="flex flex-col gap-3 rounded-2xl p-4">
-                <div className="flex items-center gap-2.5">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
-                    <Building2 className="h-5 w-5" />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-semibold">{org.name}</div>
-                    <div className="truncate font-mono text-[10px] text-muted-foreground">ID: {org.id.slice(0, 8)}</div>
-                  </div>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge tone={typeTone(org.propertyType)}>{typeLabel(org.propertyType)}</Badge>
-                  <StatusBadge org={org} />
-                  <SubBadge sub={org.expiryData} />
-                  <CommunitiesPill count={org.communityCount} onClick={() => navigate(`/communities?organizationId=${org.id}`)} />
-                </div>
-                <div className="flex items-center justify-end gap-1.5 border-t border-border pt-3">
-                  <OrgActions org={org} onExpiry={() => setExpiryOrg(org)} onEdit={() => setEditing(org)} onDelete={() => setConfirmDelete(org)} onActivate={() => setConfirmActivate(org)} />
-                </div>
-              </Card>
-            );
-          })}
+              <Button size="sm" onClick={() => setApproveReq(r)} className="h-6.5 text-[11px] px-2 rounded-md">
+                {t('orgs.reviewSetDate')}
+              </Button>
+            </div>
+          ))}
         </div>
       )}
 
-      {(orgQuery.data?.totalCount ?? 0) > 0 ? (
-        <Card className="rounded-xl p-1">
-          <Pagination
-            page={page}
-            pageSize={pageSize}
-            total={orgQuery.data?.totalCount ?? 0}
-            onPageChange={setPage}
-            onPageSizeChange={(s) => { setPageSize(s); setPage(1); }}
-          />
-        </Card>
-      ) : null}
+      {/* Filter Bar: Clean Alignment & Compact Sizing */}
+      <div className="flex flex-wrap items-center justify-between gap-1.5 rounded-md border border-border/80 bg-card/60 p-1.5 text-xs">
+        <div className="flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
+          <div className="relative min-w-[140px] max-w-xs flex-1">
+            <Search className="pointer-events-none absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              placeholder={t('orgs.searchPlaceholder')}
+              className="h-7.5 w-full rounded-md pl-7 pr-2 text-[11px] bg-background"
+            />
+          </div>
+        </div>
 
-      <OrgFormDialog open={creating} onClose={() => setCreating(false)} onSaved={() => { setCreating(false); reload(); }} />
-      <OrgFormDialog open={!!editing} org={editing} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); reload(); }} />
-      <SetExpiryDialog open={!!expiryOrg} 
-        org={expiryOrg} 
-        current={expiryOrg ? orgQuery.data?.items.find((o) => o.id === expiryOrg.id)?.expiryData ?? null : null} 
-        onClose={() => setExpiryOrg(null)} onSaved={() => { setExpiryOrg(null); reload(); }}
-        request={approveReq} 
-        isApprovalRequired={false}
-        />
-      {/* <ApproveRenewalDialog open={!!approveReq} request={approveReq} onClose={() => setApproveReq(null)} onSaved={() => { setApproveReq(null); reload(); }} /> */}
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="text-[11px] text-muted-foreground">
+            {t('orgs.total')}: <span className="font-semibold text-foreground">{orgQuery.data?.totalCount ?? 0}</span>
+          </span>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={reload}
+            aria-label="Refresh"
+            className="h-7.5 w-7.5 p-0 rounded-[4px] border-border/80"
+          >
+            <RefreshCw className={cn('h-3 w-3', orgQuery.loading && 'animate-spin text-primary')} />
+          </Button>
+        </div>
+      </div>
+
+      {/* Organizations Container: Table on Desktop/Tablet, Clean Compact Cards on Mobile */}
+      <div className="rounded-md border border-border/80 bg-card overflow-hidden">
+        {orgQuery.loading && items.length === 0 ? (
+          <div className="flex items-center justify-center py-10 text-xs text-muted-foreground">
+            <RefreshCw className="mr-1.5 h-3.5 w-3.5 animate-spin text-primary" />
+            {t('common.loading')}
+          </div>
+        ) : items.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-10 text-center">
+            <Building2 className="h-6 w-6 text-muted-foreground/50 mb-1.5" />
+            <p className="text-xs font-semibold text-foreground">{t('orgs.empty')}</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              Add your first organization to begin managing societies.
+            </p>
+          </div>
+        ) : (
+          <>
+            {/* Mobile View: Compact Cards (hidden on md and up) */}
+            <div className="divide-y divide-border/60 md:hidden">
+              {items.map((org, i) => (
+                <div key={org.id} className="p-2.5 flex flex-col gap-2 hover:bg-muted/20 transition-colors">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-primary/10 text-primary">
+                        <Building2 className="h-3 w-3" />
+                      </span>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-semibold text-xs text-foreground truncate">{org.name}</span>
+                          <span className="font-mono text-[9px] text-muted-foreground">#{(page - 1) * pageSize + i + 1}</span>
+                        </div>
+                        <span className="block font-mono text-[9px] text-muted-foreground leading-tight">ID: {org.id.slice(0, 8)}</span>
+                      </div>
+                    </div>
+
+                    <div className="shrink-0">
+                      {org.hasActiveAdmin ? (
+                        <Badge tone="success" className="text-[10px] px-1.5 py-0 rounded">
+                          <span className="h-1 w-1 rounded-full bg-emerald-500 mr-1" />
+                          {t('orgs.active')}
+                        </Badge>
+                      ) : (
+                        <Badge tone="warning" className="text-[10px] px-1.5 py-0 rounded">
+                          <span className="h-1 w-1 rounded-full bg-amber-500 mr-1" />
+                          {t('orgs.pendingApproval')}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <Badge tone={typeTone(org.propertyType)} className="text-[10px] px-1.5 py-0 rounded">
+                      {typeLabel(org.propertyType)}
+                    </Badge>
+                    <SubBadge sub={org.expiryData} />
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/communities?organizationId=${org.id}`)}
+                      className="inline-flex items-center gap-1 rounded-[3px] border border-border/80 bg-muted/50 px-2 py-0.5 text-[10.5px] font-medium text-foreground hover:bg-accent"
+                    >
+                      <Building className="h-3 w-3 text-primary" />
+                      {t('orgs.communityCount', { count: org.communityCount })}
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2 pt-0.5 border-t border-border/50 mt-0.5">
+                    <span className="text-[10.5px] text-muted-foreground">
+                      {org.communityCount} {t('communities.title')}
+                    </span>
+                    {renderActions(org)}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop / Tablet View: Compact Table (hidden on mobile) */}
+            <div className="hidden md:block overflow-x-auto">
+              <Table>
+                <THead>
+                  <TR className="border-b border-border bg-muted/40">
+                    <TH className="w-10 py-1.5 px-2 text-center text-[10.5px] font-semibold">#</TH>
+                    <TH className="py-1.5 px-2 text-[10.5px] font-semibold">{t('orgs.colOrganization')}</TH>
+                    <TH className="py-1.5 px-2 text-[10.5px] font-semibold">{t('orgs.colType')}</TH>
+                    <TH className="py-1.5 px-2 text-[10.5px] font-semibold">{t('orgs.colCommunities')}</TH>
+                    <TH className="py-1.5 px-2 text-[10.5px] font-semibold">{t('orgs.colStatus')}</TH>
+                    <TH className="py-1.5 px-2 text-[10.5px] font-semibold">{t('orgs.colSubscription')}</TH>
+                    <TH className="w-28 py-1.5 px-2 text-right text-[10.5px] font-semibold">{t('orgs.colActions')}</TH>
+                  </TR>
+                </THead>
+                <TBody>
+                  {items.map((org, i) => (
+                    <TR key={org.id} className="hover:bg-muted/30 transition-colors">
+                      <TD className="py-1 px-2 text-center text-[10.5px] text-muted-foreground font-mono">
+                        {(page - 1) * pageSize + i + 1}
+                      </TD>
+                      <TD className="py-1 px-2">
+                        <div className="flex items-center gap-1.5">
+                          <span className="flex h-5.5 w-5.5 shrink-0 items-center justify-center rounded bg-primary/10 text-primary">
+                            <Building2 className="h-3 w-3" />
+                          </span>
+                          <div>
+                            <span className="font-semibold text-xs text-foreground leading-none">{org.name}</span>
+                            <span className="block font-mono text-[9px] text-muted-foreground leading-none mt-0.5">ID: {org.id.slice(0, 8)}</span>
+                          </div>
+                        </div>
+                      </TD>
+                      <TD className="py-1 px-2">
+                        <Badge tone={typeTone(org.propertyType)} className="text-[10px] px-1.5 py-0 rounded">
+                          {typeLabel(org.propertyType)}
+                        </Badge>
+                      </TD>
+                      <TD className="py-1 px-2">
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/communities?organizationId=${org.id}`)}
+                          className="inline-flex items-center gap-1 rounded-[3px] border border-border/80 bg-muted/50 px-2 py-0.5 text-[10.5px] font-medium text-foreground hover:bg-accent"
+                        >
+                          <Building className="h-3 w-3 text-primary" />
+                          {t('orgs.communityCount', { count: org.communityCount })}
+                        </button>
+                      </TD>
+                      <TD className="py-1 px-2">
+                        {org.hasActiveAdmin ? (
+                          <Badge tone="success" className="text-[10px] px-1.5 py-0 rounded">
+                            <span className="h-1 w-1 rounded-full bg-emerald-500 mr-1" />
+                            {t('orgs.active')}
+                          </Badge>
+                        ) : (
+                          <Badge tone="warning" className="text-[10px] px-1.5 py-0 rounded">
+                            <span className="h-1 w-1 rounded-full bg-amber-500 mr-1" />
+                            {t('orgs.pendingApproval')}
+                          </Badge>
+                        )}
+                      </TD>
+                      <TD className="py-1 px-2">
+                        <SubBadge sub={org.expiryData} />
+                      </TD>
+                      <TD className="py-1 px-2">
+                        {renderActions(org)}
+                      </TD>
+                    </TR>
+                  ))}
+                </TBody>
+              </Table>
+            </div>
+          </>
+        )}
+
+        {/* Integrated Pagination Bar */}
+        {(orgQuery.data?.totalCount ?? 0) > 0 && (
+          <div className="border-t border-border px-2.5 py-1 bg-muted/20">
+            <Pagination
+              page={page}
+              pageSize={pageSize}
+              total={orgQuery.data?.totalCount ?? 0}
+              onPageChange={setPage}
+              onPageSizeChange={(s) => { setPageSize(s); setPage(1); }}
+            />
+          </div>
+        )}
+      </div>
+
+      <OrgFormDialog open={creating} typeOptions={TYPE_OPTIONS} onClose={() => setCreating(false)} onSaved={() => { setCreating(false); reload(); }} />
+      <OrgFormDialog open={!!editing} org={editing} typeOptions={TYPE_OPTIONS} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); reload(); }} />
+
+      <SetExpiryDialog
+        open={!!expiryOrg || !!approveReq}
+        org={expiryOrg ?? (approveReq ? { id: approveReq.organizationId, name: approveReq.organizationName, hasActiveAdmin: true, communityCount: 0 } as Organization : null)}
+        current={expiryOrg?.expiryData ?? null}
+        planOptions={PLAN_OPTIONS}
+        isApprovalRequired={!!approveReq}
+        request={approveReq}
+        onClose={() => { setExpiryOrg(null); setApproveReq(null); }}
+        onSaved={() => { setExpiryOrg(null); setApproveReq(null); reload(); }}
+      />
 
       <ConfirmDialog
         open={!!confirmActivate}
-        title={t('orgs.activate')}
+        title={t('orgs.activateTitle')}
         description={confirmActivate ? t('orgs.activateConfirm', { name: confirmActivate.name }) : ''}
         confirmLabel={t('orgs.activate')}
         cancelLabel={t('orgs.cancel')}
@@ -284,6 +378,7 @@ export function OrganizationsPage() {
         onConfirm={doActivate}
         onClose={() => setConfirmActivate(null)}
       />
+
       <ConfirmDialog
         open={!!confirmDelete}
         tone="danger"
@@ -295,163 +390,6 @@ export function OrganizationsPage() {
         onConfirm={doDelete}
         onClose={() => setConfirmDelete(null)}
       />
-
-      <Toaster position="top-center" richColors />
     </div>
-  );
-}
-
-function CommunitiesPill({ count, onClick }: { count: number; onClick: () => void }) {
-  const { t } = useTranslation();
-  return (
-    <Button type="button" onClick={onClick} className="bg-muted text-[11px] font-medium text-muted-foreground hover:bg-accent">
-      <Building className="h-3 w-3" />
-      {t('orgs.communityCount', { count })}
-    </Button>
-  );
-}
-
-function StatusBadge({ org }: { org: Organization }) {
-  const { t } = useTranslation();
-  return org.hasActiveAdmin ? (
-    <Badge tone="success"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />{t('orgs.active')}</Badge>
-  ) : (
-    <Badge tone="warning"><span className="h-1.5 w-1.5 rounded-full bg-amber-500" />{t('orgs.pendingApproval')}</Badge>
-  );
-}
-
-function SubBadge({ sub }: { sub: SubscriptionStatus | undefined }) {
-  console.log(sub)
-  const { t } = useTranslation();
-  if (!sub || !sub.hasSubscription) return <Badge tone="muted">{t('orgs.notSet')}</Badge>;
-  if (sub.isExpired) return <Badge tone="danger">{t('orgs.expired')}</Badge>;
-  if (sub.isExpiringSoon) return <Badge tone="warning">{t('orgs.daysLeft', { days: sub.daysRemaining })}</Badge>;
-  return <Badge tone="success">{t('orgs.activeDays', { days: sub.daysRemaining })}</Badge>;
-}
-
-function OrgActions({ org, onExpiry, onEdit, onDelete, onActivate }: { org: Organization; onExpiry: () => void; onEdit: () => void; onDelete: () => void; onActivate: () => void }) {
-  const { t } = useTranslation();
-  return (
-    <>
-      <Button type="button" variant="outline" icon={<CalendarClock className="h-4 w-4" />} onClick={onExpiry} title={t('orgs.setExpiry')} className="flex h-8 w-8 items-center justify-center rounded-lg border border-emerald-500/40 text-emerald-600 hover:border-emerald-500" />
-      <Button type="button" variant="outline" icon={<CheckCircle2 className="h-4 w-4" />} 
-        onClick={onActivate} canShow={!org.hasActiveAdmin} title={t('orgs.activate')} 
-        label={t('orgs.activate')}
-        className="flex h-8 items-center justify-center gap-1 rounded-lg border border-emerald-500/40 px-2 text-[11px] font-medium text-emerald-600 hover:border-emerald-500" />
-
-      <Button type="button" variant="outline" icon={<Pencil className="h-4 w-4" />} onClick={onEdit} title={t('orgs.edit')} className="flex h-8 w-8 items-center justify-center rounded-lg border border-emerald-500/40 text-emerald-600 hover:border-emerald-500" />
-      <Button type="button" variant="outline" icon={<Trash2 className="h-4 w-4" />} onClick={onDelete} title={t('orgs.delete')} className="flex h-8 w-8 items-center justify-center rounded-lg border border-rose-300 text-rose-600 hover:bg-rose-50" />
-    </>
-  );
-}
-
-function OrgFormDialog({ open, org, onClose, onSaved }: { open: boolean; org?: Organization | null; onClose: () => void; onSaved: () => void }) {
-  const { t } = useTranslation();
-  const isEdit = !!org;
-  const [name, setName] = useState('');
-  const [propertyType, setPropertyType] = useState('apartment_society');
-  const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    if (open) {
-      setName(org?.name ?? '');
-      setPropertyType(org?.propertyType ?? 'apartment_society');
-    }
-  }, [open, org]);
-
-  const submit = async () => {
-    if (busy || !name.trim()) return;
-    setBusy(true);
-    try {
-      if (isEdit) await organizations.update(org!.id, name.trim(), propertyType);
-      else await organizations.create(name.trim(), propertyType);
-      toast.success(isEdit ? t('orgs.updated') : t('orgs.created'));
-      onSaved();
-    } catch (err) {
-      toast.error(toFormError(err).message);
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <Dialog open={open} onClose={onClose}>
-      <DialogHeader title={isEdit ? t('orgs.editTitle') : t('orgs.addTitle')} />
-      <div className="flex flex-col gap-3">
-        <div>
-          <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{t('orgs.orgName')}</label>
-          <Input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder={t('orgs.orgNamePlaceholder')} maxLength={256} onKeyDown={(e) => { if (e.key === 'Enter') submit(); }} />
-        </div>
-        <SelectField label={t('orgs.propertyType')} value={propertyType} options={TYPE_OPTIONS} onChange={setPropertyType} />
-      </div>
-      <DialogFooter>
-        <Button variant="outline" onClick={onClose} className="h-9 rounded-lg text-xs">{t('orgs.cancel')}</Button>
-        <Button onClick={submit} disabled={busy || !name.trim()} className="h-9 rounded-lg bg-emerald-600 text-xs hover:bg-emerald-700">{isEdit ? t('orgs.saveChanges') : t('orgs.createOrg')}</Button>
-      </DialogFooter>
-    </Dialog>
-  );
-}
-
-function defaultExpiry(months: number): string {
-  const d = new Date();
-  d.setMonth(d.getMonth() + months);
-  return d.toISOString().slice(0, 10);
-}
-
-function SetExpiryDialog({ open, org, current, onClose, onSaved, isApprovalRequired, request }: { open: boolean; org?: Organization | null; current: SubscriptionStatus | null; onClose: () => void; onSaved: () => void; isApprovalRequired: boolean, request?: RenewalRequest | null }) {
-  const { t } = useTranslation();
-  const initialMonths = current?.planMonths && current.planMonths > 0 ? String(current.planMonths) : '12';
-  const [planMonths, setPlanMonths] = useState(initialMonths);
-  const [expiresAt, setExpiresAt] = useState(current?.expiresAtUtc ? current.expiresAtUtc.slice(0, 10) : defaultExpiry(Number(initialMonths)));
-  const [busy, setBusy] = useState(false);
-
-  const submit = async () => {
-    if (busy || !org || !expiresAt) return;
-    setBusy(true);
-    try {
-      if(isApprovalRequired) {
-        if(!request) {
-          setBusy(false);
-          toast.error('No renewal request found');
-          return;
-        }
-        await subscriptions.approveRenewal( request!.id, {
-        planMonths: Number(planMonths),
-        startsAtUtc: new Date().toISOString(),
-        expiresAtUtc: new Date(expiresAt).toISOString(),
-      });
-      }
-      else{
-        await subscriptions.setExpiry({
-        organizationId: org.id,
-        planMonths: Number(planMonths),
-        startsAtUtc: new Date().toISOString(),
-        expiresAtUtc: new Date(expiresAt).toISOString(),
-      });
-      }
-      toast.success('Subscription updated');
-      onSaved();
-    } catch (err) {
-      toast.error(toFormError(err).message);
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <Dialog open={open} onClose={onClose}>
-      <DialogHeader title={t('orgs.setExpiryTitle')} description={org?.name} />
-      <div className="flex flex-col gap-3">
-        <SelectField label={t('orgs.planDuration')} value={planMonths} options={PLAN_OPTIONS} onChange={setPlanMonths} />
-        <div>
-          <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{t('orgs.expiryDate')}</label>
-          <Input type="date" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} />
-        </div>
-      </div>
-      <DialogFooter>
-        <Button variant="outline" onClick={onClose} className="h-9 rounded-lg text-xs">{t('orgs.cancel')}</Button>
-        <Button onClick={submit} disabled={busy} className="h-9 rounded-lg bg-emerald-600 text-xs hover:bg-emerald-700">{t('orgs.save')}</Button>
-      </DialogFooter>
-    </Dialog>
   );
 }

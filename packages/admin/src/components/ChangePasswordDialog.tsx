@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { Dialog, DialogHeader, DialogFooter } from '@shared/components/ui/dialog';
+import { Dialog, DialogHeader } from '@shared/components/ui/dialog';
 import { Button } from '@shared/components/ui/button';
 import { Input } from '@shared/components/ui/input';
 import { auth } from '@shared/services';
@@ -40,26 +40,26 @@ export function ChangePasswordDialog({ open, onClose }: { open: boolean; onClose
   };
 
   return (
-    <Dialog open={open} onClose={onClose} className="max-w-md">
+    <Dialog open={open} onClose={onClose} className="max-w-md rounded-lg p-5">
       <DialogHeader title={t('changePwd.title')} description={t('changePwd.subtitle')} />
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3 pt-1">
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{t('changePwd.current')}</label>
-          <Input type="password" autoFocus value={current} onChange={(e) => setCurrent(e.target.value)} placeholder={t('changePwd.currentPlaceholder')} maxLength={256} />
+          <label className="mb-1 block text-xs font-medium text-foreground">{t('changePwd.current')}</label>
+          <Input type="password" autoFocus value={current} onChange={(e) => setCurrent(e.target.value)} placeholder={t('changePwd.currentPlaceholder')} maxLength={256} className="h-9 text-xs rounded-[4px]" />
         </div>
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{t('changePwd.new')}</label>
-          <Input type="password" value={next} onChange={(e) => setNext(e.target.value)} placeholder={t('changePwd.newPlaceholder')} maxLength={256} />
+          <label className="mb-1 block text-xs font-medium text-foreground">{t('changePwd.new')}</label>
+          <Input type="password" value={next} onChange={(e) => setNext(e.target.value)} placeholder={t('changePwd.newPlaceholder')} maxLength={256} className="h-9 text-xs rounded-[4px]" />
         </div>
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{t('changePwd.confirm')}</label>
-          <Input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder={t('changePwd.confirmPlaceholder')} maxLength={256} onKeyDown={(e) => { if (e.key === 'Enter') submit(); }} />
+          <label className="mb-1 block text-xs font-medium text-foreground">{t('changePwd.confirm')}</label>
+          <Input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder={t('changePwd.confirmPlaceholder')} maxLength={256} onKeyDown={(e) => { if (e.key === 'Enter') submit(); }} className="h-9 text-xs rounded-[4px]" />
         </div>
       </div>
-      <DialogFooter>
-        <Button variant="outline" onClick={onClose} className="h-9 rounded-lg text-xs">{t('orgs.cancel')}</Button>
-        <Button onClick={submit} disabled={busy || !canSubmit} className="h-9 rounded-lg bg-emerald-600 text-xs hover:bg-emerald-700">{t('changePwd.submit')}</Button>
-      </DialogFooter>
+      <div className="mt-5 pt-3.5 border-t border-border/70 flex items-center justify-end gap-2.5">
+        <Button variant="outline" onClick={onClose} className="h-8.5 px-4 rounded-[4px] text-xs font-medium border-border/80">{t('orgs.cancel')}</Button>
+        <Button onClick={submit} disabled={busy || !canSubmit} className="h-8.5 px-4 rounded-[4px] text-xs font-medium bg-emerald-600 hover:bg-emerald-700">{t('changePwd.submit')}</Button>
+      </div>
     </Dialog>
   );
 }

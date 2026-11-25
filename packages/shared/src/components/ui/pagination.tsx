@@ -1,5 +1,12 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@shared/lib/utils';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@shared/components/ui/select';
 
 export function Pagination({
   page,
@@ -33,17 +40,22 @@ export function Pagination({
   }
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 px-1 py-2 text-xs">
-      <div className="flex items-center gap-2 text-muted-foreground">
+    <div className="flex flex-wrap items-center justify-between gap-2 px-0.5 py-0.5 text-xs">
+      <div className="flex items-center gap-1.5 text-muted-foreground text-[11px]">
         <span>{from}–{to} of {total}</span>
         {onPageSizeChange ? (
-          <select
-            value={pageSize}
-            onChange={(e) => onPageSizeChange(Number(e.target.value))}
-            className="h-7 rounded-md border border-border bg-card px-1.5 text-xs outline-none focus:border-emerald-400"
-          >
-            {pageSizeOptions.map((o) => <option key={o} value={o}>{o} / page</option>)}
-          </select>
+          <Select value={String(pageSize)} onValueChange={(v) => onPageSizeChange(Number(v))}>
+            <SelectTrigger className="h-6 w-[88px] gap-1 rounded-[4px] border-border bg-background px-1.5 text-[11px] font-normal shadow-none [&_svg]:size-3">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="min-w-[88px] w-[88px] p-0.5 rounded-[4px] shadow-sm">
+              {pageSizeOptions.map((o) => (
+                <SelectItem key={o} value={String(o)} className="py-1 pl-2 pr-5 text-[11px] rounded-[3px] [&_svg]:size-3">
+                  {o} / page
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         ) : null}
       </div>
       <div className="flex items-center gap-1">
@@ -51,21 +63,23 @@ export function Pagination({
           type="button"
           onClick={() => onPageChange(page - 1)}
           disabled={page <= 1}
-          className="flex h-8 w-8 items-center justify-center rounded-md border border-border text-muted-foreground disabled:opacity-40 hover:enabled:border-emerald-500 hover:enabled:text-emerald-600"
+          className="flex h-6.5 w-6.5 items-center justify-center rounded-[4px] border border-border text-muted-foreground disabled:opacity-40 hover:enabled:border-primary hover:enabled:text-primary transition-colors"
         >
-          <ChevronLeft className="h-4 w-4" />
+          <ChevronLeft className="h-3 w-3" />
         </button>
         {pages.map((p, i) =>
           p === '...' ? (
-            <span key={`e${i}`} className="px-1.5 text-muted-foreground">…</span>
+            <span key={`e${i}`} className="px-0.5 text-muted-foreground text-[11px]">…</span>
           ) : (
             <button
               key={p}
               type="button"
               onClick={() => onPageChange(p)}
               className={cn(
-                'flex h-8 min-w-8 items-center justify-center rounded-md border px-2 text-xs font-medium',
-                p === page ? 'border-[#05b872] bg-[#05b872] text-white' : 'border-border text-muted-foreground hover:border-emerald-500 hover:text-emerald-600',
+                'flex h-6.5 min-w-6.5 items-center justify-center rounded-[4px] border px-1.5 text-[11px] font-medium transition-colors',
+                p === page
+                  ? 'border-primary bg-primary text-primary-foreground'
+                  : 'border-border text-muted-foreground hover:border-primary hover:text-primary',
               )}
             >
               {p}
@@ -76,9 +90,9 @@ export function Pagination({
           type="button"
           onClick={() => onPageChange(page + 1)}
           disabled={page >= totalPages}
-          className="flex h-8 w-8 items-center justify-center rounded-md border border-border text-muted-foreground disabled:opacity-40 hover:enabled:border-emerald-500 hover:enabled:text-emerald-600"
+          className="flex h-6.5 w-6.5 items-center justify-center rounded-[4px] border border-border text-muted-foreground disabled:opacity-40 hover:enabled:border-primary hover:enabled:text-primary transition-colors"
         >
-          <ChevronRight className="h-4 w-4" />
+          <ChevronRight className="h-3 w-3" />
         </button>
       </div>
     </div>

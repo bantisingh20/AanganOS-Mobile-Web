@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Menu, PanelLeftClose, PanelLeft, Bell, LogOut, X, HelpCircle, KeyRound, CheckCheck } from 'lucide-react';
+import { Menu, PanelLeftClose, PanelLeft, Bell, LogOut, X, HelpCircle, KeyRound, CheckCheck, Moon, Sun, Globe, ChevronDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { MenuNode } from '@shared/api/menu';
 import logoUrl from '@shared/assets/logo.png';
@@ -9,6 +9,7 @@ import { notifications } from '@shared/services';
 import { NotificationInbox, type NotificationInboxHandle } from '@shared/components/NotificationInbox';
 import { LanguageSwitcher } from '@shared/components/LanguageSwitcher';
 import { ThemeToggle } from '@shared/components/ThemeToggle';
+import { useAppTheme } from '@shared/lib/useTheme';
 import { Toaster } from '@shared/components/ui/sonner';
 import { SidebarNav } from '@shared/components/SidebarNav';
 import { menuIcon } from '@shared/components/menuIcons';
@@ -52,15 +53,20 @@ export function AdminShell({ children }: { children: ReactNode }) {
           collapsed ? 'w-[68px]' : 'w-60',
         )}
       >
-        <SidebarBody collapsed={collapsed} onNavigate={() => undefined} />
+        <SidebarBody collapsed={collapsed} onNavigate={() => undefined} onToggleCollapse={() => setCollapsed((c) => !c)} />
       </aside>
 
       {drawerOpen ? (
         <div className="fixed inset-0 z-40 md:hidden">
           <div className="absolute inset-0 bg-black/40" onClick={() => setDrawerOpen(false)} />
           <aside className="safe-top safe-bottom absolute left-0 top-0 flex h-full w-72 max-w-[82%] flex-col bg-white shadow-xl dark:bg-slate-900">
-            <button type="button" onClick={() => setDrawerOpen(false)} aria-label="Close" className="absolute right-2 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800">
-              <X className="h-5 w-5" />
+            <button
+              type="button"
+              onClick={() => setDrawerOpen(false)}
+              aria-label="Close"
+              className="absolute right-2 top-3 z-10 flex h-7.5 w-7.5 items-center justify-center rounded-[4px] text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+            >
+              <X className="h-4.5 w-4.5" />
             </button>
             <SidebarBody collapsed={false} onNavigate={() => setDrawerOpen(false)} />
           </aside>
@@ -68,53 +74,84 @@ export function AdminShell({ children }: { children: ReactNode }) {
       ) : null}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="safe-top sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 border-b border-slate-200 bg-white px-3 sm:px-4 dark:border-slate-800 dark:bg-slate-900">
-          <button type="button" onClick={() => setDrawerOpen(true)} aria-label="Menu" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 md:hidden dark:text-slate-300 dark:hover:bg-slate-800">
-            <Menu className="h-5 w-5" />
+        <header className="safe-top sticky top-0 z-20 flex h-14 shrink-0 items-center gap-1.5 sm:gap-2 border-b border-slate-200 bg-white px-3 sm:px-4 dark:border-slate-800 dark:bg-slate-900">
+          <button
+            type="button"
+            onClick={() => setDrawerOpen(true)}
+            aria-label="Menu"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[4px] text-slate-500 hover:text-slate-800 hover:bg-slate-100 md:hidden dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800 transition-colors"
+          >
+            <Menu className="h-4 w-4" />
           </button>
-          <button type="button" onClick={() => setCollapsed((c) => !c)} aria-label="Collapse" className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 md:flex dark:text-slate-300 dark:hover:bg-slate-800">
-            {collapsed ? <PanelLeft className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
+          <button
+            type="button"
+            onClick={() => setCollapsed((c) => !c)}
+            aria-label="Collapse"
+            className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-[4px] text-slate-500 hover:text-slate-800 hover:bg-slate-100 md:flex dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800 transition-colors"
+          >
+            {collapsed ? <PanelLeft className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
           </button>
 
           {/* Logo/Branding on mobile when sidebar is hidden */}
           <div className="flex items-center gap-2 md:hidden">
-            <img src={logoUrl} alt="AanganOS" className="h-7 w-7 rounded-lg object-cover shrink-0" />
+            <img src={logoUrl} alt="AanganOS" className="h-6.5 w-6.5 rounded-[4px] object-cover shrink-0 ring-1 ring-emerald-500/20" />
             <span className="text-sm font-bold tracking-tight">
               <span>Aangan</span>
               <span className="text-emerald-600">OS</span>
             </span>
           </div>
 
-          <div className="ml-auto flex items-center gap-1 sm:gap-2">
-            <a href={HELP_URL} target="_blank" rel="noreferrer" aria-label={t('admin.help')} title={t('admin.help')} className="hidden sm:flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">
-              <HelpCircle className="h-5 w-5" />
+          <div className="ml-auto flex items-center gap-1 sm:gap-1.5">
+            <a
+              href={HELP_URL}
+              target="_blank"
+              rel="noreferrer"
+              aria-label={t('admin.help')}
+              title={t('admin.help')}
+              className="hidden md:flex h-8 w-8 items-center justify-center rounded-[4px] text-slate-500 hover:text-slate-800 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800 transition-colors"
+            >
+              <HelpCircle className="h-4 w-4" />
             </a>
             <div className="relative">
-              <button type="button" onClick={() => { setNotifOpen((v) => !v); if (!notifOpen) refreshUnread(); }} aria-label="Notifications" className="relative flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">
-                <Bell className="h-5 w-5" />
+              <button
+                type="button"
+                onClick={() => { setNotifOpen((v) => !v); if (!notifOpen) refreshUnread(); }}
+                aria-label="Notifications"
+                className="relative flex h-8 w-8 items-center justify-center rounded-[4px] text-slate-500 hover:text-slate-800 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800 transition-colors"
+              >
+                <Bell className="h-4 w-4" />
                 {unread > 0 ? (
-                  <span className="absolute -right-0.5 -top-0.5 flex min-w-[16px] items-center justify-center rounded-full bg-rose-600 px-1 text-[10px] font-bold leading-4 text-white">{unread > 99 ? '99+' : unread}</span>
+                  <span className="absolute 0 top-0 flex min-w-[15px] h-[15px] items-center justify-center rounded-full bg-rose-600 px-0.5 text-[9px] font-bold leading-none text-white">
+                    {unread > 99 ? '99+' : unread}
+                  </span>
                 ) : null}
               </button>
               {notifOpen ? (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setNotifOpen(false)} />
-                  <div className="absolute right-0 z-50 mt-2 flex max-h-[70vh] w-[360px] max-w-[92vw] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-xl">
-                    <div className="flex items-center justify-between border-b border-border px-4 py-3">
-                      <span className="text-sm font-bold">{t('notifications.title')}</span>
-                      <button type="button" onClick={() => void inboxControls.current?.markAllRead()} aria-label={t('notifications.markAllRead')} className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent">
-                        <CheckCheck className="h-4 w-4" />
+                  <div className="absolute right-0 z-50 mt-2 flex max-h-[70vh] w-[360px] max-w-[92vw] flex-col overflow-hidden rounded-lg border border-border bg-card shadow-xl">
+                    <div className="flex items-center justify-between border-b border-border px-3.5 py-2.5">
+                      <span className="text-xs font-bold">{t('notifications.title')}</span>
+                      <button
+                        type="button"
+                        onClick={() => void inboxControls.current?.markAllRead()}
+                        aria-label={t('notifications.markAllRead')}
+                        className="flex h-7 w-7 items-center justify-center rounded-[4px] text-muted-foreground hover:bg-accent"
+                      >
+                        <CheckCheck className="h-3.5 w-3.5" />
                       </button>
                     </div>
-                    <div className="min-h-0 flex-1 overflow-y-auto p-3">
+                    <div className="min-h-0 flex-1 overflow-y-auto p-2.5">
                       <NotificationInbox onChanged={refreshUnread} controlsRef={(h) => { inboxControls.current = h; }} />
                     </div>
                   </div>
                 </>
               ) : null}
             </div>
-            <ThemeToggle />
-            <LanguageSwitcher />
+            <div className="hidden md:flex items-center gap-1 sm:gap-1.5">
+              <ThemeToggle />
+              <LanguageSwitcher />
+            </div>
             <UserPill />
           </div>
         </header>
@@ -167,7 +204,15 @@ function BottomBar() {
   );
 }
 
-function SidebarBody({ collapsed, onNavigate }: { collapsed: boolean; onNavigate: () => void }) {
+function SidebarBody({
+  collapsed,
+  onNavigate,
+  onToggleCollapse,
+}: {
+  collapsed: boolean;
+  onNavigate: () => void;
+  onToggleCollapse?: () => void;
+}) {
   const navigate = useNavigate();
   const location = useLocation();
   const { items } = useMenu(ADMIN_FALLBACK_MENU);
@@ -183,21 +228,45 @@ function SidebarBody({ collapsed, onNavigate }: { collapsed: boolean; onNavigate
       <button
         type="button"
         onClick={() => go('/dashboard')}
-        className={cn('flex h-14 shrink-0 items-center gap-2.5 border-b border-slate-200 px-4 dark:border-slate-800', collapsed ? 'justify-center px-0' : '')}
+        className={cn(
+          'flex h-14 shrink-0 items-center gap-2.5 border-b border-slate-200/80 px-3.5 transition-colors hover:bg-slate-50/50 dark:border-slate-800 dark:hover:bg-slate-800/40',
+          collapsed ? 'justify-center px-0' : '',
+        )}
       >
-        <img src={logoUrl} alt="AanganOS" className="h-9 w-9 shrink-0 rounded-xl object-cover" />
+        <img src={logoUrl} alt="AanganOS" className="h-8 w-8 shrink-0 rounded-[4px] object-cover ring-1 ring-emerald-500/20" />
         {!collapsed ? (
           <span className="text-left leading-none">
-            <span className="block text-base font-semibold tracking-tight">
+            <span className="block text-sm font-bold tracking-tight">
               <span className="text-slate-800 dark:text-slate-100">Aangan</span>
               <span className="text-emerald-600">OS</span>
             </span>
-            <span className="mt-0.5 block text-[8.5px] font-medium uppercase tracking-wider text-emerald-700 dark:text-emerald-400">Society ERP System</span>
+            <span className="mt-0.5 block text-[8px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+              Enterprise ERP
+            </span>
           </span>
         ) : null}
       </button>
 
       <SidebarNav items={items} currentPath={location.pathname} onNavigate={go} collapsed={collapsed} />
+
+      <div className={cn('mt-auto shrink-0 border-t border-slate-200/80 p-2 dark:border-slate-800', collapsed ? 'flex justify-center' : 'flex items-center justify-between')}>
+        {!collapsed ? (
+          <div className="flex items-center gap-1.5 px-1.5 text-[10px] font-medium text-slate-400 dark:text-slate-500">
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            <span className="font-mono">v0.1.0</span>
+          </div>
+        ) : null}
+        {onToggleCollapse ? (
+          <button
+            type="button"
+            onClick={onToggleCollapse}
+            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            className="flex h-7 w-7 items-center justify-center rounded-[4px] text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition-colors"
+          >
+            {collapsed ? <PanelLeft className="h-3.5 w-3.5" /> : <PanelLeftClose className="h-3.5 w-3.5" />}
+          </button>
+        ) : null}
+      </div>
     </>
   );
 }
@@ -206,6 +275,7 @@ function UserPill() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { displayName, roles, user, logout } = useAuth();
+  const { isDark, setTheme } = useAppTheme();
   const [open, setOpen] = useState(false);
   const [pwdOpen, setPwdOpen] = useState(false);
   const name = displayName ?? 'Admin';
@@ -220,39 +290,84 @@ function UserPill() {
 
   return (
     <div className="relative">
-      <button type="button" onClick={() => setOpen((o) => !o)} className="flex items-center gap-2 rounded-xl px-1.5 py-1 hover:bg-slate-100 dark:hover:bg-slate-800">
-        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-600 text-sm font-semibold text-white">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex h-8 items-center gap-2 rounded-[4px] border border-border/80 bg-card/60 px-2 text-slate-700 hover:bg-accent/50 dark:text-slate-200 transition-colors shadow-xs"
+      >
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-[11px] font-semibold text-white shadow-xs">
           {name.slice(0, 1).toUpperCase()}
         </span>
-        <span className="hidden text-left leading-tight sm:block">
-          <span className="block max-w-[120px] truncate text-xs font-medium">{name}</span>
-          <span className="block text-[10px] text-slate-500 dark:text-slate-400">{role}</span>
+        <span className="hidden text-left leading-none sm:block">
+          <span className="block max-w-[110px] truncate text-xs font-semibold text-foreground">{name}</span>
+          <span className="mt-0.5 block text-[9.5px] text-muted-foreground">{role}</span>
         </span>
+        <ChevronDown className={cn("hidden sm:block h-3 w-3 shrink-0 text-muted-foreground/70 transition-transform duration-200", open && "rotate-180")} />
       </button>
       {open ? (
         <>
           <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-11 z-40 w-60 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-800">
-            <div className="flex items-center gap-2.5 border-b border-slate-100 px-3 py-3 dark:border-slate-700">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-sm font-semibold text-white">
+          <div className="absolute right-0 top-10 z-40 w-60 overflow-hidden rounded-[6px] border border-border bg-card p-1 shadow-lg dark:border-slate-800 dark:bg-slate-900">
+            <div className="flex items-center gap-2.5 border-b border-border/60 p-2 dark:border-slate-800">
+              <span className="flex h-7.5 w-7.5 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-xs font-semibold text-white shadow-xs">
                 {name.slice(0, 1).toUpperCase()}
               </span>
               <div className="min-w-0">
-                <div className="truncate text-sm font-semibold">{name}</div>
-                {contact ? <div className="truncate text-xs text-slate-500 dark:text-slate-400">{contact}</div> : null}
-                <div className="text-[10px] text-emerald-600 dark:text-emerald-400">{role}</div>
+                <div className="truncate text-xs font-semibold">{name}</div>
+                {contact ? <div className="truncate text-[10.5px] text-muted-foreground">{contact}</div> : null}
+                <div className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400">{role}</div>
               </div>
             </div>
-            <button type="button" onClick={() => { setOpen(false); setPwdOpen(true); }} className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-medium text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-700">
-              <KeyRound className="h-4 w-4" />
+
+            {/* Small screen controls: Theme & Language */}
+            <div className="border-b border-border/60 p-2 md:hidden dark:border-slate-800 space-y-1.5 bg-muted/20 rounded-[4px] mt-1 mb-1">
+              <div className="flex items-center justify-between px-1 text-xs">
+                <span className="flex items-center gap-2 font-medium text-slate-600 dark:text-slate-300">
+                  {isDark ? <Moon className="h-3.5 w-3.5 text-primary" /> : <Sun className="h-3.5 w-3.5 text-amber-500" />}
+                  <span>{isDark ? 'Dark Mode' : 'Light Mode'}</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setTheme(isDark ? 'light' : 'dark')}
+                  className="h-6 px-2 text-[11px] font-medium rounded-[4px] border border-border bg-card text-foreground hover:bg-accent transition-colors"
+                >
+                  {isDark ? 'Light' : 'Dark'}
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between px-1 text-xs pt-1 border-t border-border/50">
+                <span className="flex items-center gap-2 font-medium text-slate-600 dark:text-slate-300">
+                  <Globe className="h-3.5 w-3.5 text-primary" />
+                  <span>{t('admin.language', { defaultValue: 'Language' })}</span>
+                </span>
+                <LanguageSwitcher className="h-6 text-[11px] px-2 rounded-[4px]" />
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => { setOpen(false); setPwdOpen(true); }}
+              className="flex w-full items-center gap-2 rounded-[4px] px-2 py-1.5 text-left text-xs font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 transition-colors"
+            >
+              <KeyRound className="h-3.5 w-3.5" />
               {t('admin.changePassword')}
             </button>
-            <a href={HELP_URL} target="_blank" rel="noreferrer" onClick={() => setOpen(false)} className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-medium text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-700">
-              <HelpCircle className="h-4 w-4" />
+            <a
+              href={HELP_URL}
+              target="_blank"
+              rel="noreferrer"
+              onClick={() => setOpen(false)}
+              className="flex w-full items-center gap-2 rounded-[4px] px-2 py-1.5 text-left text-xs font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 transition-colors"
+            >
+              <HelpCircle className="h-3.5 w-3.5" />
               {t('admin.help')}
             </a>
-            <button type="button" onClick={onLogout} className="flex w-full items-center gap-2 border-t border-slate-100 px-3 py-2.5 text-left text-sm font-medium text-rose-600 hover:bg-rose-50 dark:border-slate-700 dark:hover:bg-rose-950/40">
-              <LogOut className="h-4 w-4" />
+            <button
+              type="button"
+              onClick={onLogout}
+              className="flex w-full items-center gap-2 rounded-[4px] border-t border-border/60 px-2 py-1.5 mt-0.5 text-left text-xs font-medium text-rose-600 hover:bg-rose-50 dark:border-slate-800 dark:hover:bg-rose-950/40 transition-colors"
+            >
+              <LogOut className="h-3.5 w-3.5" />
               {t('admin.logout')}
             </button>
           </div>

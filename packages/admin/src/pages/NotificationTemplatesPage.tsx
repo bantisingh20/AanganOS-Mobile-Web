@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Mail, Plus, Pencil, Search, RefreshCw, Table as TableIcon, LayoutGrid } from 'lucide-react';
+import { Mail, Plus, Pencil, Search, RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { Card } from '@shared/components/ui/card';
 import { Button } from '@shared/components/ui/button';
 import { Input } from '@shared/components/ui/input';
 import { Badge } from '@shared/components/ui/badge';
@@ -12,7 +11,6 @@ import { Toaster } from '@shared/components/ui/sonner';
 import { notificationTemplates } from '@shared/services';
 import type { NotificationTemplate, NotificationTemplatePreview } from '@shared/api/notificationTemplates';
 import { useAsync } from '@shared/lib/useAsync';
-import { useIsSmallScreen } from '@shared/lib/useMediaQuery';
 import { cn } from '@shared/lib/utils';
 import { toFormError } from '@shared/api/errors';
 
@@ -30,9 +28,6 @@ function channelLabels(channels: number, t: (k: string) => string): string[] {
 export function NotificationTemplatesPage() {
   const { t } = useTranslation();
   const [search, setSearch] = useState('');
-  const [view, setView] = useState<'table' | 'cards'>('table');
-  const isSmall = useIsSmallScreen();
-  const effectiveView = isSmall ? 'cards' : view;
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<NotificationTemplate | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
@@ -45,141 +40,115 @@ export function NotificationTemplatesPage() {
   const items = useMemo(() => query.data ?? [], [query.data]);
   const reload = () => setReloadKey((k) => k + 1);
 
-  const ChannelBadges = ({ channels }: { channels: number }) => {
-    const labels = channelLabels(channels, t);
-    if (labels.length === 0) return <span className="text-[11px] text-muted-foreground">—</span>;
-    return (
-      <div className="flex flex-wrap gap-1">
-        {labels.map((l) => (
-          <Badge key={l} tone="default">{l}</Badge>
-        ))}
-      </div>
-    );
-  };
-
-  const StatusBadge = ({ tpl }: { tpl: NotificationTemplate }) => (
-    <Badge tone={tpl.isActive ? 'success' : 'muted'}>
-      <span className="h-1.5 w-1.5 rounded-full bg-current opacity-70" />
-      {tpl.isActive ? t('templates.active') : t('templates.inactive')}
-    </Badge>
-  );
-
-  const RowActions = ({ tpl }: { tpl: NotificationTemplate }) => (
-    <div className="flex items-center justify-end gap-1.5">
-      <button type="button" onClick={() => setEditing(tpl)} aria-label={t('templates.edit')} className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40">
-        <Pencil className="h-4 w-4" />
-      </button>
-    </div>
-  );
-
   return (
-    <div className="space-y-3 sm:space-y-4">
-      <Card className="relative overflow-hidden rounded-2xl p-0">
-        <span className="absolute left-0 top-0 h-full w-1 bg-emerald-600" />
-        <div className="flex items-center justify-between gap-3 py-3.5 pl-4 pr-3.5">
-          <div className="flex min-w-0 items-center gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-950/50 dark:text-amber-300">
-              <Mail className="h-5 w-5" />
-            </span>
-            <div className="min-w-0">
-              <h1 className="text-base font-semibold leading-tight">{t('templates.title')}</h1>
-              <p className="mt-0.5 truncate text-xs text-muted-foreground">{t('templates.subtitle')}</p>
-            </div>
-          </div>
-          <Button onClick={() => setCreating(true)} className="h-9 shrink-0 gap-1.5 rounded-lg bg-emerald-600 px-3.5 text-xs hover:bg-emerald-700">
-            <Plus className="h-4 w-4" />{t('templates.add')}
+    <div className="w-full space-y-2">
+      <Toaster position="top-right" richColors />
+
+      {/* Header */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between py-0.5">
+        <div>
+          <h1 className="text-sm font-semibold tracking-tight text-foreground flex items-center gap-1.5">
+            <Mail className="h-3.5 w-3.5 text-primary" />{t('templates.title')}
+          </h1>
+          <p className="text-[11px] text-muted-foreground leading-tight">{t('templates.subtitle')}</p>
+        </div>
+        <Button size="sm" onClick={() => setCreating(true)} className="h-7 px-2.5 gap-1 rounded-[4px] text-[11px] font-medium">
+          <Plus className="h-3 w-3 stroke-[2.5]" />{t('templates.add')}
+        </Button>
+      </div>
+
+      {/* Filter Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-1.5 rounded-md border border-border/80 bg-card/60 p-1.5 text-xs">
+        <div className="relative min-w-[140px] max-w-xs flex-1">
+          <Search className="pointer-events-none absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
+          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('templates.searchPlaceholder')} className="h-7.5 w-full rounded-md pl-7 pr-2 text-[11px] bg-background" />
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="text-[11px] text-muted-foreground">Total: <span className="font-semibold text-foreground">{items.length}</span></span>
+          <Button type="button" variant="outline" size="sm" onClick={reload} aria-label="Refresh" className="h-7.5 w-7.5 p-0 rounded-[4px] border-border/80">
+            <RefreshCw className={cn('h-3 w-3', query.loading && 'animate-spin text-primary')} />
           </Button>
         </div>
-      </Card>
+      </div>
 
-      <Card className="flex flex-col gap-3 rounded-2xl p-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="relative min-w-[180px] flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('templates.searchPlaceholder')} className="h-9 max-w-xs pl-9 text-sm" />
+      {/* Main Container */}
+      <div className="rounded-md border border-border/80 bg-card overflow-hidden">
+        {query.loading && items.length === 0 ? (
+          <div className="flex items-center justify-center py-10 text-xs text-muted-foreground"><RefreshCw className="mr-1.5 h-3.5 w-3.5 animate-spin text-primary" />{t('common.loading')}</div>
+        ) : items.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-10 text-center text-xs text-muted-foreground">
+            <Mail className="h-6 w-6 text-muted-foreground/50 mb-1.5" />{t('templates.empty')}
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="hidden items-center rounded-lg border border-border p-0.5 md:flex">
-            <button type="button" onClick={() => setView('table')} aria-label="Table view" className={`flex h-7 w-7 items-center justify-center rounded-md ${view === 'table' ? 'bg-emerald-600 text-white' : 'text-muted-foreground hover:bg-accent'}`}>
-              <TableIcon className="h-4 w-4" />
-            </button>
-            <button type="button" onClick={() => setView('cards')} aria-label="Card view" className={`flex h-7 w-7 items-center justify-center rounded-md ${view === 'cards' ? 'bg-emerald-600 text-white' : 'text-muted-foreground hover:bg-accent'}`}>
-              <LayoutGrid className="h-4 w-4" />
-            </button>
-          </div>
-          <button type="button" onClick={reload} aria-label="Refresh" className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-emerald-600">
-            <RefreshCw className={`h-4 w-4 ${query.loading ? 'animate-spin' : ''}`} />
-          </button>
-        </div>
-      </Card>
-
-      {items.length === 0 ? (
-        <Card className="rounded-2xl p-10 text-center text-sm text-muted-foreground">
-          {query.loading ? t('common.loading') : t('templates.empty')}
-        </Card>
-      ) : effectiveView === 'table' ? (
-        <Card className="overflow-hidden rounded-2xl p-0">
-          <Table>
-            <THead>
-              <TR>
-                <TH className="w-14 text-center">#</TH>
-                <TH className="w-56">{t('templates.colKey')}</TH>
-                <TH>{t('templates.colTitle')}</TH>
-                <TH className="w-56">{t('templates.colChannels')}</TH>
-                <TH className="w-28">{t('templates.colStatus')}</TH>
-                <TH className="w-24 text-right">{t('orgs.colActions')}</TH>
-              </TR>
-            </THead>
-            <TBody>
-              {items.map((tpl, i) => (
-                <TR key={tpl.id}>
-                  <TD className="text-center text-[11px] text-muted-foreground">{i + 1}</TD>
-                  <TD className="font-mono text-[12px]">{tpl.key}</TD>
-                  <TD className="max-w-xs truncate text-[13px]">{tpl.titleTemplate}</TD>
-                  <TD><ChannelBadges channels={tpl.channels} /></TD>
-                  <TD><StatusBadge tpl={tpl} /></TD>
-                  <TD><RowActions tpl={tpl} /></TD>
-                </TR>
-              ))}
-            </TBody>
-          </Table>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {items.map((tpl) => (
-            <Card key={tpl.id} className="flex flex-col gap-3 rounded-2xl p-4">
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <div className="truncate font-mono text-[12px] font-semibold">{tpl.key}</div>
-                  <div className="truncate text-[11px] text-muted-foreground">{tpl.titleTemplate}</div>
+        ) : (
+          <>
+            {/* Mobile View */}
+            <div className="divide-y divide-border/60 md:hidden">
+              {items.map((tpl) => (
+                <div key={tpl.id} className="p-2.5 flex flex-col gap-1.5 hover:bg-muted/20 transition-colors">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-mono font-semibold text-xs text-foreground truncate">{tpl.key}</span>
+                    <Badge tone={tpl.isActive ? 'success' : 'muted'} className="text-[9px] px-1 py-0 rounded shrink-0">
+                      {tpl.isActive ? t('templates.active') : t('templates.inactive')}
+                    </Badge>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground line-clamp-1">{tpl.titleTemplate}</p>
+                  <div className="flex items-center justify-between pt-1 border-t border-border/40 text-[10.5px]">
+                    <div className="flex flex-wrap gap-1">
+                      {channelLabels(tpl.channels, t).map((l) => (<Badge key={l} tone="default" className="text-[9px] px-1 py-0 rounded">{l}</Badge>))}
+                    </div>
+                    <button type="button" onClick={() => setEditing(tpl)} title={t('templates.edit')} className="flex h-6 w-6 items-center justify-center rounded-[3px] border border-border/80 text-muted-foreground hover:text-primary transition-colors">
+                      <Pencil className="h-3 w-3" />
+                    </button>
+                  </div>
                 </div>
-                <StatusBadge tpl={tpl} />
-              </div>
-              <div className="border-t border-border pt-2">
-                <ChannelBadges channels={tpl.channels} />
-              </div>
-              <div className="flex items-center justify-end border-t border-border pt-3">
-                <RowActions tpl={tpl} />
-              </div>
-            </Card>
-          ))}
-        </div>
-      )}
+              ))}
+            </div>
 
-      <TemplateFormDialog
-        open={creating}
-        onClose={() => setCreating(false)}
-        onSaved={() => { setCreating(false); reload(); }}
-      />
-      <TemplateFormDialog
-        open={!!editing}
-        template={editing}
-        onClose={() => setEditing(null)}
-        onSaved={() => { setEditing(null); reload(); }}
-      />
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
+              <Table>
+                <THead>
+                  <TR className="border-b border-border bg-muted/40">
+                    <TH className="w-10 py-1.5 px-2 text-center text-[10.5px] font-semibold">#</TH>
+                    <TH className="w-52 py-1.5 px-2 text-[10.5px] font-semibold">{t('templates.colKey')}</TH>
+                    <TH className="py-1.5 px-2 text-[10.5px] font-semibold">{t('templates.colTitle')}</TH>
+                    <TH className="w-48 py-1.5 px-2 text-[10.5px] font-semibold">{t('templates.colChannels')}</TH>
+                    <TH className="w-24 py-1.5 px-2 text-[10.5px] font-semibold">{t('templates.colStatus')}</TH>
+                    <TH className="w-16 py-1.5 px-2 text-right text-[10.5px] font-semibold">Action</TH>
+                  </TR>
+                </THead>
+                <TBody>
+                  {items.map((tpl, i) => (
+                    <TR key={tpl.id} className="hover:bg-muted/30 transition-colors">
+                      <TD className="py-1 px-2 text-center text-[10.5px] text-muted-foreground font-mono">{i + 1}</TD>
+                      <TD className="py-1 px-2 font-mono text-xs font-semibold text-foreground truncate">{tpl.key}</TD>
+                      <TD className="py-1 px-2 text-xs text-muted-foreground truncate">{tpl.titleTemplate}</TD>
+                      <TD className="py-1 px-2">
+                        <div className="flex flex-wrap gap-1">
+                          {channelLabels(tpl.channels, t).map((l) => (<Badge key={l} tone="default" className="text-[10px] px-1 py-0 rounded">{l}</Badge>))}
+                        </div>
+                      </TD>
+                      <TD className="py-1 px-2">
+                        <Badge tone={tpl.isActive ? 'success' : 'muted'} className="text-[10px] px-1.5 py-0 rounded">
+                          {tpl.isActive ? t('templates.active') : t('templates.inactive')}
+                        </Badge>
+                      </TD>
+                      <TD className="py-1 px-2 text-right">
+                        <button type="button" onClick={() => setEditing(tpl)} title={t('templates.edit')} className="flex h-6 w-6 ml-auto items-center justify-center rounded-[3px] border border-border/80 text-muted-foreground hover:text-primary transition-colors">
+                          <Pencil className="h-3 w-3" />
+                        </button>
+                      </TD>
+                    </TR>
+                  ))}
+                </TBody>
+              </Table>
+            </div>
+          </>
+        )}
+      </div>
 
-      <Toaster position="top-center" richColors />
+      <TemplateFormDialog open={creating} onClose={() => setCreating(false)} onSaved={() => { setCreating(false); reload(); }} />
+      <TemplateFormDialog open={!!editing} template={editing} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); reload(); }} />
     </div>
   );
 }
@@ -218,18 +187,12 @@ function TemplateFormDialog({ open, template, onClose, onSaved }: { open: boolea
   }, [open, template]);
 
   const toggleChannel = (bit: number) => setChannels((c) => (c & bit ? c & ~bit : c | bit));
-
   const canSubmit = !!key.trim() && !!titleTemplate.trim() && !!bodyTemplate.trim();
 
   const buildBody = () => ({
-    key: key.trim(),
-    channels,
-    titleTemplate: titleTemplate.trim(),
-    bodyTemplate: bodyTemplate.trim(),
-    emailSubjectTemplate: emailSubjectTemplate.trim() || null,
-    emailHtmlTemplate: emailHtmlTemplate.trim() || null,
-    smsTemplate: smsTemplate.trim() || null,
-    whatsappTemplateName: whatsappTemplateName.trim() || null,
+    key: key.trim(), channels, titleTemplate: titleTemplate.trim(), bodyTemplate: bodyTemplate.trim(),
+    emailSubjectTemplate: emailSubjectTemplate.trim() || null, emailHtmlTemplate: emailHtmlTemplate.trim() || null,
+    smsTemplate: smsTemplate.trim() || null, whatsappTemplateName: whatsappTemplateName.trim() || null,
     whatsappVarsJson: whatsappVarsJson.trim() || null,
   });
 
@@ -240,11 +203,8 @@ function TemplateFormDialog({ open, template, onClose, onSaved }: { open: boolea
       await notificationTemplates.upsert({ ...buildBody(), isActive, communityId: null });
       toast.success(isEdit ? t('templates.updated') : t('templates.created'));
       onSaved();
-    } catch (err) {
-      toast.error(toFormError(err).message);
-    } finally {
-      setBusy(false);
-    }
+    } catch (err) { toast.error(toFormError(err).message); }
+    finally { setBusy(false); }
   };
 
   const runPreview = async () => {
@@ -253,11 +213,8 @@ function TemplateFormDialog({ open, template, onClose, onSaved }: { open: boolea
     try {
       const result = await notificationTemplates.preview({ ...buildBody(), sampleValues: {} });
       setPreview(result);
-    } catch (err) {
-      toast.error(toFormError(err).message);
-    } finally {
-      setPreviewBusy(false);
-    }
+    } catch (err) { toast.error(toFormError(err).message); }
+    finally { setPreviewBusy(false); }
   };
 
   return (
@@ -267,121 +224,113 @@ function TemplateFormDialog({ open, template, onClose, onSaved }: { open: boolea
       title={isEdit ? (template?.key ?? t('templates.editTitle')) : t('templates.addTitle')}
       extra={
         <div className="flex shrink-0 items-center gap-2">
-          <Button variant="outline" onClick={runPreview} disabled={previewBusy || !canSubmit} className="h-9 rounded-lg text-xs">{t('templates.preview')}</Button>
-          <Button onClick={submit} disabled={busy || !canSubmit} className="h-9 rounded-lg bg-emerald-600 text-xs hover:bg-emerald-700">{isEdit ? t('templates.saveChanges') : t('templates.save')}</Button>
+          <Button variant="outline" onClick={runPreview} disabled={previewBusy || !canSubmit} className="h-7.5 px-3 rounded-[4px] text-xs border-border/80">{t('templates.preview')}</Button>
+          <Button onClick={submit} disabled={busy || !canSubmit} className="h-7.5 px-3 rounded-[4px] text-xs">{isEdit ? t('templates.saveChanges') : t('templates.save')}</Button>
         </div>
       }
     >
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-        <div className="space-y-3">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 text-xs">
+        <div className="space-y-2.5">
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{t('templates.keyLabel')}</label>
-            <Input autoFocus value={key} disabled={isEdit} onChange={(e) => setKey(e.target.value)} placeholder={t('templates.keyPlaceholder')} maxLength={200} />
+            <label className="mb-1 block text-xs font-medium text-foreground">{t('templates.keyLabel')} *</label>
+            <Input autoFocus value={key} disabled={isEdit} onChange={(e) => setKey(e.target.value)} placeholder={t('templates.keyPlaceholder')} maxLength={200} className="h-8.5 rounded-[4px] text-xs" />
           </div>
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{t('templates.channelsLabel')}</label>
-            <div className="flex flex-wrap gap-3">
+            <label className="mb-1 block text-xs font-medium text-foreground">{t('templates.channelsLabel')}</label>
+            <div className="flex flex-wrap gap-2.5">
               {CHANNEL_FLAGS.map((c) => (
-                <label key={c.bit} className="flex items-center gap-1.5 text-sm">
-                  <input type="checkbox" checked={(channels & c.bit) === c.bit} onChange={() => toggleChannel(c.bit)} className="h-4 w-4 rounded border-input accent-emerald-600" />
+                <label key={c.bit} className="flex items-center gap-1.5 text-xs text-foreground">
+                  <input type="checkbox" checked={(channels & c.bit) === c.bit} onChange={() => toggleChannel(c.bit)} className="h-3.5 w-3.5 rounded border-input accent-primary" />
                   {t(c.labelKey)}
                 </label>
               ))}
             </div>
           </div>
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{t('templates.activeLabel')}</label>
-            <div className="flex gap-1 rounded-lg bg-muted p-1">
-              <button type="button" onClick={() => setIsActive(true)} className={cn('flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors', isActive ? 'bg-card text-emerald-600 shadow-sm' : 'text-muted-foreground')}>{t('templates.active')}</button>
-              <button type="button" onClick={() => setIsActive(false)} className={cn('flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors', !isActive ? 'bg-card text-rose-600 shadow-sm' : 'text-muted-foreground')}>{t('templates.inactive')}</button>
+            <label className="mb-1 block text-xs font-medium text-foreground">{t('templates.activeLabel')}</label>
+            <div className="flex gap-1 rounded-[4px] bg-muted/60 p-0.5 border border-border/70 w-44">
+              <button type="button" onClick={() => setIsActive(true)} className={cn('flex-1 rounded-[3px] px-2 py-0.5 text-xs font-medium transition-colors', isActive ? 'bg-primary text-primary-foreground shadow-xs' : 'text-muted-foreground')}>{t('templates.active')}</button>
+              <button type="button" onClick={() => setIsActive(false)} className={cn('flex-1 rounded-[3px] px-2 py-0.5 text-xs font-medium transition-colors', !isActive ? 'bg-destructive text-destructive-foreground shadow-xs' : 'text-muted-foreground')}>{t('templates.inactive')}</button>
             </div>
           </div>
-
-          <div className="text-[11px] font-semibold uppercase text-muted-foreground">{t('templates.sectionPush')}</div>
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{t('templates.titleLabel')}</label>
-            <Input value={titleTemplate} onChange={(e) => setTitleTemplate(e.target.value)} placeholder={t('templates.titlePlaceholder')} maxLength={500} />
+            <label className="mb-1 block text-xs font-medium text-foreground">{t('templates.titleLabel')} *</label>
+            <Input value={titleTemplate} onChange={(e) => setTitleTemplate(e.target.value)} placeholder={t('templates.titlePlaceholder')} maxLength={500} className="h-8.5 rounded-[4px] text-xs" />
           </div>
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{t('templates.bodyLabel')}</label>
-            <textarea value={bodyTemplate} onChange={(e) => setBodyTemplate(e.target.value)} placeholder={t('templates.bodyPlaceholder')} maxLength={4000} rows={3} className="w-full resize-none rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" />
-          </div>
-
-          <div className="text-[11px] font-semibold uppercase text-muted-foreground">{t('templates.sectionEmail')}</div>
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{t('templates.emailSubjectLabel')}</label>
-            <Input value={emailSubjectTemplate} onChange={(e) => setEmailSubjectTemplate(e.target.value)} placeholder={t('templates.emailSubjectPlaceholder')} maxLength={500} />
+            <label className="mb-1 block text-xs font-medium text-foreground">{t('templates.bodyLabel')} *</label>
+            <textarea value={bodyTemplate} onChange={(e) => setBodyTemplate(e.target.value)} placeholder={t('templates.bodyPlaceholder')} maxLength={4000} rows={2} className="w-full resize-none rounded-[4px] border border-input bg-background p-2 text-xs leading-relaxed focus:border-primary focus:outline-none" />
           </div>
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{t('templates.emailHtmlLabel')}</label>
-            <textarea value={emailHtmlTemplate} onChange={(e) => setEmailHtmlTemplate(e.target.value)} placeholder={t('templates.emailHtmlPlaceholder')} rows={4} className="w-full resize-none rounded-lg border border-input bg-transparent px-3 py-2 font-mono text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring" />
-          </div>
-
-          <div className="text-[11px] font-semibold uppercase text-muted-foreground">{t('templates.sectionSmsWhatsapp')}</div>
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{t('templates.smsLabel')}</label>
-            <textarea value={smsTemplate} onChange={(e) => setSmsTemplate(e.target.value)} placeholder={t('templates.smsPlaceholder')} rows={2} className="w-full resize-none rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+            <label className="mb-1 block text-xs font-medium text-foreground">{t('templates.emailSubjectLabel')}</label>
+            <Input value={emailSubjectTemplate} onChange={(e) => setEmailSubjectTemplate(e.target.value)} placeholder={t('templates.emailSubjectPlaceholder')} maxLength={500} className="h-8.5 rounded-[4px] text-xs" />
           </div>
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{t('templates.whatsappNameLabel')}</label>
-            <Input value={whatsappTemplateName} onChange={(e) => setWhatsappTemplateName(e.target.value)} placeholder={t('templates.whatsappNamePlaceholder')} maxLength={200} />
+            <label className="mb-1 block text-xs font-medium text-foreground">{t('templates.emailHtmlLabel')}</label>
+            <textarea value={emailHtmlTemplate} onChange={(e) => setEmailHtmlTemplate(e.target.value)} placeholder={t('templates.emailHtmlPlaceholder')} rows={3} className="w-full resize-none rounded-[4px] border border-input bg-background p-2 font-mono text-[11px] leading-relaxed focus:border-primary focus:outline-none" />
           </div>
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{t('templates.whatsappVarsLabel')}</label>
-            <Input value={whatsappVarsJson} onChange={(e) => setWhatsappVarsJson(e.target.value)} placeholder={t('templates.whatsappVarsPlaceholder')} />
+            <label className="mb-1 block text-xs font-medium text-foreground">{t('templates.smsLabel')}</label>
+            <textarea value={smsTemplate} onChange={(e) => setSmsTemplate(e.target.value)} placeholder={t('templates.smsPlaceholder')} rows={1.5} className="w-full resize-none rounded-[4px] border border-input bg-background p-2 text-xs leading-relaxed focus:border-primary focus:outline-none" />
           </div>
-
-          {preview && preview.placeholders.length > 0 ? (
-            <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-foreground">{t('templates.whatsappNameLabel')}</label>
+              <Input value={whatsappTemplateName} onChange={(e) => setWhatsappTemplateName(e.target.value)} placeholder={t('templates.whatsappNamePlaceholder')} maxLength={200} className="h-8.5 rounded-[4px] text-xs" />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-foreground">{t('templates.whatsappVarsLabel')}</label>
+              <Input value={whatsappVarsJson} onChange={(e) => setWhatsappVarsJson(e.target.value)} placeholder={t('templates.whatsappVarsPlaceholder')} className="h-8.5 rounded-[4px] text-xs" />
+            </div>
+          </div>
+          {preview && preview.placeholders.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1 text-[11px] text-muted-foreground pt-1">
               <span>{t('templates.previewPlaceholders')}:</span>
-              {preview.placeholders.map((p) => (
-                <code key={p} className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px]">{`{${p}}`}</code>
-              ))}
+              {preview.placeholders.map((p) => (<code key={p} className="rounded bg-muted px-1 py-0.5 font-mono text-[10.5px]">{`{${p}}`}</code>))}
             </div>
-          ) : null}
+          )}
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-muted-foreground">{t('templates.previewTitle')}</span>
-            <div className="flex gap-1 rounded-lg bg-muted p-1">
-              <button type="button" onClick={() => setDevice('mobile')} className={cn('rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors', device === 'mobile' ? 'bg-card text-emerald-600 shadow-sm' : 'text-muted-foreground')}>{t('templates.deviceMobile')}</button>
-              <button type="button" onClick={() => setDevice('desktop')} className={cn('rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors', device === 'desktop' ? 'bg-card text-emerald-600 shadow-sm' : 'text-muted-foreground')}>{t('templates.deviceDesktop')}</button>
+            <span className="text-xs font-semibold text-foreground">{t('templates.previewTitle')}</span>
+            <div className="flex gap-1 rounded-[4px] bg-muted/60 p-0.5 border border-border/70">
+              <button type="button" onClick={() => setDevice('mobile')} className={cn('rounded-[3px] px-2 py-0.5 text-[11px] font-medium transition-colors', device === 'mobile' ? 'bg-primary text-primary-foreground shadow-xs' : 'text-muted-foreground')}>{t('templates.deviceMobile')}</button>
+              <button type="button" onClick={() => setDevice('desktop')} className={cn('rounded-[3px] px-2 py-0.5 text-[11px] font-medium transition-colors', device === 'desktop' ? 'bg-primary text-primary-foreground shadow-xs' : 'text-muted-foreground')}>{t('templates.deviceDesktop')}</button>
             </div>
           </div>
-
           {previewBusy ? (
-            <div className="grid h-40 place-items-center text-xs text-muted-foreground">{t('common.loading')}</div>
+            <div className="grid h-36 place-items-center text-xs text-muted-foreground">{t('common.loading')}</div>
           ) : !preview ? (
-            <div className="rounded-xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">{t('templates.previewHint')}</div>
+            <div className="rounded-md border border-dashed border-border/80 p-5 text-center text-xs text-muted-foreground">{t('templates.previewHint')}</div>
           ) : (
-            <div className="space-y-4">
-              {preview.pushTitle != null || preview.pushBody != null ? (
+            <div className="space-y-3">
+              {(preview.pushTitle != null || preview.pushBody != null) && (
                 <PreviewBlock title={t('templates.channelPush')}>
-                  <div className="rounded-xl border border-border bg-card p-3 shadow-sm" style={{ maxWidth: device === 'mobile' ? 320 : '100%' }}>
-                    <div className="text-xs font-bold">{preview.pushTitle}</div>
-                    <div className="mt-0.5 text-xs text-muted-foreground">{preview.pushBody}</div>
+                  <div className="rounded-md border border-border/80 bg-card p-2.5 shadow-xs" style={{ maxWidth: device === 'mobile' ? 280 : '100%' }}>
+                    <div className="text-xs font-semibold text-foreground">{preview.pushTitle}</div>
+                    <div className="mt-0.5 text-[11px] text-muted-foreground">{preview.pushBody}</div>
                   </div>
                 </PreviewBlock>
-              ) : null}
-              {preview.emailHtml != null ? (
+              )}
+              {preview.emailHtml != null && (
                 <PreviewBlock title={t('templates.channelEmail')}>
-                  {preview.emailSubject ? <div className="mb-1 text-xs font-medium">{preview.emailSubject}</div> : null}
-                  <div className="overflow-hidden rounded-xl border border-border bg-white" style={{ width: device === 'mobile' ? 340 : '100%' }}>
-                    <iframe title="email-preview" srcDoc={preview.emailHtml} className="w-full" style={{ height: 420, border: 'none' }} />
+                  {preview.emailSubject && <div className="mb-1 text-xs font-medium text-foreground">{preview.emailSubject}</div>}
+                  <div className="overflow-hidden rounded-md border border-border/80 bg-white" style={{ width: device === 'mobile' ? 300 : '100%' }}>
+                    <iframe title="email-preview" srcDoc={preview.emailHtml} className="w-full" style={{ height: 320, border: 'none' }} />
                   </div>
                 </PreviewBlock>
-              ) : null}
-              {preview.sms != null ? (
+              )}
+              {preview.sms != null && (
                 <PreviewBlock title={t('templates.channelSms')}>
-                  <div className="inline-block max-w-[300px] rounded-2xl bg-muted px-3 py-2 text-xs">{preview.sms}</div>
+                  <div className="inline-block max-w-[280px] rounded-md bg-muted/60 p-2 text-xs leading-relaxed">{preview.sms}</div>
                 </PreviewBlock>
-              ) : null}
-              {preview.whatsapp != null ? (
+              )}
+              {preview.whatsapp != null && (
                 <PreviewBlock title={t('templates.channelWhatsApp')}>
-                  <div className="inline-block max-w-[300px] rounded-2xl bg-[#dcf8c6] px-3 py-2 text-xs text-slate-800">{preview.whatsapp}</div>
+                  <div className="inline-block max-w-[280px] rounded-md bg-[#dcf8c6] dark:bg-emerald-950/60 p-2 text-xs text-slate-800 dark:text-emerald-200 leading-relaxed">{preview.whatsapp}</div>
                 </PreviewBlock>
-              ) : null}
+              )}
             </div>
           )}
         </div>
@@ -393,8 +342,10 @@ function TemplateFormDialog({ open, template, onClose, onSaved }: { open: boolea
 function PreviewBlock({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div>
-      <div className="mb-1 text-[11px] font-semibold uppercase text-muted-foreground">{title}</div>
+      <div className="mb-1 text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground">{title}</div>
       {children}
     </div>
   );
 }
+
+export default NotificationTemplatesPage;

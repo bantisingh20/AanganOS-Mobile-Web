@@ -1,32 +1,24 @@
 import { useMemo, useState } from 'react';
-import { DoorOpen, Search, RefreshCw, Table as TableIcon, LayoutGrid } from 'lucide-react';
+import { DoorOpen, Search, RefreshCw, Phone, UserCheck } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Card } from '@shared/components/ui/card';
 import { Input } from '@shared/components/ui/input';
 import { Badge } from '@shared/components/ui/badge';
-import { SelectField } from '@shared/components/SelectField';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@shared/components/ui/select';
 import { Table, THead, TBody, TR, TH, TD } from '@shared/components/ui/table';
 import { Pagination } from '@shared/components/ui/pagination';
+import { Button } from '@shared/components/ui/button';
 import { Toaster } from '@shared/components/ui/sonner';
 import { EntitySelect, type EntityPage } from '@shared/components/EntitySelect';
 import { gate, masterData, organizations } from '@shared/services';
-import type { Visitor } from '@shared/api/gate';
 import type { MasterDataEntry } from '@shared/api/masterData';
 import { useAsync } from '@shared/lib/useAsync';
-import { useIsSmallScreen } from '@shared/lib/useMediaQuery';
 import { useScope } from '@shared/lib/useScope';
+import { cn } from '@shared/lib/utils';
 
 async function fetchOrgPage(search: string, page: number, pageSize: number, signal: AbortSignal): Promise<EntityPage> {
   const d = await organizations.list({ search: search || undefined, page, pageSize }, { signal });
   return { items: d.items.map((o) => ({ value: o.id, label: o.name })), total: d.totalCount };
 }
-async function resolveOrgLabel(id: string, signal: AbortSignal): Promise<string | null> {
-  try { const o = await organizations.get(id, { signal }); return o.name; } catch { return null; }
-}
-
-type Option = { value: string; label: string };
-
-const ALL_STATUSES = '__all__';
 
 function statusTone(status: string): 'success' | 'warning' | 'danger' | 'default' | 'muted' {
   const s = status.toLowerCase();
@@ -42,163 +34,156 @@ export function VisitorsPage() {
   const scope = useScope();
   const [search, setSearch] = useState('');
   const [filterOrgId, setFilterOrgId] = useState<string | null>(null);
-  const [filterStatus, setFilterStatus] = useState<string | null>(null);
+  const [filterStatus, setFilterStatus] = useState<string>('all');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [view, setView] = useState<'table' | 'cards'>('table');
-  const isSmall = useIsSmallScreen();
-  const effectiveView = isSmall ? 'cards' : view;
   const [reloadKey, setReloadKey] = useState(0);
 
   const statusesQuery = useAsync((signal) => masterData.list('Visitor_Status', null, { signal }).catch(() => [] as MasterDataEntry[]), []);
-  const statusOptions = useMemo<Option[]>(() => (statusesQuery.data ?? []).map((e) => ({ value: e.code, label: e.label })), [statusesQuery.data]);
+  const statusOptions = useMemo(() => (statusesQuery.data ?? []).map((e) => ({ value: e.code, label: e.label })), [statusesQuery.data]);
   const statusLabel = (code: string) => statusOptions.find((o) => o.value === code)?.label ?? code;
 
   const categoriesQuery = useAsync((signal) => masterData.list('Visitor_Category', null, { signal }).catch(() => [] as MasterDataEntry[]), []);
-  const categoryOptions = useMemo<Option[]>(() => (categoriesQuery.data ?? []).map((e) => ({ value: e.code, label: e.label })), [categoriesQuery.data]);
+  const categoryOptions = useMemo(() => (categoriesQuery.data ?? []).map((e) => ({ value: e.code, label: e.label })), [categoriesQuery.data]);
   const categoryLabel = (code: string) => categoryOptions.find((o) => o.value === code)?.label ?? code;
-
-  const statusFilterOptions = useMemo<Option[]>(() => [{ value: ALL_STATUSES, label: t('visitors.allStatuses') }, ...statusOptions], [statusOptions, t]);
-
-  const effectiveOrgId = filterOrgId ?? undefined;
 
   const query = useAsync(
     (signal) => gate.listVisitors(
       { search: search.trim() || undefined, page, pageSize },
       {
-        ...(filterStatus ? { status: filterStatus } : {}),
-        ...(effectiveOrgId ? { organizationId: effectiveOrgId } : {}),
+        ...(filterStatus !== 'all' ? { status: filterStatus } : {}),
+        ...(filterOrgId ? { organizationId: filterOrgId } : {}),
       },
       { signal },
     ).catch(() => null),
-    [search, filterStatus, effectiveOrgId, page, pageSize, reloadKey],
+    [search, filterStatus, filterOrgId, page, pageSize, reloadKey],
   );
 
   const items = useMemo(() => query.data?.items ?? [], [query.data]);
   const showCommunityCol = !scope.scopedCommunityId && scope.canViewCommunity;
   const reload = () => setReloadKey((k) => k + 1);
 
-  const StatusBadge = ({ s }: { s: Visitor }) => (
-    <Badge tone={statusTone(s.status)}>
-      <span className="h-1.5 w-1.5 rounded-full bg-current opacity-70" />
-      {statusLabel(s.status)}
-    </Badge>
-  );
-
   return (
-    <div className="space-y-3 sm:space-y-4">
-      <Card className="relative overflow-hidden rounded-2xl p-0">
-        <span className="absolute left-0 top-0 h-full w-1 bg-emerald-600" />
-        <div className="flex items-center justify-between gap-3 py-3.5 pl-4 pr-3.5">
-          <div className="flex min-w-0 items-center gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-950/50 dark:text-amber-300">
-              <DoorOpen className="h-5 w-5" />
-            </span>
-            <div className="min-w-0">
-              <h1 className="text-base font-semibold leading-tight">{t('visitors.title')}</h1>
-              <p className="mt-0.5 truncate text-xs text-muted-foreground">{t('visitors.subtitle')}</p>
-            </div>
-          </div>
-        </div>
-      </Card>
+    <div className="w-full space-y-2">
+      <Toaster position="top-right" richColors />
 
-      <Card className="flex flex-col gap-3 rounded-2xl p-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="relative min-w-[180px] flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <Input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder={t('visitors.searchPlaceholder')} className="h-9 max-w-xs pl-9 text-sm" />
-          </div>
-          {scope.showOrgFilter ? (
-            <EntitySelect
-              className="w-44"
-              value={filterOrgId}
-              onChange={(v) => { setFilterOrgId(v); setPage(1); }}
-              fetchPage={fetchOrgPage}
-              resolveLabel={resolveOrgLabel}
-              placeholder={t('visitors.filterOrg')}
-            />
-          ) : null}
-          <div className="w-40">
-            <SelectField value={filterStatus ?? ALL_STATUSES} options={statusFilterOptions} placeholder={t('visitors.filterStatus')} onChange={(v) => { setFilterStatus(v === ALL_STATUSES ? null : v); setPage(1); }} />
-          </div>
+      {/* Header */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between py-0.5">
+        <div>
+          <h1 className="text-sm font-semibold tracking-tight text-foreground flex items-center gap-1.5">
+            <DoorOpen className="h-3.5 w-3.5 text-primary" />{t('visitors.title')}
+          </h1>
+          <p className="text-[11px] text-muted-foreground leading-tight">{t('visitors.subtitle')}</p>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="hidden items-center rounded-lg border border-border p-0.5 md:flex">
-            <button type="button" onClick={() => setView('table')} aria-label="Table view" className={`flex h-7 w-7 items-center justify-center rounded-md ${view === 'table' ? 'bg-emerald-600 text-white' : 'text-muted-foreground hover:bg-accent'}`}>
-              <TableIcon className="h-4 w-4" />
-            </button>
-            <button type="button" onClick={() => setView('cards')} aria-label="Card view" className={`flex h-7 w-7 items-center justify-center rounded-md ${view === 'cards' ? 'bg-emerald-600 text-white' : 'text-muted-foreground hover:bg-accent'}`}>
-              <LayoutGrid className="h-4 w-4" />
-            </button>
-          </div>
-          <button type="button" onClick={reload} aria-label="Refresh" className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-emerald-600">
-            <RefreshCw className={`h-4 w-4 ${query.loading ? 'animate-spin' : ''}`} />
-          </button>
-        </div>
-      </Card>
+      </div>
 
-      {items.length === 0 ? (
-        <Card className="rounded-2xl p-10 text-center text-sm text-muted-foreground">
-          {query.loading ? t('common.loading') : t('visitors.empty')}
-        </Card>
-      ) : effectiveView === 'table' ? (
-        <Card className="overflow-hidden rounded-2xl p-0">
-          <Table>
-            <THead>
-              <TR>
-                <TH className="w-14 text-center">#</TH>
-                <TH>{t('visitors.colVisitor')}</TH>
-                {showCommunityCol ? <TH className="w-44">{t('visitors.colCommunity')}</TH> : null}
-                <TH className="w-32">{t('visitors.colCategory')}</TH>
-                <TH className="w-28">{t('visitors.colStatus')}</TH>
-              </TR>
-            </THead>
-            <TBody>
-              {items.map((s, i) => (
-                <TR key={s.id}>
-                  <TD className="text-center text-[11px] text-muted-foreground">{(page - 1) * pageSize + i + 1}</TD>
-                  <TD>
-                    <div className="min-w-0">
-                      <div className="truncate text-[13px] font-semibold">{s.name}</div>
-                      <div className="truncate text-[11px] text-muted-foreground">{s.phone ?? s.hostUnitNumber ?? '—'}</div>
-                    </div>
-                  </TD>
-                  {showCommunityCol ? <TD className="text-[11px] text-muted-foreground">{s.communityName ?? s.organizationName ?? '—'}</TD> : null}
-                  <TD><Badge tone="default">{categoryLabel(s.category)}</Badge></TD>
-                  <TD><StatusBadge s={s} /></TD>
-                </TR>
-              ))}
-            </TBody>
-          </Table>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {items.map((s) => (
-            <Card key={s.id} className="flex flex-col gap-3 rounded-2xl p-4">
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-semibold">{s.name}</div>
-                  <div className="truncate text-[11px] text-muted-foreground">{s.phone ?? s.hostUnitNumber ?? '—'}</div>
-                  {showCommunityCol ? <div className="truncate text-[11px] text-muted-foreground">{s.communityName ?? s.organizationName ?? '—'}</div> : null}
+      {/* Filter Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-1.5 rounded-md border border-border/80 bg-card/60 p-1.5 text-xs">
+        <div className="flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
+          <div className="relative min-w-[140px] max-w-xs flex-1">
+            <Search className="pointer-events-none absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
+            <Input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder={t('visitors.searchPlaceholder')} className="h-7.5 w-full rounded-md pl-7 pr-2 text-[11px] bg-background" />
+          </div>
+          {scope.showOrgFilter && (
+            <EntitySelect className="w-36 text-xs [&>button]:h-7.5 [&>button]:rounded-md [&>button]:text-[11px] [&>button]:px-2" value={filterOrgId}
+              onChange={(v) => { setFilterOrgId(v); setPage(1); }} fetchPage={fetchOrgPage}
+              resolveLabel={(id, sig) => organizations.get(id, { signal: sig }).then((o) => o.name).catch(() => null)} placeholder={t('visitors.filterOrg')} />
+          )}
+          <Select value={filterStatus} onValueChange={(v) => { setFilterStatus(v); setPage(1); }}>
+            <SelectTrigger className="h-7.5 w-28 rounded-md text-[11px] bg-background px-2"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t('visitors.allStatuses')}</SelectItem>
+              {statusOptions.map((o) => (<SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="text-[11px] text-muted-foreground">Total: <span className="font-semibold text-foreground">{query.data?.totalCount ?? 0}</span></span>
+          <Button type="button" variant="outline" size="sm" onClick={reload} aria-label="Refresh" className="h-7.5 w-7.5 p-0 rounded-[4px] border-border/80">
+            <RefreshCw className={cn('h-3 w-3', query.loading && 'animate-spin text-primary')} />
+          </Button>
+        </div>
+      </div>
+
+      {/* Main Container */}
+      <div className="rounded-md border border-border/80 bg-card overflow-hidden">
+        {query.loading && items.length === 0 ? (
+          <div className="flex items-center justify-center py-10 text-xs text-muted-foreground"><RefreshCw className="mr-1.5 h-3.5 w-3.5 animate-spin text-primary" />{t('common.loading')}</div>
+        ) : items.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-10 text-center text-xs text-muted-foreground">
+            <DoorOpen className="h-6 w-6 text-muted-foreground/50 mb-1.5" />{t('visitors.empty')}
+          </div>
+        ) : (
+          <>
+            {/* Mobile View: Compact Cards */}
+            <div className="divide-y divide-border/60 md:hidden">
+              {items.map((s) => (
+                <div key={s.id} className="p-2.5 flex flex-col gap-1.5 hover:bg-muted/20 transition-colors">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-semibold text-xs text-foreground truncate">{s.name}</span>
+                    <Badge tone={statusTone(s.status)} className="text-[9px] px-1 py-0 rounded shrink-0">
+                      {statusLabel(s.status)}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                    {s.phone && <span className="flex items-center gap-0.5"><Phone className="h-3 w-3 opacity-60" />{s.phone}</span>}
+                    {s.hostUnitNumber && <span>Unit: {s.hostUnitNumber}</span>}
+                  </div>
+                  <div className="flex items-center justify-between pt-1 border-t border-border/40 text-[10.5px]">
+                    <Badge tone="default" className="text-[10px] px-1.5 py-0 rounded">{categoryLabel(s.category)}</Badge>
+                    {s.whomToMeet && <span className="flex items-center gap-0.5 text-muted-foreground truncate"><UserCheck className="h-3 w-3 opacity-60" />{s.whomToMeet}</span>}
+                  </div>
                 </div>
-                <StatusBadge s={s} />
-              </div>
-              <div className="flex items-center justify-between gap-2 border-t border-border pt-3">
-                <Badge tone="default">{categoryLabel(s.category)}</Badge>
-                {s.whomToMeet ? <span className="truncate text-[11px] text-muted-foreground">{s.whomToMeet}</span> : null}
-              </div>
-            </Card>
-          ))}
-        </div>
-      )}
+              ))}
+            </div>
 
-      {(query.data?.totalCount ?? 0) > 0 ? (
-        <Card className="rounded-xl p-1">
-          <Pagination page={page} pageSize={pageSize} total={query.data?.totalCount ?? 0} onPageChange={setPage} onPageSizeChange={(sz) => { setPageSize(sz); setPage(1); }} />
-        </Card>
-      ) : null}
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
+              <Table>
+                <THead>
+                  <TR className="border-b border-border bg-muted/40">
+                    <TH className="w-10 py-1.5 px-2 text-center text-[10.5px] font-semibold">#</TH>
+                    <TH className="py-1.5 px-2 text-[10.5px] font-semibold">{t('visitors.colVisitor')}</TH>
+                    {showCommunityCol && <TH className="w-36 py-1.5 px-2 text-[10.5px] font-semibold">{t('visitors.colCommunity')}</TH>}
+                    <TH className="w-28 py-1.5 px-2 text-[10.5px] font-semibold">{t('visitors.colCategory')}</TH>
+                    <TH className="w-24 py-1.5 px-2 text-[10.5px] font-semibold">{t('visitors.colStatus')}</TH>
+                    <TH className="w-36 py-1.5 px-2 text-right text-[10.5px] font-semibold">Whom to Meet</TH>
+                  </TR>
+                </THead>
+                <TBody>
+                  {items.map((s, i) => (
+                    <TR key={s.id} className="hover:bg-muted/30 transition-colors">
+                      <TD className="py-1 px-2 text-center text-[10.5px] text-muted-foreground font-mono">{(page - 1) * pageSize + i + 1}</TD>
+                      <TD className="py-1 px-2">
+                        <div className="min-w-0">
+                          <span className="font-semibold text-xs text-foreground block truncate">{s.name}</span>
+                          <span className="text-[10.5px] text-muted-foreground block truncate">{s.phone ?? (s.hostUnitNumber ? `Unit: ${s.hostUnitNumber}` : '—')}</span>
+                        </div>
+                      </TD>
+                      {showCommunityCol && <TD className="py-1 px-2 text-xs text-muted-foreground truncate">{s.communityName ?? s.organizationName ?? '—'}</TD>}
+                      <TD className="py-1 px-2"><Badge tone="default" className="text-[10px] px-1.5 py-0 rounded">{categoryLabel(s.category)}</Badge></TD>
+                      <TD className="py-1 px-2">
+                        <Badge tone={statusTone(s.status)} className="text-[10px] px-1.5 py-0 rounded">
+                          {statusLabel(s.status)}
+                        </Badge>
+                      </TD>
+                      <TD className="py-1 px-2 text-right text-[11px] text-muted-foreground truncate">{s.whomToMeet ?? '—'}</TD>
+                    </TR>
+                  ))}
+                </TBody>
+              </Table>
+            </div>
+          </>
+        )}
 
-      <Toaster position="top-center" richColors />
+        {(query.data?.totalCount ?? 0) > 0 && (
+          <div className="border-t border-border px-2.5 py-1 bg-muted/20">
+            <Pagination page={page} pageSize={pageSize} total={query.data?.totalCount ?? 0} onPageChange={setPage} onPageSizeChange={(sz) => { setPageSize(sz); setPage(1); }} />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
+
+export default VisitorsPage;

@@ -1,46 +1,24 @@
-import { useEffect, useMemo, useState } from 'react';
-import { ShieldCheck, Plus, Pencil, Trash2, Search, RefreshCw, Table as TableIcon, LayoutGrid } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { ShieldCheck, Plus, Pencil, Trash2, Search, RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { Card } from '@shared/components/ui/card';
 import { Button } from '@shared/components/ui/button';
 import { Input } from '@shared/components/ui/input';
 import { Badge } from '@shared/components/ui/badge';
-import { Dialog, DialogHeader, DialogFooter } from '@shared/components/ui/dialog';
 import { ConfirmDialog } from '@shared/components/ui/confirm-dialog';
-import { SelectField } from '@shared/components/SelectField';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@shared/components/ui/select';
 import { Table, THead, TBody, TR, TH, TD } from '@shared/components/ui/table';
 import { Pagination } from '@shared/components/ui/pagination';
 import { Toaster } from '@shared/components/ui/sonner';
-import { EntitySelect, type EntityPage } from '@shared/components/EntitySelect';
-import { PhoneField } from '@shared/components/PhoneField';
-import { adminUsers, organizations, communities } from '@shared/services';
+import { adminUsers } from '@shared/services';
 import type { AdminUser } from '@shared/api/adminUsers';
 import { useAsync } from '@shared/lib/useAsync';
-import { useIsSmallScreen } from '@shared/lib/useMediaQuery';
 import { useScope } from '@shared/lib/useScope';
 import { cn } from '@shared/lib/utils';
 import { toFormError } from '@shared/api/errors';
-
-const ROLE_POWER = 'PowerUser';
-const ROLE_ORG = 'OrganizationAdmin';
-const ROLE_COMMUNITY = 'CommunityAdmin';
-
-function fetchOrgPage(search: string, page: number, pageSize: number, signal: AbortSignal): Promise<EntityPage> {
-  return organizations.list({ search: search || undefined, page, pageSize }, { signal })
-    .then((d) => ({ items: d.items.map((o) => ({ value: o.id, label: o.name })), total: d.totalCount }));
-}
-function makeCommunityFetch(organizationId?: string) {
-  return (search: string, page: number, pageSize: number, signal: AbortSignal): Promise<EntityPage> =>
-    communities.list({ search: search || undefined, page, pageSize }, organizationId ? { organizationId } : {}, { signal })
-      .then((d) => ({ items: d.items.map((c) => ({ value: c.id, label: c.name })), total: d.totalCount }));
-}
-async function resolveCommunityLabel(id: string, signal: AbortSignal): Promise<string | null> {
-  try { const c = await communities.get(id, { signal }); return c.name; } catch { return null; }
-}
-async function resolveOrgLabel(id: string, signal: AbortSignal): Promise<string | null> {
-  try { const o = await organizations.get(id, { signal }); return o.name; } catch { return null; }
-}
+import {
+  AdminUserFormDialog, ROLE_POWER, ROLE_ORG, ROLE_COMMUNITY,
+} from './admin-users/AdminUserFormDialog';
 
 export function AdminUsersPage() {
   const { t } = useTranslation();
@@ -49,9 +27,6 @@ export function AdminUsersPage() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'Active' | 'Suspended'>('all');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [view, setView] = useState<'table' | 'cards'>('table');
-  const isSmall = useIsSmallScreen();
-  const effectiveView = isSmall ? 'cards' : view;
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<AdminUser | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<AdminUser | null>(null);
@@ -69,6 +44,7 @@ export function AdminUsersPage() {
       : name === ROLE_ORG ? t('adminUsers.roleOrg')
       : name === ROLE_COMMUNITY ? t('adminUsers.roleCommunity')
       : name;
+
   const roleTone = (name: string): 'info' | 'warning' | 'default' =>
     name === ROLE_POWER ? 'warning' : name === ROLE_ORG ? 'info' : 'default';
 
@@ -81,175 +57,228 @@ export function AdminUsersPage() {
     const all = query.data?.items ?? [];
     return statusFilter === 'all' ? all : all.filter((u) => u.status === statusFilter);
   }, [query.data, statusFilter]);
+
   const reload = () => setReloadKey((k) => k + 1);
 
   const doDelete = async () => {
-    if (!confirmDelete) return;
+    if (!confirmDelete || confirmBusy) return;
     setConfirmBusy(true);
     try {
       await adminUsers.remove(confirmDelete.id);
       toast.success(t('adminUsers.deleted'));
       setConfirmDelete(null);
       reload();
-    } catch (err) {
-      toast.error(toFormError(err).message);
-    } finally {
-      setConfirmBusy(false);
-    }
+    } catch (err) { toast.error(toFormError(err).message); }
+    finally { setConfirmBusy(false); }
   };
 
   const scopeSummary = (u: AdminUser) => {
     const scoped = u.assignments.filter((a) => a.communityId);
-    const platform = u.assignments.some((a) => !a.communityId);
-    if (platform) return t('adminUsers.scopePlatform');
+    if (u.assignments.some((a) => !a.communityId)) return t('adminUsers.scopePlatform');
     if (scoped.length > 0) return t('adminUsers.scopeCommunities', { count: scoped.length });
     return '—';
   };
 
-  const RowActions = ({ u }: { u: AdminUser }) => (
-    <div className="flex items-center justify-end gap-1.5">
-      <button type="button" onClick={() => setEditing(u)} aria-label={t('adminUsers.edit')} className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40">
-        <Pencil className="h-4 w-4" />
-      </button>
-      <button type="button" onClick={() => setConfirmDelete(u)} aria-label={t('adminUsers.delete')} className="flex h-8 w-8 items-center justify-center rounded-lg border border-rose-300 text-rose-600 hover:bg-rose-50 dark:border-rose-800 dark:hover:bg-rose-950/40">
-        <Trash2 className="h-4 w-4" />
-      </button>
-    </div>
-  );
-
-  const StatusBadge = ({ s }: { s: string }) => (
-    <Badge tone={s === 'Active' ? 'success' : 'muted'}>
-      <span className="h-1.5 w-1.5 rounded-full bg-current opacity-70" />
-      {s === 'Active' ? t('adminUsers.statusActive') : t('adminUsers.statusSuspended')}
-    </Badge>
-  );
-
-  const Roles = ({ u }: { u: AdminUser }) => (
-    <span className="flex flex-wrap gap-1">
-      {u.roles.length === 0 ? <span className="text-muted-foreground">—</span> : u.roles.map((r) => <Badge key={r} tone={roleTone(r)}>{roleLabel(r)}</Badge>)}
-    </span>
-  );
-
   return (
-    <div className="space-y-3 sm:space-y-4">
-      <Card className="relative overflow-hidden rounded-2xl p-0">
-        <span className="absolute left-0 top-0 h-full w-1 bg-blue-600" />
-        <div className="flex items-center justify-between gap-3 py-3.5 pl-4 pr-3.5">
-          <div className="flex min-w-0 items-center gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-300">
-              <ShieldCheck className="h-5 w-5" />
-            </span>
-            <div className="min-w-0">
-              <h1 className="text-base font-semibold leading-tight">{t('adminUsers.title')}</h1>
-              <p className="mt-0.5 truncate text-xs text-muted-foreground">{t('adminUsers.subtitle')}</p>
-            </div>
-          </div>
-          {creatableRoles.length > 0 ? (
-            <Button onClick={() => setCreating(true)} className="h-9 shrink-0 gap-1.5 rounded-lg bg-emerald-600 px-3.5 text-xs hover:bg-emerald-700">
-              <Plus className="h-4 w-4" />{t('adminUsers.add')}
-            </Button>
-          ) : null}
-        </div>
-      </Card>
+    <div className="w-full space-y-2">
+      <Toaster position="top-right" richColors />
 
-      <Card className="flex flex-col gap-3 rounded-2xl p-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="relative min-w-[180px] flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <Input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder={t('adminUsers.searchPlaceholder')} className="h-9 max-w-xs pl-9 text-sm" />
-          </div>
-          <SelectField
-            value={statusFilter}
-            options={[
-              { value: 'all', label: t('adminUsers.allStatuses') },
-              { value: 'Active', label: t('adminUsers.statusActive') },
-              { value: 'Suspended', label: t('adminUsers.statusSuspended') },
-            ]}
-            onChange={(v) => { setStatusFilter(v as 'all' | 'Active' | 'Suspended'); setPage(1); }}
-          />
+      {/* Header */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between py-0.5">
+        <div>
+          <h1 className="text-sm font-semibold tracking-tight text-foreground flex items-center gap-1.5">
+            <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+            {t('adminUsers.title')}
+          </h1>
+          <p className="text-[11px] text-muted-foreground leading-tight">{t('adminUsers.subtitle')}</p>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="hidden items-center rounded-lg border border-border p-0.5 md:flex">
-            <button type="button" onClick={() => setView('table')} aria-label="Table view" className={`flex h-7 w-7 items-center justify-center rounded-md ${view === 'table' ? 'bg-emerald-600 text-white' : 'text-muted-foreground hover:bg-accent'}`}>
-              <TableIcon className="h-4 w-4" />
-            </button>
-            <button type="button" onClick={() => setView('cards')} aria-label="Card view" className={`flex h-7 w-7 items-center justify-center rounded-md ${view === 'cards' ? 'bg-emerald-600 text-white' : 'text-muted-foreground hover:bg-accent'}`}>
-              <LayoutGrid className="h-4 w-4" />
-            </button>
-          </div>
-          <button type="button" onClick={reload} aria-label="Refresh" className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-emerald-600">
-            <RefreshCw className={`h-4 w-4 ${query.loading ? 'animate-spin' : ''}`} />
-          </button>
-        </div>
-      </Card>
 
-      {items.length === 0 ? (
-        <Card className="rounded-2xl p-10 text-center text-sm text-muted-foreground">
-          {query.loading ? t('common.loading') : t('adminUsers.empty')}
-        </Card>
-      ) : effectiveView === 'table' ? (
-        <Card className="overflow-hidden rounded-2xl p-0">
-          <Table>
-            <THead>
-              <TR>
-                <TH className="w-14 text-center">#</TH>
-                <TH>{t('adminUsers.colName')}</TH>
-                <TH className="w-56">{t('adminUsers.colIdentifier')}</TH>
-                <TH className="w-48">{t('adminUsers.colRoles')}</TH>
-                <TH className="w-40">{t('adminUsers.colScope')}</TH>
-                <TH className="w-28">{t('adminUsers.colStatus')}</TH>
-                <TH className="w-28 text-right">{t('orgs.colActions')}</TH>
-              </TR>
-            </THead>
-            <TBody>
+        {creatableRoles.length > 0 && (
+          <Button
+            size="sm"
+            onClick={() => setCreating(true)}
+            className="h-7 px-2.5 gap-1 rounded-[4px] text-[11px] font-medium"
+          >
+            <Plus className="h-3 w-3 stroke-[2.5]" />
+            {t('adminUsers.add')}
+          </Button>
+        )}
+      </div>
+
+      {/* Filter Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-1.5 rounded-md border border-border/80 bg-card/60 p-1.5 text-xs">
+        <div className="flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
+          <div className="relative min-w-[140px] max-w-xs flex-1">
+            <Search className="pointer-events-none absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              placeholder={t('adminUsers.searchPlaceholder')}
+              className="h-7.5 w-full rounded-[4px] pl-7 pr-2 text-[11px] bg-background"
+            />
+          </div>
+
+          <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v as 'all' | 'Active' | 'Suspended'); setPage(1); }}>
+            <SelectTrigger className="h-7.5 w-28 rounded-[4px] text-[11px] bg-background px-2">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all" className="text-xs">{t('adminUsers.allStatuses')}</SelectItem>
+              <SelectItem value="Active" className="text-xs">{t('adminUsers.statusActive')}</SelectItem>
+              <SelectItem value="Suspended" className="text-xs">{t('adminUsers.statusSuspended')}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="text-[11px] text-muted-foreground">
+            {t('orgs.total')}: <span className="font-semibold text-foreground">{query.data?.totalCount ?? 0}</span>
+          </span>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={reload}
+            aria-label="Refresh"
+            className="h-7.5 w-7.5 p-0 rounded-[4px] border-border/80"
+          >
+            <RefreshCw className={cn('h-3 w-3', query.loading && 'animate-spin text-primary')} />
+          </Button>
+        </div>
+      </div>
+
+      {/* Main Container */}
+      <div className="rounded-md border border-border/80 bg-card overflow-hidden">
+        {query.loading && items.length === 0 ? (
+          <div className="flex items-center justify-center py-10 text-xs text-muted-foreground">
+            <RefreshCw className="mr-1.5 h-3.5 w-3.5 animate-spin text-primary" />
+            {t('common.loading')}
+          </div>
+        ) : items.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-10 text-center">
+            <ShieldCheck className="h-6 w-6 text-muted-foreground/50 mb-1.5" />
+            <p className="text-xs font-semibold text-foreground">{t('adminUsers.empty')}</p>
+          </div>
+        ) : (
+          <>
+            {/* Mobile Cards */}
+            <div className="divide-y divide-border/60 md:hidden">
               {items.map((u, i) => (
-                <TR key={u.id}>
-                  <TD className="text-center text-[11px] text-muted-foreground">{(page - 1) * pageSize + i + 1}</TD>
-                  <TD><span className="text-[13px] font-semibold">{u.name || '—'}</span></TD>
-                  <TD className="text-[11px] text-muted-foreground">{u.email || u.phone || '—'}</TD>
-                  <TD><Roles u={u} /></TD>
-                  <TD className="text-[11px] text-muted-foreground">{scopeSummary(u)}</TD>
-                  <TD><StatusBadge s={u.status} /></TD>
-                  <TD><RowActions u={u} /></TD>
-                </TR>
-              ))}
-            </TBody>
-          </Table>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {items.map((u) => (
-            <Card key={u.id} className="flex flex-col gap-3 rounded-2xl p-4">
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex min-w-0 items-center gap-2.5">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-300">
-                    <ShieldCheck className="h-5 w-5" />
-                  </span>
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-semibold">{u.name || '—'}</div>
-                    <div className="truncate text-[11px] text-muted-foreground">{u.email || u.phone || '—'}</div>
+                <div key={u.id} className="p-2.5 flex flex-col gap-2 hover:bg-muted/20 transition-colors">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-primary/10 text-primary">
+                        <ShieldCheck className="h-3 w-3" />
+                      </span>
+                      <div className="min-w-0">
+                        <span className="font-semibold text-xs text-foreground truncate">{u.name || '—'}</span>
+                        <span className="block font-mono text-[9px] text-muted-foreground">#{(page - 1) * pageSize + i + 1} • {u.email || u.phone || '—'}</span>
+                      </div>
+                    </div>
+                    <Badge tone={u.status === 'Active' ? 'success' : 'muted'} className="text-[10px] px-1.5 py-0 rounded shrink-0">
+                      <span className="h-1 w-1 rounded-full bg-current opacity-70 mr-1" />
+                      {u.status === 'Active' ? t('adminUsers.statusActive') : t('adminUsers.statusSuspended')}
+                    </Badge>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2 pt-0.5">
+                    <div className="flex flex-wrap items-center gap-1">
+                      {u.roles.map((r) => (
+                        <Badge key={r} tone={roleTone(r)} className="text-[10px] px-1.5 py-0 rounded">{roleLabel(r)}</Badge>
+                      ))}
+                      <span className="text-[11px] text-muted-foreground">{scopeSummary(u)}</span>
+                    </div>
+
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button type="button" onClick={() => setEditing(u)} title={t('adminUsers.edit')} className="flex h-6 w-6 items-center justify-center rounded-[3px] border border-border/80 text-muted-foreground hover:text-primary transition-colors">
+                        <Pencil className="h-3 w-3" />
+                      </button>
+                      <button type="button" onClick={() => setConfirmDelete(u)} title={t('adminUsers.delete')} className="flex h-6 w-6 items-center justify-center rounded-[3px] border border-rose-300 text-rose-600 hover:bg-rose-50 dark:border-rose-800 dark:hover:bg-rose-950/40 transition-colors">
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </div>
                   </div>
                 </div>
-                <StatusBadge s={u.status} />
-              </div>
-              <div className="border-t border-border pt-2"><Roles u={u} /></div>
-              <div className="flex items-center justify-between gap-2 border-t border-border pt-3">
-                <span className="text-[11px] text-muted-foreground">{scopeSummary(u)}</span>
-                <RowActions u={u} />
-              </div>
-            </Card>
-          ))}
-        </div>
-      )}
+              ))}
+            </div>
 
-      {(query.data?.totalCount ?? 0) > 0 ? (
-        <Card className="rounded-xl p-1">
-          <Pagination page={page} pageSize={pageSize} total={query.data?.totalCount ?? 0} onPageChange={setPage} onPageSizeChange={(s) => { setPageSize(s); setPage(1); }} />
-        </Card>
-      ) : null}
+            {/* Desktop Table */}
+            <div className="hidden md:block overflow-x-auto">
+              <Table>
+                <THead>
+                  <TR className="border-b border-border bg-muted/40">
+                    <TH className="w-10 py-1.5 px-2 text-center text-[10.5px] font-semibold">#</TH>
+                    <TH className="py-1.5 px-2 text-[10.5px] font-semibold">{t('adminUsers.colName')}</TH>
+                    <TH className="py-1.5 px-2 text-[10.5px] font-semibold">{t('adminUsers.colIdentifier')}</TH>
+                    <TH className="py-1.5 px-2 text-[10.5px] font-semibold">{t('adminUsers.colRoles')}</TH>
+                    <TH className="py-1.5 px-2 text-[10.5px] font-semibold">{t('adminUsers.colScope')}</TH>
+                    <TH className="py-1.5 px-2 text-[10.5px] font-semibold">{t('adminUsers.colStatus')}</TH>
+                    <TH className="w-16 py-1.5 px-2 text-right text-[10.5px] font-semibold">{t('orgs.colActions')}</TH>
+                  </TR>
+                </THead>
+                <TBody>
+                  {items.map((u, i) => (
+                    <TR key={u.id} className="hover:bg-muted/30 transition-colors">
+                      <TD className="py-1 px-2 text-center text-[10.5px] text-muted-foreground font-mono">{(page - 1) * pageSize + i + 1}</TD>
+                      <TD className="py-1 px-2">
+                        <div className="flex items-center gap-1.5">
+                          <span className="flex h-5.5 w-5.5 shrink-0 items-center justify-center rounded bg-primary/10 text-primary">
+                            <ShieldCheck className="h-3 w-3" />
+                          </span>
+                          <span className="font-semibold text-xs text-foreground">{u.name || '—'}</span>
+                        </div>
+                      </TD>
+                      <TD className="py-1 px-2 text-xs text-muted-foreground font-mono">{u.email || u.phone || '—'}</TD>
+                      <TD className="py-1 px-2">
+                        <div className="flex flex-wrap gap-1">
+                          {u.roles.map((r) => <Badge key={r} tone={roleTone(r)} className="text-[10px] px-1.5 py-0 rounded">{roleLabel(r)}</Badge>)}
+                        </div>
+                      </TD>
+                      <TD className="py-1 px-2 text-xs text-muted-foreground">{scopeSummary(u)}</TD>
+                      <TD className="py-1 px-2">
+                        <Badge tone={u.status === 'Active' ? 'success' : 'muted'} className="text-[10px] px-1.5 py-0 rounded">
+                          <span className="h-1 w-1 rounded-full bg-current opacity-70 mr-1" />
+                          {u.status === 'Active' ? t('adminUsers.statusActive') : t('adminUsers.statusSuspended')}
+                        </Badge>
+                      </TD>
+                      <TD className="py-1 px-2">
+                        <div className="flex items-center justify-end gap-1">
+                          <button type="button" onClick={() => setEditing(u)} title={t('adminUsers.edit')} className="flex h-6 w-6 items-center justify-center rounded-[3px] border border-border/80 text-muted-foreground hover:text-primary transition-colors">
+                            <Pencil className="h-3 w-3" />
+                          </button>
+                          <button type="button" onClick={() => setConfirmDelete(u)} title={t('adminUsers.delete')} className="flex h-6 w-6 items-center justify-center rounded-[3px] border border-rose-300 text-rose-600 hover:bg-rose-50 dark:border-rose-800 dark:hover:bg-rose-950/40 transition-colors">
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        </div>
+                      </TD>
+                    </TR>
+                  ))}
+                </TBody>
+              </Table>
+            </div>
+          </>
+        )}
 
-      <AdminUserFormDialog open={creating} creatableRoles={creatableRoles} onClose={() => setCreating(false)} onSaved={() => { setCreating(false); reload(); }} />
-      <AdminUserFormDialog open={!!editing} admin={editing} creatableRoles={creatableRoles} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); reload(); }} />
+        {(query.data?.totalCount ?? 0) > 0 && (
+          <div className="border-t border-border px-2.5 py-1 bg-muted/20">
+            <Pagination
+              page={page}
+              pageSize={pageSize}
+              total={query.data?.totalCount ?? 0}
+              onPageChange={setPage}
+              onPageSizeChange={(s) => { setPageSize(s); setPage(1); }}
+            />
+          </div>
+        )}
+      </div>
+
+      <AdminUserFormDialog
+        open={creating || !!editing}
+        admin={editing}
+        creatableRoles={creatableRoles}
+        onClose={() => { setCreating(false); setEditing(null); }}
+        onSaved={() => { setCreating(false); setEditing(null); reload(); }}
+      />
 
       <ConfirmDialog
         open={!!confirmDelete}
@@ -262,153 +291,6 @@ export function AdminUsersPage() {
         onConfirm={doDelete}
         onClose={() => setConfirmDelete(null)}
       />
-
-      <Toaster position="top-center" richColors />
     </div>
-  );
-}
-
-function AdminUserFormDialog({ open, admin, creatableRoles, onClose, onSaved }: { open: boolean; admin?: AdminUser | null; creatableRoles: string[]; onClose: () => void; onSaved: () => void }) {
-  const { t } = useTranslation();
-  const isEdit = !!admin;
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [roleName, setRoleName] = useState('');
-  const [active, setActive] = useState(true);
-  const [organizationId, setOrganizationId] = useState<string | null>(null);
-  const [communityId, setCommunityId] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  const roleLabel = (n: string) =>
-    n === ROLE_POWER ? t('adminUsers.rolePower')
-      : n === ROLE_ORG ? t('adminUsers.roleOrg')
-      : n === ROLE_COMMUNITY ? t('adminUsers.roleCommunity')
-      : n;
-
-  const roleChoices = useMemo(() => {
-    const base = [...creatableRoles];
-    if (admin) for (const r of admin.roles) if (!base.includes(r)) base.push(r);
-    return base;
-  }, [creatableRoles, admin]);
-
-  const needsOrg = roleName === ROLE_ORG || roleName === ROLE_COMMUNITY;
-  const needsCommunity = roleName === ROLE_COMMUNITY;
-
-  useEffect(() => {
-    if (!open) return;
-    setName(admin?.name ?? '');
-    setPhone('');
-    setEmail('');
-    setPassword('');
-    setRoleName(admin?.roles[0] ?? creatableRoles[0] ?? '');
-    setActive(admin?.status !== 'Suspended');
-    const scopedCommunity = admin?.assignments.find((a) => a.communityId)?.communityId ?? null;
-    setCommunityId(scopedCommunity);
-    setOrganizationId(null);
-  }, [open, admin, creatableRoles]);
-
-  const submit = async () => {
-    if (busy || !roleName) return;
-    const loginIdentifier = phone.trim() || email.trim();
-    if (!isEdit && (!loginIdentifier || password.length < 8)) { toast.error(t('adminUsers.needCredentials')); return; }
-    if (isEdit && password && password.length < 8) { toast.error(t('adminUsers.needCredentials')); return; }
-    if (needsOrg && !organizationId && !(isEdit && needsCommunity && communityId)) { toast.error(t('adminUsers.needOrg')); return; }
-    if (needsCommunity && !communityId) { toast.error(t('adminUsers.needCommunity')); return; }
-    setBusy(true);
-    try {
-      if (isEdit) {
-        await adminUsers.update(admin!.id, {
-          name: name.trim() || null,
-          password: password ? password : null,
-          roleName,
-          status: active ? 'Active' : 'Suspended',
-          organizationId: needsOrg ? organizationId : null,
-          communityId: needsCommunity ? communityId : null,
-        });
-      } else {
-        await adminUsers.create({
-          name: name.trim() || null,
-          identifier: loginIdentifier,
-          password,
-          roleName,
-          organizationId: needsOrg ? organizationId : null,
-          communityId: needsCommunity ? communityId : null,
-        });
-      }
-      toast.success(isEdit ? t('adminUsers.updated') : t('adminUsers.created'));
-      onSaved();
-    } catch (err) {
-      toast.error(toFormError(err).message);
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const roleOptions = roleChoices.map((r) => ({ value: r, label: roleLabel(r) }));
-
-  return (
-    <Dialog open={open} onClose={onClose} className="max-w-lg">
-      <DialogHeader title={isEdit ? t('adminUsers.editTitle') : t('adminUsers.addTitle')} />
-      <div className="flex flex-col gap-3">
-        <div>
-          <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{t('adminUsers.name')}</label>
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t('adminUsers.namePlaceholder')} maxLength={200} />
-        </div>
-
-        <SelectField
-          label={t('adminUsers.role')}
-          value={roleName || null}
-          options={roleOptions}
-          placeholder={t('adminUsers.selectRole')}
-          onChange={(v) => { setRoleName(v); setOrganizationId(null); setCommunityId(null); }}
-        />
-
-        {isEdit ? (
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{t('adminUsers.activeLabel')}</label>
-            <div className="flex gap-1 rounded-lg bg-muted p-1">
-              <button type="button" onClick={() => setActive(true)} className={cn('flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors', active ? 'bg-card text-emerald-600 shadow-sm' : 'text-muted-foreground')}>{t('adminUsers.statusActive')}</button>
-              <button type="button" onClick={() => setActive(false)} className={cn('flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors', !active ? 'bg-card text-rose-600 shadow-sm' : 'text-muted-foreground')}>{t('adminUsers.statusSuspended')}</button>
-            </div>
-          </div>
-        ) : (
-          <>
-            <div>
-              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{t('adminUsers.phone')}</label>
-              <PhoneField value={phone} onChange={setPhone} placeholder={t('adminUsers.phonePlaceholder')} />
-            </div>
-            <div>
-              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{t('adminUsers.email')}</label>
-              <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t('adminUsers.emailPlaceholder')} maxLength={256} />
-            </div>
-          </>
-        )}
-
-        <div>
-          <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{isEdit ? t('adminUsers.newPassword') : t('adminUsers.password')}</label>
-          <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={isEdit ? t('adminUsers.newPasswordPlaceholder') : t('adminUsers.passwordPlaceholder')} maxLength={256} />
-        </div>
-
-        {needsOrg ? (
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{t('adminUsers.organization')}</label>
-            <EntitySelect value={organizationId} onChange={(v) => { setOrganizationId(v); setCommunityId(null); }} fetchPage={fetchOrgPage} resolveLabel={resolveOrgLabel} placeholder={t('adminUsers.selectOrg')} />
-          </div>
-        ) : null}
-
-        {needsCommunity ? (
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{t('adminUsers.community')}</label>
-            <EntitySelect value={communityId} onChange={setCommunityId} fetchPage={makeCommunityFetch(organizationId ?? undefined)} resolveLabel={resolveCommunityLabel} placeholder={t('adminUsers.selectCommunity')} />
-          </div>
-        ) : null}
-      </div>
-      <DialogFooter>
-        <Button variant="outline" onClick={onClose} className="h-9 rounded-lg text-xs">{t('orgs.cancel')}</Button>
-        <Button onClick={submit} disabled={busy || !roleName} className="h-9 rounded-lg bg-emerald-600 text-xs hover:bg-emerald-700">{isEdit ? t('adminUsers.saveChanges') : t('adminUsers.createUser')}</Button>
-      </DialogFooter>
-    </Dialog>
   );
 }

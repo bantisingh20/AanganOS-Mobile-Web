@@ -17,9 +17,9 @@ export function Dialog({ open, onClose, children, className }: { open: boolean; 
       <div
         role="dialog"
         aria-modal="true"
-        className={cn('relative z-10 w-full max-w-md rounded-2xl border border-border bg-card p-5 shadow-xl', className)}
+        className={cn('relative z-10 w-full max-w-md rounded-lg border border-border bg-card p-5 shadow-lg', className)}
       >
-        <button type="button" onClick={onClose} aria-label="Close" className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent">
+        <button type="button" onClick={onClose} aria-label="Close" className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-[4px] text-muted-foreground hover:bg-accent hover:text-foreground">
           <X className="h-4 w-4" />
         </button>
         {children}

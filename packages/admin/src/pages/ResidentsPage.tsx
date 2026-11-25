@@ -1,5 +1,5 @@
 import { ResidentsManagementView } from '@shared/components/ResidentsManagementView';
 
 export function ResidentsPage() {
-  return <ResidentsManagementView />;
+  return <ResidentsManagementView mode="admin" />;
 }
