@@ -92,9 +92,12 @@ This document establishes the official enterprise design language and UI standar
   - Desktop Collapsed: `w-[68px]` with centered icon rows
   - Mobile Drawer: `w-72 max-w-[82%] bg-white shadow-xl dark:bg-slate-900`
 - **Sidebar Header**:
-  - Logo: `h-8 w-8 rounded-[4px] object-cover ring-1 ring-emerald-500/20`
+  - Logo: `h-8 w-8 shrink-0 rounded-[4px] object-cover ring-1 ring-emerald-500/20` with explicit `width={32} height={32} style={{ width: 32, height: 32 }}`.
   - Brand Title: `text-sm font-bold tracking-tight text-slate-800 dark:text-slate-100` with emerald `OS`
   - Badge / Subtitle: `text-[8px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400`
+- **Mobile Header Logo**:
+  - Always specify explicit pixel bounds: `width={26} height={26} style={{ width: 26, height: 26 }}` and `className="h-[26px] w-[26px] shrink-0 rounded-[4px] object-cover ring-1 ring-emerald-500/20"` to guarantee the high-resolution source image never blows up to intrinsic size.
+  - Text: `text-sm font-bold tracking-tight` (`Aangan` in slate, `OS` in emerald-600).
 - **Sidebar Navigation Rows (`SidebarNav`)**:
   - Group Headers: `px-2.5 pb-1 pt-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-400/90 dark:text-slate-500`
   - Nav Item: `h-8 w-full gap-2.5 px-2.5 text-xs font-medium rounded-[4px] transition-colors`

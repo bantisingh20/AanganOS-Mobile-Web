@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 import type { MenuNode } from '@shared/api/menu';
 import { menuIcon } from '@shared/components/menuIcons';
 import { cn } from '@shared/lib/utils';
@@ -28,8 +27,6 @@ function isGroup(node: MenuNode): boolean {
 }
 
 export function SidebarNav({ items, currentPath, onNavigate, collapsed = false }: SidebarNavProps) {
-  const { t } = useTranslation();
-
   if (collapsed) {
     return (
       <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-1.5 scrollbar-thin">
@@ -55,7 +52,7 @@ export function SidebarNav({ items, currentPath, onNavigate, collapsed = false }
         isGroup(node) ? (
           <div key={node.key} className="mb-1.5">
             <div className="px-2.5 pb-1 pt-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-400/90 dark:text-slate-500">
-              {t(`menu.${node.key}`, { defaultValue: node.label })}
+              {node.label}
             </div>
             <div className="flex flex-col gap-0.5">
               {node.children.map((child) => (
@@ -84,12 +81,11 @@ function NavRow({
   collapsed: boolean;
   depth: number;
 }) {
-  const { t } = useTranslation();
   const hasChildren = node.children.length > 0;
   const active = isActive(node.route, currentPath);
   const [open, setOpen] = useState(() => anyChildActive(node, currentPath));
   const Icon = menuIcon(node.icon);
-  const label = t(`menu.${node.key}`, { defaultValue: node.label });
+  const label = node.label;
 
   const onClick = () => {
     if (hasChildren && !node.route) {

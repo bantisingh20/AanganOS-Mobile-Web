@@ -2,6 +2,7 @@ import type { ReactElement } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { ThemeProvider } from '@shared/lib/useTheme';
 import { AuthProvider, useAuth } from '@shared/store/AuthContext';
+import { Toaster } from '@shared/components/ui/sonner';
 import { AdminShell } from '@admin/components/AdminShell';
 import { LoginPage } from '@admin/pages/LoginPage';
 import { ForgotPasswordPage } from '@admin/pages/ForgotPasswordPage';
@@ -23,6 +24,7 @@ import { MenuManagementPage } from '@admin/pages/MenuManagementPage';
 import { ConfigPage } from '@admin/pages/ConfigPage';
 import { RolesPage } from '@admin/pages/RolesPage';
 import { CommunicationTestPage } from '@admin/pages/CommunicationTestPage';
+import { ErrorLogsPage } from '@admin/pages/ErrorLogsPage';
 import { PlaceholderPage } from '@admin/pages/PlaceholderPage';
 
 function RequireAuth({ children }: { children: ReactElement }) {
@@ -68,11 +70,13 @@ export function App() {
           <Route path="/config" element={<RequireAuth><ConfigPage /></RequireAuth>} />
           <Route path="/roles" element={<RequireAuth><RolesPage /></RequireAuth>} />
           <Route path="/communication-test" element={<RequireAuth><CommunicationTestPage /></RequireAuth>} />
+          <Route path="/error-logs" element={<RequireAuth><ErrorLogsPage /></RequireAuth>} />
           {PLACEHOLDERS.map((p) => (
             <Route key={p.path} path={p.path} element={<RequireAuth><PlaceholderPage titleKey={p.titleKey} /></RequireAuth>} />
           ))}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
+        <Toaster position="top-right" richColors />
       </BrowserRouter>
     </AuthProvider>
     </ThemeProvider>

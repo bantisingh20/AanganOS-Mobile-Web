@@ -20,7 +20,6 @@ import { Card } from '@shared/components/ui/card';
 import { Button } from '@shared/components/ui/button';
 import { Input } from '@shared/components/ui/input';
 import { Badge } from '@shared/components/ui/badge';
-import { Toaster } from '@shared/components/ui/sonner';
 import { communicationTest } from '@shared/services';
 import type {
   CommunicationConfigSummary,
@@ -29,8 +28,10 @@ import type {
 } from '@shared/api/communicationTest';
 import { useAsync } from '@shared/lib/useAsync';
 import { cn } from '@shared/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 export function CommunicationTestPage() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'email' | 'sms'>('email');
 
   // Config summary from server
@@ -188,17 +189,15 @@ export function CommunicationTestPage() {
 
   return (
     <div className="space-y-6 pb-12">
-      <Toaster position="top-right" richColors />
-
       {/* Page Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
             <Server className="h-6 w-6 text-primary" />
-            Communication & Gateway Testing
+            {t('commTest.title', { defaultValue: 'Communication & Gateway Testing' })}
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Test and verify outgoing Email (SMTP) and SMS gateways using server appsettings or custom manual credentials.
+            {t('commTest.subtitle', { defaultValue: 'Test and verify outgoing Email (SMTP) and SMS gateways using server appsettings or custom manual credentials.' })}
           </p>
         </div>
         <Button
@@ -209,7 +208,7 @@ export function CommunicationTestPage() {
           className="gap-2 self-start sm:self-auto"
         >
           <RefreshCw className={cn('h-4 w-4', summaryQuery.loading && 'animate-spin')} />
-          Refresh Status
+          {t('commTest.refreshStatus', { defaultValue: 'Refresh Status' })}
         </Button>
       </div>
 

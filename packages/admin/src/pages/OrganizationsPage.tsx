@@ -9,7 +9,6 @@ import { Badge } from '@shared/components/ui/badge';
 import { ConfirmDialog } from '@shared/components/ui/confirm-dialog';
 import { Table, THead, TBody, TR, TH, TD } from '@shared/components/ui/table';
 import { Pagination } from '@shared/components/ui/pagination';
-import { Toaster } from '@shared/components/ui/sonner';
 import { organizations, subscriptions } from '@shared/services';
 import type { Organization } from '@shared/api/organizations';
 import type { RenewalRequest } from '@shared/api/subscriptions';
@@ -114,8 +113,6 @@ export function OrganizationsPage() {
 
   return (
     <div className="w-full space-y-2">
-      <Toaster position="top-right" richColors />
-
       {/* Page Header: Compact Title & Action Button */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between py-0.5">
         <div>

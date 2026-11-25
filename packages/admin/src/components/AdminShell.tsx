@@ -10,7 +10,6 @@ import { NotificationInbox, type NotificationInboxHandle } from '@shared/compone
 import { LanguageSwitcher } from '@shared/components/LanguageSwitcher';
 import { ThemeToggle } from '@shared/components/ThemeToggle';
 import { useAppTheme } from '@shared/lib/useTheme';
-import { Toaster } from '@shared/components/ui/sonner';
 import { SidebarNav } from '@shared/components/SidebarNav';
 import { menuIcon } from '@shared/components/menuIcons';
 import { useMenu } from '@shared/lib/useMenu';
@@ -93,8 +92,15 @@ export function AdminShell({ children }: { children: ReactNode }) {
           </button>
 
           {/* Logo/Branding on mobile when sidebar is hidden */}
-          <div className="flex items-center gap-2 md:hidden">
-            <img src={logoUrl} alt="AanganOS" className="h-6.5 w-6.5 rounded-[4px] object-cover shrink-0 ring-1 ring-emerald-500/20" />
+          <div className="flex items-center gap-1.5 md:hidden">
+            <img
+              src={logoUrl}
+              alt="AanganOS"
+              width={26}
+              height={26}
+              style={{ width: 26, height: 26 }}
+              className="h-[26px] w-[26px] shrink-0 rounded-[4px] object-cover ring-1 ring-emerald-500/20"
+            />
             <span className="text-sm font-bold tracking-tight">
               <span>Aangan</span>
               <span className="text-emerald-600">OS</span>
@@ -165,7 +171,6 @@ export function AdminShell({ children }: { children: ReactNode }) {
 
         <BottomBar />
       </div>
-      <Toaster position="top-center" richColors />
     </div>
   );
 }
@@ -174,7 +179,6 @@ function BottomBar() {
   const navigate = useNavigate();
   const location = useLocation();
   const { items } = useMenu(ADMIN_FALLBACK_MENU);
-  const { t } = useTranslation();
   const bar = leafItems(items).slice(0, 4);
 
   const isActive = (route: string | null) => {
@@ -196,7 +200,7 @@ function BottomBar() {
             className={cn('flex flex-1 flex-col items-center gap-1 py-2 text-[10px] font-medium', active ? 'text-emerald-600' : 'text-slate-500')}
           >
             <Icon className="h-5 w-5" />
-            <span className="max-w-full truncate px-1">{t(`menu.${item.key}`, { defaultValue: item.label })}</span>
+            <span className="max-w-full truncate px-1">{item.label}</span>
           </button>
         );
       })}
@@ -233,7 +237,14 @@ function SidebarBody({
           collapsed ? 'justify-center px-0' : '',
         )}
       >
-        <img src={logoUrl} alt="AanganOS" className="h-8 w-8 shrink-0 rounded-[4px] object-cover ring-1 ring-emerald-500/20" />
+        <img
+          src={logoUrl}
+          alt="AanganOS"
+          width={32}
+          height={32}
+          style={{ width: 32, height: 32 }}
+          className="h-8 w-8 shrink-0 rounded-[4px] object-cover ring-1 ring-emerald-500/20"
+        />
         {!collapsed ? (
           <span className="text-left leading-none">
             <span className="block text-sm font-bold tracking-tight">
@@ -293,7 +304,7 @@ function UserPill() {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex h-8 items-center gap-2 rounded-[4px] border border-border/80 bg-card/60 px-2 text-slate-700 hover:bg-accent/50 dark:text-slate-200 transition-colors shadow-xs"
+        className="flex h-8 w-8 sm:w-auto items-center justify-center sm:justify-start gap-1.5 sm:gap-2 rounded-[4px] border border-border/80 bg-card/60 sm:px-2 text-slate-700 hover:bg-accent/50 dark:text-slate-200 transition-colors shadow-xs"
       >
         <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-[11px] font-semibold text-white shadow-xs">
           {name.slice(0, 1).toUpperCase()}

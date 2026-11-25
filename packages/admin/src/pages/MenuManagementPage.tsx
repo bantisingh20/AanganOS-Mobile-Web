@@ -7,7 +7,6 @@ import { Input } from '@shared/components/ui/input';
 import { Badge } from '@shared/components/ui/badge';
 import { ConfirmDialog } from '@shared/components/ui/confirm-dialog';
 import { Table, THead, TBody, TR, TH, TD } from '@shared/components/ui/table';
-import { Toaster } from '@shared/components/ui/sonner';
 import { menuItems } from '@shared/services';
 import type { MenuItem, MenuItemBody } from '@shared/api/menuItems';
 import { useAsync } from '@shared/lib/useAsync';
@@ -149,8 +148,6 @@ export function MenuManagementPage() {
 
   return (
     <div className="w-full space-y-2">
-      <Toaster position="top-right" richColors />
-
       {/* Header */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between py-0.5">
         <div>

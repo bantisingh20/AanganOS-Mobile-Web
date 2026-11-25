@@ -93,7 +93,7 @@ export function App() {
           <Route path="/verify-pass" element={<RequireAuth><VerifyPassScreen /></RequireAuth>} />
           <Route path="/register-walkin" element={<RequireAuth><RegisterWalkinScreen /></RequireAuth>} />
           <Route path="/entry-exit" element={<RequireAuth><EntryExitScreen /></RequireAuth>} />
-          <Route path="/manage-residents" element={<RequireAuth><ManagePeopleScreen /></RequireAuth>} />
+          <Route path="/users" element={<RequireAuth><ManagePeopleScreen /></RequireAuth>} />
           <Route path="/residents" element={<RequireAuth><ManagePeopleScreen /></RequireAuth>} />
           <Route path="/resident-approvals" element={<RequireAuth><ResidentApprovalsScreen /></RequireAuth>} />
           <Route path="/watchlist" element={<RequireAuth><WatchlistScreen /></RequireAuth>} />

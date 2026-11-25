@@ -9,7 +9,6 @@ import { Dialog, DialogHeader } from '@shared/components/ui/dialog';
 import { ConfirmDialog } from '@shared/components/ui/confirm-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@shared/components/ui/select';
 import { Table, THead, TBody, TR, TH, TD } from '@shared/components/ui/table';
-import { Toaster } from '@shared/components/ui/sonner';
 import { EntitySelect, type EntityPage } from '@shared/components/EntitySelect';
 import { appConfig, organizations, communities } from '@shared/services';
 import type { ConfigRow, UpsertConfigBody } from '@shared/api/config';
@@ -72,8 +71,6 @@ export function ConfigPage() {
 
   return (
     <div className="w-full space-y-2">
-      <Toaster position="top-right" richColors />
-
       {/* Header */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between py-0.5">
         <div>

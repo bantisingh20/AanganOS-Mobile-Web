@@ -8,7 +8,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, THead, TBody, TR, TH, TD } from '@shared/components/ui/table';
 import { Pagination } from '@shared/components/ui/pagination';
 import { Button } from '@shared/components/ui/button';
-import { Toaster } from '@shared/components/ui/sonner';
 import { notificationLogs } from '@shared/services';
 import type { MessageLog, NotificationLog } from '@shared/api/notificationLogs';
 import { useAsync } from '@shared/lib/useAsync';
@@ -41,7 +40,6 @@ export function NotificationsPage() {
 
   return (
     <div className="w-full space-y-2">
-      <Toaster position="top-right" richColors />
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between py-0.5">
         <div>
           <h1 className="text-sm font-semibold tracking-tight text-foreground flex items-center gap-1.5">

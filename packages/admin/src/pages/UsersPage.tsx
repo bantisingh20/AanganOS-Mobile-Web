@@ -9,9 +9,8 @@ import { ConfirmDialog } from '@shared/components/ui/confirm-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@shared/components/ui/select';
 import { Table, THead, TBody, TR, TH, TD } from '@shared/components/ui/table';
 import { Pagination } from '@shared/components/ui/pagination';
-import { Toaster } from '@shared/components/ui/sonner';
 import { EntitySelect, type EntityPage } from '@shared/components/EntitySelect';
-import { residents, users, organizations, communities } from '@shared/services';
+import { residents, users, organizations, communities, roles } from '@shared/services';
 import type { Resident } from '@shared/api/residents';
 import type { UserStatus } from '@shared/api/users';
 import { useAsync } from '@shared/lib/useAsync';
@@ -37,7 +36,7 @@ export function UsersPage() {
   const { t } = useTranslation();
   const scope = useScope();
   const [search, setSearch] = useState('');
-  const [roleFilter, setRoleFilter] = useState<'all' | typeof ROLE_RESIDENT | typeof ROLE_SECURITY>('all');
+  const [roleFilter, setRoleFilter] = useState<string>('all');
   const [filterOrgId, setFilterOrgId] = useState<string | null>(null);
   const [filterCommunityId, setFilterCommunityId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
@@ -49,6 +48,12 @@ export function UsersPage() {
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [statusMap, setStatusMap] = useState<Record<string, UserStatus>>({});
   const [reloadKey, setReloadKey] = useState(0);
+
+  const rolesQuery = useAsync(
+    (signal) => roles.list({ pageSize: 100 }, { signal }).catch(() => null),
+    [reloadKey],
+  );
+  const dbRoles = useMemo(() => rolesQuery.data?.items ?? [], [rolesQuery.data]);
 
   const effectiveCommunityId = filterCommunityId ?? scope.scopedCommunityId ?? undefined;
   const effectiveOrgId = !effectiveCommunityId && scope.showOrgFilter ? filterOrgId ?? undefined : undefined;
@@ -104,8 +109,6 @@ export function UsersPage() {
 
   return (
     <div className="w-full space-y-2">
-      <Toaster position="top-right" richColors />
-
       {/* Header */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between py-0.5">
         <div>
@@ -147,6 +150,9 @@ export function UsersPage() {
               <SelectItem value="all" className="text-xs">{t('users.allRoles')}</SelectItem>
               <SelectItem value={ROLE_RESIDENT} className="text-xs">{t('users.roleResident')}</SelectItem>
               <SelectItem value={ROLE_SECURITY} className="text-xs">{t('users.roleSecurity')}</SelectItem>
+              {dbRoles.map((r) => (
+                <SelectItem key={r.id} value={r.name} className="text-xs">{r.name}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
 
@@ -354,6 +360,7 @@ export function UsersPage() {
         open={creating || !!editing}
         person={editing}
         presetCommunityId={effectiveCommunityId}
+        dbRoles={dbRoles}
         onClose={() => { setCreating(false); setEditing(null); }}
         onSaved={() => { setCreating(false); setEditing(null); reload(); }}
       />

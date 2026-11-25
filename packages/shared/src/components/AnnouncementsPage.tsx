@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { Megaphone, Plus, Pencil, Trash2, Search, RefreshCw, Eye, EyeOff, Building2, Globe, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { toast, Toaster } from 'sonner';
+import { toast } from 'sonner';
 
 import { Button } from '@shared/components/ui/button';
 import { Input } from '@shared/components/ui/input';
@@ -154,7 +154,6 @@ export function AnnouncementsPage({ mode = 'admin', title, permKey, onBack, onSu
 
   const content = (
     <div className="w-full space-y-2">
-      <Toaster position="top-right" richColors />
       {!isMobile && (
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between py-0.5">
           <div>

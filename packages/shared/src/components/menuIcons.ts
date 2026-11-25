@@ -91,6 +91,8 @@ const MAP: Record<string, LucideIcon> = {
   car: Car,
   shield: ShieldAlert,
   alert: Siren,
+  'alert-triangle': AlertTriangle,
+  bug: AlertTriangle,
   wallet: Wallet,
   mail: Mail,
 

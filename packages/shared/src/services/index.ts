@@ -27,6 +27,7 @@ import { ConfigClient } from '@shared/api/config';
 import { RolesClient } from '@shared/api/roles';
 import { PermissionsClient } from '@shared/api/permissions';
 import { CommunicationTestClient } from '@shared/api/communicationTest';
+import { ErrorLogsClient } from '@shared/api/errorLogs';
 import { WebTokenStore } from '@shared/api/tokenStore';
 
 const baseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:5272';
@@ -78,6 +79,7 @@ export const appConfig = new ConfigClient(api);
 export const roles = new RolesClient(api);
 export const permissions = new PermissionsClient(api);
 export const communicationTest = new CommunicationTestClient(api);
+export const errorLogs = new ErrorLogsClient(api);
 
 async function rawRefresh(base: string, refreshToken: string) {
   const res = await fetch(`${base.replace(/\/+$/, '')}/api/v1/auth/refresh`, {

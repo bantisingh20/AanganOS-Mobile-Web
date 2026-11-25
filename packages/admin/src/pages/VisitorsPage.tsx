@@ -7,7 +7,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, THead, TBody, TR, TH, TD } from '@shared/components/ui/table';
 import { Pagination } from '@shared/components/ui/pagination';
 import { Button } from '@shared/components/ui/button';
-import { Toaster } from '@shared/components/ui/sonner';
 import { EntitySelect, type EntityPage } from '@shared/components/EntitySelect';
 import { gate, masterData, organizations } from '@shared/services';
 import type { MasterDataEntry } from '@shared/api/masterData';
@@ -65,8 +64,6 @@ export function VisitorsPage() {
 
   return (
     <div className="w-full space-y-2">
-      <Toaster position="top-right" richColors />
-
       {/* Header */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between py-0.5">
         <div>

@@ -9,8 +9,7 @@ import { ConfirmDialog } from '@shared/components/ui/confirm-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@shared/components/ui/select';
 import { Table, THead, TBody, TR, TH, TD } from '@shared/components/ui/table';
 import { Pagination } from '@shared/components/ui/pagination';
-import { Toaster } from '@shared/components/ui/sonner';
-import { adminUsers } from '@shared/services';
+import { adminUsers, roles } from '@shared/services';
 import type { AdminUser } from '@shared/api/adminUsers';
 import { useAsync } from '@shared/lib/useAsync';
 import { useScope } from '@shared/lib/useScope';
@@ -33,20 +32,36 @@ export function AdminUsersPage() {
   const [confirmBusy, setConfirmBusy] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
 
+  const rolesQuery = useAsync(
+    (signal) => roles.list({ pageSize: 100 }, { signal }).catch(() => null),
+    [reloadKey],
+  );
+  const dbRoles = useMemo(() => rolesQuery.data?.items ?? [], [rolesQuery.data]);
+
   const creatableRoles = useMemo(() => {
-    if (scope.isPowerUser) return [ROLE_POWER, ROLE_ORG, ROLE_COMMUNITY];
+    if (dbRoles.length > 0) {
+      if (scope.isPowerUser) return dbRoles.map((r) => r.name);
+      if (scope.isOrgAdmin) return dbRoles.filter((r) => r.scope !== 0).map((r) => r.name);
+      return [];
+    }
+    if (scope.isPowerUser) return [ROLE_POWER, ROLE_ORG, ROLE_COMMUNITY, 'Superadmin'];
     if (scope.isOrgAdmin) return [ROLE_COMMUNITY];
     return [] as string[];
-  }, [scope.isPowerUser, scope.isOrgAdmin]);
+  }, [dbRoles, scope.isPowerUser, scope.isOrgAdmin]);
 
-  const roleLabel = (name: string) =>
-    name === ROLE_POWER ? t('adminUsers.rolePower')
-      : name === ROLE_ORG ? t('adminUsers.roleOrg')
-      : name === ROLE_COMMUNITY ? t('adminUsers.roleCommunity')
-      : name;
+  const roleLabel = (name: string) => {
+    if (name === ROLE_POWER) return t('adminUsers.rolePower');
+    if (name === ROLE_ORG) return t('adminUsers.roleOrg');
+    if (name === ROLE_COMMUNITY) return t('adminUsers.roleCommunity');
+    const matched = dbRoles.find((r) => r.name.toLowerCase() === name.toLowerCase());
+    return matched ? matched.name : name;
+  };
 
-  const roleTone = (name: string): 'info' | 'warning' | 'default' =>
-    name === ROLE_POWER ? 'warning' : name === ROLE_ORG ? 'info' : 'default';
+  const roleTone = (name: string): 'info' | 'warning' | 'default' => {
+    const matched = dbRoles.find((r) => r.name.toLowerCase() === name.toLowerCase());
+    if (matched) return matched.scope === 0 ? 'warning' : 'default';
+    return name === ROLE_POWER ? 'warning' : name === ROLE_ORG ? 'info' : 'default';
+  };
 
   const query = useAsync(
     (signal) => adminUsers.list({ search: search.trim() || undefined, page, pageSize }, { signal }).catch(() => null),
@@ -81,8 +96,6 @@ export function AdminUsersPage() {
 
   return (
     <div className="w-full space-y-2">
-      <Toaster position="top-right" richColors />
-
       {/* Header */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between py-0.5">
         <div>
@@ -276,6 +289,7 @@ export function AdminUsersPage() {
         open={creating || !!editing}
         admin={editing}
         creatableRoles={creatableRoles}
+        dbRoles={dbRoles}
         onClose={() => { setCreating(false); setEditing(null); }}
         onSaved={() => { setCreating(false); setEditing(null); reload(); }}
       />

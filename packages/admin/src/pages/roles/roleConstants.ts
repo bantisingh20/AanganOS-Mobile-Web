@@ -2,6 +2,7 @@ export const SCOPE_PLATFORM = 0;
 export const SCOPE_COMMUNITY = 1;
 export const SURFACE_APP = 0;
 export const SURFACE_ADMIN = 1;
+export const SURFACE_COMMON = 2;
 
 export const ACTION_VIEW = 0;
 export const ACTION_CREATE = 1;

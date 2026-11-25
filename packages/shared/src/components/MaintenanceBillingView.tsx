@@ -6,7 +6,6 @@ import { toast } from 'sonner';
 
 import { Button } from '@shared/components/ui/button';
 import { ConfirmDialog } from '@shared/components/ui/confirm-dialog';
-import { Toaster } from '@shared/components/ui/sonner';
 import { HelpDeskHeader } from '@shared/help-desk/HelpDeskHeader';
 
 import { maintenanceBilling } from '@shared/services';
@@ -182,7 +181,6 @@ export function MaintenanceBillingView({ mode = 'admin', permKey, onBack }: Main
         onConfirm={doWaive}
         onClose={() => setConfirmWaive(null)}
       />
-      <Toaster position="top-center" richColors />
     </>
   );
 

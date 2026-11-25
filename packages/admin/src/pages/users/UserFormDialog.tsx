@@ -9,6 +9,7 @@ import { EntitySelect, type EntityPage } from '@shared/components/EntitySelect';
 import { PhoneField } from '@shared/components/PhoneField';
 import { residents, users, adminUsers, communities, units, organizations } from '@shared/services';
 import type { Resident } from '@shared/api/residents';
+import type { Role } from '@shared/api/roles';
 import { useAsync } from '@shared/lib/useAsync';
 import { useScope } from '@shared/lib/useScope';
 import { toFormError } from '@shared/api/errors';
@@ -38,11 +39,12 @@ function resolveOrgLabel(id: string, signal: AbortSignal) {
 }
 
 export function UserFormDialog({
-  open, person, presetCommunityId, onClose, onSaved,
+  open, person, presetCommunityId, dbRoles, onClose, onSaved,
 }: {
   open: boolean;
   person?: Resident | null;
   presetCommunityId?: string;
+  dbRoles?: Role[];
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -62,7 +64,7 @@ export function UserFormDialog({
   const [busy, setBusy] = useState(false);
 
   const isResident = residentType !== ROLE_SECURITY;
-  const isAdminRole = adminRole === ROLE_ORG_ADMIN || adminRole === ROLE_COMMUNITY_ADMIN;
+  const isAdminRole = adminRole !== '' && adminRole !== ROLE_RESIDENT && adminRole !== ROLE_SECURITY;
   const isOrgAdmin = adminRole === ROLE_ORG_ADMIN;
   const effectiveCommunityId = communityId ?? presetCommunityId ?? undefined;
 
@@ -71,14 +73,22 @@ export function UserFormDialog({
       { value: ROLE_RESIDENT, label: t('users.roleResident') },
       { value: ROLE_SECURITY, label: t('users.roleSecurity') },
     ];
-    if (scope.isPowerUser) {
-      base.push({ value: ROLE_ORG_ADMIN, label: t('adminUsers.roleOrg') });
-      base.push({ value: ROLE_COMMUNITY_ADMIN, label: t('adminUsers.roleCommunity') });
-    } else if (scope.isOrgAdmin) {
-      base.push({ value: ROLE_COMMUNITY_ADMIN, label: t('adminUsers.roleCommunity') });
+    if (dbRoles && dbRoles.length > 0) {
+      dbRoles.forEach((r) => {
+        if (!base.some((b) => b.value.toLowerCase() === r.name.toLowerCase())) {
+          base.push({ value: r.name, label: r.name });
+        }
+      });
+    } else {
+      if (scope.isPowerUser) {
+        base.push({ value: ROLE_ORG_ADMIN, label: t('adminUsers.roleOrg') });
+        base.push({ value: ROLE_COMMUNITY_ADMIN, label: t('adminUsers.roleCommunity') });
+      } else if (scope.isOrgAdmin) {
+        base.push({ value: ROLE_COMMUNITY_ADMIN, label: t('adminUsers.roleCommunity') });
+      }
     }
     return base;
-  }, [scope.isPowerUser, scope.isOrgAdmin, t]);
+  }, [dbRoles, scope.isPowerUser, scope.isOrgAdmin, t]);
 
   useEffect(() => {
     if (!open) return;
@@ -225,8 +235,13 @@ export function UserFormDialog({
             <Select
               value={adminRole || residentType}
               onValueChange={(v) => {
-                if (v === ROLE_ORG_ADMIN || v === ROLE_COMMUNITY_ADMIN) setAdminRole(v);
-                else { setAdminRole(''); setResidentType(v); setUnitId(null); }
+                if (v === ROLE_RESIDENT || v === ROLE_SECURITY) {
+                  setAdminRole('');
+                  setResidentType(v);
+                  if (v === ROLE_SECURITY) setUnitId(null);
+                } else {
+                  setAdminRole(v);
+                }
               }}
             >
               <SelectTrigger className="h-9 w-full rounded-[4px] text-xs bg-background">

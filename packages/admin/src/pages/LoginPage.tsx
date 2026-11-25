@@ -10,7 +10,6 @@ import {
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import logoUrl from '@shared/assets/logo.png';
-import { Toaster } from '@shared/components/ui/sonner';
 import { LanguageSwitcher } from '@shared/components/LanguageSwitcher';
 import { PhoneField } from '@shared/components/PhoneField';
 import { PasswordField } from '@shared/components/PasswordField';
@@ -116,11 +115,11 @@ export function LoginPage() {
             <div className={`rounded-2xl border border-slate-200 bg-white shadow-lg shadow-slate-200/50 ${mode === 'onboard' ? 'p-3.5 sm:p-5 lg:p-6' : 'p-4 sm:p-6 lg:p-7'}`}>
               <div className={`text-left ${mode === 'onboard' ? 'mb-2.5' : 'mb-3 sm:mb-4'}`}>
                 <h1 className="m-0 text-sm font-semibold tracking-tight text-slate-800 sm:text-base lg:text-lg">
-                  {mode === 'login' ? 'Sign in to Admin' : t('society.title')}
+                  {mode === 'login' ? t('admin.signInTitle', { defaultValue: 'Sign in to Admin' }) : t('society.title')}
                 </h1>
                 <p className="mb-0 mt-0.5 text-[11px] text-slate-500 sm:text-xs">
                   {mode === 'login'
-                    ? 'Access your society administration dashboard'
+                    ? t('admin.signInSubtitle', { defaultValue: 'Access your society administration dashboard' })
                     : t('society.subtitle')}
                 </p>
               </div>
@@ -138,8 +137,6 @@ export function LoginPage() {
           </div>
         </div>
       </div>
-
-      <Toaster position="top-center" richColors />
     </div>
   );
 }

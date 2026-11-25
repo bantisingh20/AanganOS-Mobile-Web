@@ -11,7 +11,6 @@ import { Badge } from '@shared/components/ui/badge';
 import { ConfirmDialog } from '@shared/components/ui/confirm-dialog';
 import { Table, THead, TBody, TR, TH, TD } from '@shared/components/ui/table';
 import { Pagination } from '@shared/components/ui/pagination';
-import { Toaster } from '@shared/components/ui/sonner';
 import { roles } from '@shared/services';
 import type { Role } from '@shared/api/roles';
 import { useAsync } from '@shared/lib/useAsync';
@@ -65,8 +64,6 @@ export function RolesPage() {
 
   return (
     <div className="w-full space-y-2">
-      <Toaster position="top-right" richColors />
-
       {/* Enterprise Page Header */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between py-0.5">
         <div>

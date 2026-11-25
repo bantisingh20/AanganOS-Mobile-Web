@@ -7,7 +7,6 @@ import { Input } from '@shared/components/ui/input';
 import { Badge } from '@shared/components/ui/badge';
 import { Drawer } from '@shared/components/ui/drawer';
 import { Table, THead, TBody, TR, TH, TD } from '@shared/components/ui/table';
-import { Toaster } from '@shared/components/ui/sonner';
 import { notificationTemplates } from '@shared/services';
 import type { NotificationTemplate, NotificationTemplatePreview } from '@shared/api/notificationTemplates';
 import { useAsync } from '@shared/lib/useAsync';
@@ -42,8 +41,6 @@ export function NotificationTemplatesPage() {
 
   return (
     <div className="w-full space-y-2">
-      <Toaster position="top-right" richColors />
-
       {/* Header */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between py-0.5">
         <div>

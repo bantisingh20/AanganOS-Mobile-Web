@@ -10,7 +10,6 @@ import { ConfirmDialog } from '@shared/components/ui/confirm-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@shared/components/ui/select';
 import { Table, THead, TBody, TR, TH, TD } from '@shared/components/ui/table';
 import { Pagination } from '@shared/components/ui/pagination';
-import { Toaster } from '@shared/components/ui/sonner';
 import { EntitySelect, type EntityPage } from '@shared/components/EntitySelect';
 import { amenities, masterData, organizations, communities } from '@shared/services';
 import type { Amenity } from '@shared/api/amenities';
@@ -114,8 +113,6 @@ export function AmenitiesPage() {
 
   return (
     <div className="w-full space-y-2">
-      <Toaster position="top-right" richColors />
-
       {/* Header */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between py-0.5">
         <div>

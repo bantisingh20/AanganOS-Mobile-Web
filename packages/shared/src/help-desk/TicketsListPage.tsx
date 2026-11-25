@@ -8,7 +8,7 @@ import { Badge } from '@shared/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@shared/components/ui/select';
 import { Table, THead, TBody, TR, TH, TD } from '@shared/components/ui/table';
 import { Pagination } from '@shared/components/ui/pagination';
-import { Toaster, toast } from 'sonner';
+import { toast } from 'sonner';
 import { EntitySelect, type EntityPage } from '@shared/components/EntitySelect';
 import { HelpDeskHeader } from './HelpDeskHeader';
 import { tickets, masterData, organizations, communities } from '@shared/services';
@@ -175,7 +175,6 @@ export function TicketsListPage({ mode = 'admin', title, submitPath, detailsPath
 
   const content = (
     <div className="w-full space-y-2">
-      <Toaster position="top-right" richColors />
       {!isMobile && (
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between py-0.5">
           <div>

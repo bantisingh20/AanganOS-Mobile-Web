@@ -9,6 +9,7 @@ import { EntitySelect, type EntityPage } from '@shared/components/EntitySelect';
 import { PhoneField } from '@shared/components/PhoneField';
 import { adminUsers, organizations, communities } from '@shared/services';
 import type { AdminUser } from '@shared/api/adminUsers';
+import type { Role } from '@shared/api/roles';
 import { cn } from '@shared/lib/utils';
 import { toFormError } from '@shared/api/errors';
 
@@ -36,11 +37,12 @@ function resolveOrgLabel(id: string, signal: AbortSignal) {
 }
 
 export function AdminUserFormDialog({
-  open, admin, creatableRoles, onClose, onSaved,
+  open, admin, creatableRoles, dbRoles, onClose, onSaved,
 }: {
   open: boolean;
   admin?: AdminUser | null;
   creatableRoles: string[];
+  dbRoles?: Role[];
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -56,17 +58,29 @@ export function AdminUserFormDialog({
   const [communityId, setCommunityId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const roleLabel = (n: string) =>
-    n === ROLE_POWER ? t('adminUsers.rolePower') : n === ROLE_ORG ? t('adminUsers.roleOrg') : n === ROLE_COMMUNITY ? t('adminUsers.roleCommunity') : n;
+  const selectedRoleObj = useMemo(
+    () => dbRoles?.find((r) => r.name.toLowerCase() === roleName.toLowerCase()),
+    [dbRoles, roleName],
+  );
+  const isCommunityScope = selectedRoleObj ? selectedRoleObj.scope !== 0 : roleName === ROLE_COMMUNITY;
+  const isOrgScope = roleName === ROLE_ORG;
+
+  const needsOrg = isOrgScope || isCommunityScope;
+  const needsCommunity = isCommunityScope;
+
+  const roleLabel = (n: string) => {
+    if (n === ROLE_POWER) return t('adminUsers.rolePower');
+    if (n === ROLE_ORG) return t('adminUsers.roleOrg');
+    if (n === ROLE_COMMUNITY) return t('adminUsers.roleCommunity');
+    const fromDb = dbRoles?.find((r) => r.name.toLowerCase() === n.toLowerCase());
+    return fromDb ? fromDb.name : n;
+  };
 
   const roleChoices = useMemo(() => {
     const base = [...creatableRoles];
     if (admin) for (const r of admin.roles) if (!base.includes(r)) base.push(r);
     return base;
   }, [creatableRoles, admin]);
-
-  const needsOrg = roleName === ROLE_ORG || roleName === ROLE_COMMUNITY;
-  const needsCommunity = roleName === ROLE_COMMUNITY;
 
   useEffect(() => {
     if (!open) return;

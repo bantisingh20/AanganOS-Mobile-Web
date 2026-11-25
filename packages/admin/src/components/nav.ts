@@ -30,5 +30,6 @@ export const ADMIN_FALLBACK_MENU: MenuNode[] = [
     node('admin.config', 'Configuration', '/config', 'SettingOutlined'),
     node('admin.notification-templates', 'Notification Templates', '/notification-templates', 'MailOutlined'),
     node('admin.communication-test', 'Email & SMS Testing', '/communication-test', 'SendOutlined'),
+    node('admin.error_logs', 'Error Logs', '/error-logs', 'alert-triangle'),
   ]),
 ];

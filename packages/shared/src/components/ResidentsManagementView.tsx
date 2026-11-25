@@ -9,7 +9,6 @@ import { Dialog, DialogHeader } from './ui/dialog';
 import { Button } from './ui/button';
 import { Table, THead, TBody, TR, TH, TD } from './ui/table';
 import { Pagination } from './ui/pagination';
-import { Toaster } from './ui/sonner';
 import { EntitySelect, type EntityPage } from './EntitySelect';
 import { HelpDeskHeader } from '@shared/help-desk/HelpDeskHeader';
 import { residents, organizations, communities } from '@shared/services';
@@ -133,8 +132,6 @@ export function ResidentsManagementView({
 
   const content = (
     <div className="w-full space-y-2">
-      <Toaster position="top-right" richColors />
-
       {!isMobile && showHeader && (
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between py-0.5">
           <div>
