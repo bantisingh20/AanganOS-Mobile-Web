@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Search, RefreshCw, Wallet, Ban, ShieldCheck } from 'lucide-react';
+import { Search, RefreshCw, Wallet, Ban, ShieldCheck, Plus } from 'lucide-react';
+import { Button } from '@shared/components/ui/button';
 import { Input } from '@shared/components/ui/input';
 import { Badge } from '@shared/components/ui/badge';
 import { Table, THead, TBody, TR, TH, TD } from '@shared/components/ui/table';
@@ -40,9 +41,11 @@ export function BillsTab({
   canRecordPayment,
   canEditBill,
   canApprovePayment,
+  canAddBill,
   onPayBill,
   onWaiveBill,
   onReviewApprovals,
+  onOpenGenerate,
 }: {
   effectiveCommunityId?: string;
   effectiveOrgId?: string;
@@ -56,9 +59,11 @@ export function BillsTab({
   canRecordPayment: boolean;
   canEditBill: boolean;
   canApprovePayment: boolean;
+  canAddBill?: boolean;
   onPayBill: (bill: MaintenanceBill) => void;
   onWaiveBill: (bill: MaintenanceBill) => void;
   onReviewApprovals: (communityId: string) => void;
+  onOpenGenerate?: () => void;
 }) {
   const { t } = useTranslation();
   const [search, setSearch] = useState('');
@@ -108,22 +113,12 @@ export function BillsTab({
   const bills = useMemo(() => billsQuery.data?.items ?? [], [billsQuery.data]);
   const reload = () => setReloadKey((k) => k + 1);
 
-  const StatusBadge = ({ b }: { b: MaintenanceBill }) => {
-    if (b.pendingApproval) {
-      return (
-        <Badge tone="default" className="text-[10px] px-1.5 py-0 rounded-[3px] shrink-0">
-          <span className="h-1 w-1 rounded-full bg-current opacity-70 mr-1" />
-          {t('billing.pendingApproval')}
-        </Badge>
-      );
-    }
-    return (
-      <Badge tone={billTone(b.status)} className="text-[10px] px-1.5 py-0 rounded-[3px] shrink-0">
-        <span className="h-1 w-1 rounded-full bg-current opacity-70 mr-1" />
-        {statusLabel(b.status)}
-      </Badge>
-    );
-  };
+  const StatusBadge = ({ b }: { b: MaintenanceBill }) => (
+    <Badge tone={b.pendingApproval ? 'default' : billTone(b.status)} className="text-[10px] px-1.5 py-0 rounded-[3px] shrink-0">
+      <span className="h-1 w-1 rounded-full bg-current opacity-70 mr-1" />
+      {b.pendingApproval ? t('billing.pendingApproval') : statusLabel(b.status)}
+    </Badge>
+  );
 
   const BillRowActions = ({ b }: { b: MaintenanceBill }) => {
     if (b.pendingApproval) {
@@ -269,6 +264,16 @@ export function BillsTab({
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
+          {canAddBill && onOpenGenerate ? (
+            <Button
+              type="button"
+              onClick={onOpenGenerate}
+              className="h-7 px-2.5 rounded-[4px] text-[11px] font-medium"
+            >
+              <Plus className="mr-1 h-3 w-3" />
+              {t('billing.generate')}
+            </Button>
+          ) : null}
           <span className="text-[11px] text-muted-foreground tabular-nums">
             {billsQuery.data?.totalCount ?? 0} {t('billing.tabBills', { defaultValue: 'bills' })}
           </span>

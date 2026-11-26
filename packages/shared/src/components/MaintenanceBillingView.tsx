@@ -5,7 +5,6 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import { Button } from '@shared/components/ui/button';
-import { ConfirmDialog } from '@shared/components/ui/confirm-dialog';
 import { HelpDeskHeader } from '@shared/help-desk/HelpDeskHeader';
 
 import { maintenanceBilling } from '@shared/services';
@@ -17,19 +16,12 @@ import { cn } from '@shared/lib/utils';
 
 import {
   type Tab,
-  PAYMENT_METHODS,
-  PAYMENT_METHOD_LABELS,
-  formatAmount,
 } from './billing/billingConstants';
 import { BillsTab } from './billing/BillsTab';
 import { ChargesTab } from './billing/ChargesTab';
 import { ExpensesTab } from './billing/ExpensesTab';
 import { CollectionDashboard } from './billing/CollectionDashboard';
-import { GenerateBillsDialog } from './billing/GenerateBillsDialog';
-import { RecordPaymentDialog } from './billing/RecordPaymentDialog';
-import { SetChargeDialog } from './billing/SetChargeDialog';
-import { BulkSetChargeDialog } from './billing/BulkSetChargeDialog';
-import { ApprovalsDialog } from './billing/ApprovalsDialog';
+import { BillingCommonDialogs } from './billing/BillingCommonDialogs';
 
 export interface MaintenanceBillingViewProps {
   mode?: 'admin' | 'mobile';
@@ -108,80 +100,26 @@ export function MaintenanceBillingView({ mode = 'admin', permKey, onBack }: Main
   };
 
   const commonDialogs = (
-    <>
-      <GenerateBillsDialog
-        open={generating}
-        presetCommunityId={effectiveCommunityId}
-        organizationId={effectiveOrgId}
-        onClose={() => setGenerating(false)}
-        onDone={() => {
-          setGenerating(false);
-          setRefreshSeed((s) => s + 1);
-        }}
-      />
-
-      <RecordPaymentDialog
-        bill={payingBill}
-        methodOptions={PAYMENT_METHODS.map((m) => ({ value: m, label: PAYMENT_METHOD_LABELS[m] ?? m }))}
-        onClose={() => setPayingBill(null)}
-        onDone={() => {
-          setPayingBill(null);
-          setRefreshSeed((s) => s + 1);
-        }}
-      />
-
-      <SetChargeDialog
-        open={charging}
-        communityId={effectiveCommunityId}
-        organizationId={effectiveOrgId}
-        onClose={() => setCharging(false)}
-        onDone={() => {
-          setCharging(false);
-          setRefreshSeed((s) => s + 1);
-        }}
-      />
-
-      <BulkSetChargeDialog
-        open={bulkCharging}
-        communityId={effectiveCommunityId}
-        organizationId={effectiveOrgId}
-        onClose={() => setBulkCharging(false)}
-        onDone={() => {
-          setBulkCharging(false);
-          setRefreshSeed((s) => s + 1);
-        }}
-      />
-
-      <ApprovalsDialog
-        communityId={approvalsCommunityId}
-        organizationId={effectiveOrgId}
-        canApprove={canApprovePayment}
-        onClose={() => setApprovalsCommunityId(null)}
-        onDone={() => {
-          setApprovalsCommunityId(null);
-          setRefreshSeed((s) => s + 1);
-        }}
-      />
-
-      <ConfirmDialog
-        open={!!confirmWaive}
-        tone="danger"
-        title={t('billing.waiveConfirmTitle')}
-        description={
-          confirmWaive
-            ? t('billing.waiveConfirmDesc', {
-                unit: confirmWaive.unitNumber ?? confirmWaive.unitId,
-                amount: formatAmount(confirmWaive.amountDue),
-              })
-            : ''
-        }
-        confirmLabel={t('billing.waive')}
-        cancelLabel={t('orgs.cancel')}
-        busy={confirmBusy}
-        onConfirm={doWaive}
-        onClose={() => setConfirmWaive(null)}
-      />
-    </>
+    <BillingCommonDialogs
+      generating={generating}
+      charging={charging}
+      bulkCharging={bulkCharging}
+      approvalsCommunityId={approvalsCommunityId}
+      payingBill={payingBill}
+      confirmWaive={confirmWaive}
+      confirmBusy={confirmBusy}
+      canApprovePayment={canApprovePayment}
+      effectiveCommunityId={effectiveCommunityId}
+      effectiveOrgId={effectiveOrgId}
+      onCloseGenerating={() => setGenerating(false)}
+      onCloseCharging={() => setCharging(false)}
+      onCloseBulkCharging={() => setBulkCharging(false)}
+      onCloseApprovals={() => setApprovalsCommunityId(null)}
+      onClosePaying={() => setPayingBill(null)}
+      onCloseWaive={() => setConfirmWaive(null)}
+      onConfirmWaive={doWaive}
+      onRefresh={() => setRefreshSeed((s) => s + 1)}
+    />
   );
 
   // Main Tab Content
@@ -204,9 +142,11 @@ export function MaintenanceBillingView({ mode = 'admin', permKey, onBack }: Main
           canRecordPayment={canRecordPayment}
           canEditBill={canEditBill}
           canApprovePayment={canApprovePayment}
+          canAddBill={canAddBill}
           onPayBill={(b) => setPayingBill(b)}
           onWaiveBill={(b) => setConfirmWaive(b)}
           onReviewApprovals={(commId) => setApprovalsCommunityId(commId)}
+          onOpenGenerate={() => setGenerating(true)}
         />
       )}
 
