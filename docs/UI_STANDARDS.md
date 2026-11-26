@@ -19,7 +19,7 @@ This document establishes the official enterprise design language and UI standar
    - On Desktop/Tablet (`>= md`): Dense, scrollable enterprise `<Table>`.
    - On Mobile / Small Screen (`< md`): Clean, stacked card list (`md:hidden divide-y divide-border/60`).
 5. **Concise, Lean Code**:
-   - Keep page files under 250–350 lines. Avoid redundant nested HTML wrappers and duplication.
+   - Avoid redundant nested HTML wrappers and duplication.
 
 ---
 
@@ -126,5 +126,4 @@ This document establishes the official enterprise design language and UI standar
     - Inside Profile Dropdown (`UserPill`): Mobile section (`md:hidden`) with Theme toggle and Language switcher.
 
 ### F. File Line Count Constraint
-- Keep all page files and component files **strictly < 400 lines**.
 - Extract dialogs, permissions tabs, or helpers into dedicated sub-folders (e.g. `pages/units/`, `pages/orgs/`, `pages/roles/`) whenever files approach this threshold.
