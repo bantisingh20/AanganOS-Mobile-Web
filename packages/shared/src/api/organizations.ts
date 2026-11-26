@@ -1,7 +1,7 @@
 import type { ApiClient } from './client';
 import type { PagedData } from './types';
 import { buildQuery, listQueryParams, type ListQuery } from './query';
-import { cacheWrap, cacheInvalidate } from '../lib/cache';
+import { cacheInvalidate } from '../lib/cache';
 import { SubscriptionStatus } from './subscriptions';
 
 export interface Organization {
@@ -19,11 +19,17 @@ export class OrganizationsClient {
 
   list(query: ListQuery = {}, options?: { signal?: AbortSignal; forceRefresh?: boolean }): Promise<PagedData<Organization>> {
     const qs = buildQuery(listQueryParams(query));
-    return cacheWrap(`orgs_${qs}`, () => this.api.get<PagedData<Organization>>(`/api/v1/organizations${qs}`, options), 15 * 60 * 1000, options?.forceRefresh);
+    if (options?.forceRefresh) {
+      cacheInvalidate('org');
+    }
+    return this.api.get<PagedData<Organization>>(`/api/v1/organizations${qs}`, options);
   }
 
   get(id: string, options?: { signal?: AbortSignal; forceRefresh?: boolean }): Promise<Organization> {
-    return cacheWrap(`org_${id}`, () => this.api.get<Organization>(`/api/v1/organizations/${id}`, options), 15 * 60 * 1000, options?.forceRefresh);
+    if (options?.forceRefresh) {
+      cacheInvalidate(`org_${id}`);
+    }
+    return this.api.get<Organization>(`/api/v1/organizations/${id}`, options);
   }
 
   async create(name: string, propertyType?: string): Promise<Organization> {

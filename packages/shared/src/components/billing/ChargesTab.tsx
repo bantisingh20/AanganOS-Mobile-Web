@@ -42,7 +42,14 @@ export function ChargesTab({
     [communityId, organizationId, reloadKey]
   );
 
-  const items = useMemo(() => query.data ?? [], [query.data]);
+  const items = useMemo(() => {
+    const raw = query.data ?? [];
+    return [...raw].sort((a, b) => {
+      const uA = (a.unitNumber ?? a.unitId ?? '').trim();
+      const uB = (b.unitNumber ?? b.unitId ?? '').trim();
+      return uA.localeCompare(uB, undefined, { numeric: true, sensitivity: 'base' });
+    });
+  }, [query.data]);
   const reload = () => setReloadKey((k) => k + 1);
 
   const doDelete = async () => {

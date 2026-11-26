@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Bell, Megaphone, Wrench, AlertCircle, ChevronRight,
-  CreditCard, Home, LayoutGrid, ShieldAlert,
-  ShieldCheck, Plus, Phone, type LucideIcon
+  Megaphone, Wrench, AlertCircle, ChevronRight,
+  CreditCard, LayoutGrid, ShieldAlert,
+  ShieldCheck, Plus, Phone
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { announcements, myTasks, tickets, maintenanceBilling } from '@shared/services';
@@ -11,50 +11,14 @@ import { useDynamicTiles } from '@shared/lib/appTiles';
 import { tileIcon } from '@app/lib/tileIcons';
 import { useAsync } from '@shared/lib/useAsync';
 import { cn } from '@shared/lib/utils';
-
-interface QuickActionItem {
-  code: string;
-  label: string;
-  route: string;
-  icon: LucideIcon;
-  tint: string;
-  action?: () => void;
-}
-
-const HERO = 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1200&q=70';
-const RECENT_NOTICE_DAYS = 15;
-
-const NOTICE_META: Record<string, { tint: string }> = {
-  maintenance: { tint: '#05b872' },
-  event: { tint: '#0ea5e9' },
-  emergency: { tint: '#dc2626' },
-  general: { tint: '#0ea5e9' },
-};
-
-function noticeDate(iso: string): string {
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
-}
-
-function greetingKey(): 'home.greetingMorning' | 'home.greetingAfternoon' | 'home.greetingEvening' {
-  const h = new Date().getHours();
-  if (h < 12) return 'home.greetingMorning';
-  if (h < 17) return 'home.greetingAfternoon';
-  return 'home.greetingEvening';
-}
-
-function initialsOf(name: string): string {
-  const parts = name.replace(/@.*$/, '').replace(/[^a-zA-Z0-9 ]/g, ' ').trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return 'U';
-  if (parts.length === 1) return parts[0]!.slice(0, 2).toUpperCase();
-  return (parts[0]![0]! + parts[1]![0]!).toUpperCase();
-}
-
-function severityTint(sev: string): string {
-  if (sev === 'urgent' || sev === 'high') return '#cf222e';
-  if (sev === 'warning' || sev === 'medium') return '#bf8700';
-  return '#0969da';
-}
+import {
+  type QuickActionItem,
+  RECENT_NOTICE_DAYS,
+  NOTICE_META,
+  noticeDate,
+  severityTint,
+} from './dashboardHelpers';
+import { DashboardHero, ReqStat } from './DashboardHero';
 
 export function DashboardTab({
   userName, unitLabel, societyName, unreadCount, onNotifications, onOpenProfile, onOpenServices,
@@ -143,64 +107,15 @@ export function DashboardTab({
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-background">
       {/* 1. HERO HEADER */}
-      <div className="safe-top relative min-h-[230px] overflow-hidden">
-        <img src={HERO} alt="" className="absolute inset-0 h-full w-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-b from-[#081812]/80 via-[#0b261d]/85 to-background" />
-
-        <div className="relative flex flex-col gap-3.5 px-5 pb-5 pt-6">
-          <div className="flex items-center justify-between">
-            <div className="text-xl font-extrabold tracking-tight text-white flex items-center gap-1">
-              <span>Aangan</span><span className="text-[#8ef0c0]">OS</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => navigate('/sos')}
-                aria-label="SOS Alert"
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-destructive/90 text-white shadow-sm active:scale-95 transition-transform"
-              >
-                <ShieldAlert className="h-5 w-5" />
-              </button>
-              <button
-                type="button"
-                onClick={onNotifications}
-                aria-label="Notifications"
-                className="relative flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-[#0b261d] active:scale-95 transition-transform"
-              >
-                <Bell className="h-5 w-5" />
-                {unreadCount > 0 ? (
-                  <span className="absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-destructive" />
-                ) : null}
-              </button>
-              <button
-                type="button"
-                onClick={onOpenProfile}
-                aria-label="Profile"
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-sm font-extrabold text-primary active:scale-95 transition-transform"
-              >
-                {initialsOf(userName)}
-              </button>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <p className="text-xs font-semibold tracking-wide text-white/80 uppercase">{t(greetingKey())}</p>
-            <h1 className="text-2xl font-black text-white">{userName}</h1>
-            <div className="mt-1 flex flex-wrap items-center gap-2">
-              {unitLabel ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-white/20 px-3 py-1 text-xs font-bold text-white backdrop-blur-md">
-                  <Home className="h-3.5 w-3.5 text-[#8ef0c0]" /> {unitLabel}
-                </span>
-              ) : null}
-              {societyName ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-black/30 px-3 py-1 text-xs font-medium text-white/90 backdrop-blur-md">
-                  {societyName}
-                </span>
-              ) : null}
-            </div>
-          </div>
-        </div>
-      </div>
+      <DashboardHero
+        userName={userName}
+        unitLabel={unitLabel}
+        societyName={societyName}
+        unreadCount={unreadCount}
+        onNotifications={onNotifications}
+        onOpenProfile={onOpenProfile}
+        onSos={() => navigate('/sos')}
+      />
 
       <div className="flex flex-col gap-4 px-4 -mt-2 pb-8">
         {/* 2. NEEDS ATTENTION BAR (IF ANY) */}
@@ -240,7 +155,7 @@ export function DashboardTab({
         {/* 3. QUICK ACTIONS GRID (DYNAMIC SHORTCUTS BASED ON USER ROLE/PERMISSIONS) */}
         {quickActions.length > 0 ? (
           <section className="rounded-3xl bg-card p-3 shadow-sm border border-border/60">
-            <div className="grid grid-cols-4 gap-y-3.5 gap-x-1">
+            <div className="grid grid-cols-3 min-[400px]:grid-cols-4 gap-y-3.5 gap-x-1 sm:gap-x-2">
               {quickActions.map((action) => {
                 const Icon = action.icon;
                 return (
@@ -451,15 +366,6 @@ export function DashboardTab({
           </button>
         </section>
       </div>
-    </div>
-  );
-}
-
-function ReqStat({ value, label, tint }: { value: number; label: string; tint: string }) {
-  return (
-    <div className="flex flex-1 flex-col items-center gap-0.5">
-      <span className="text-lg font-black" style={{ color: tint }}>{value}</span>
-      <span className="text-[11px] font-bold text-muted-foreground">{label}</span>
     </div>
   );
 }

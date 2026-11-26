@@ -15,6 +15,7 @@ import { PhoneField } from '@shared/components/PhoneField';
 import { SelectField, type SelectOption } from '@shared/components/SelectField';
 import { PrimaryButton } from '@shared/components/PrimaryButton';
 import { FormBanner } from '@shared/components/FormBanner';
+import { cn } from '@shared/lib/utils';
 
 function vehicleIcon(type: string): LucideIcon {
   const v = type.toLowerCase();
@@ -137,20 +138,27 @@ function UnitCard({ unit, communityId }: { unit: ResidentHouseholdUnit; communit
             <div className="flex flex-col gap-2">
               {members.map((m) => {
                 const owner = m.residentType === 'owner';
+                const atHome = m.presenceStatus !== 'outdoor';
                 return (
                   <div key={m.residentId} className="flex items-center gap-3 rounded-2xl border border-border bg-background/60 p-2.5">
                     <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-extrabold ${owner ? 'bg-[#16a34a1f] text-[#16a34a]' : 'bg-[#0ea5e91f] text-[#0ea5e9]'}`}>
                       {initials(m.name)}
                     </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[15px] font-bold">{m.name}</span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="truncate text-[15px] font-bold">{m.name}</span>
+                        {owner ? (
+                          <span className="flex items-center gap-1 rounded-full bg-[#16a34a14] px-2 py-0.5 text-[10px] font-extrabold uppercase text-[#16a34a]"><Crown className="h-3 w-3" /> Owner</span>
+                        ) : (
+                          <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase capitalize text-muted-foreground">{m.residentType}</span>
+                        )}
+                      </div>
                       <span className="block truncate text-xs capitalize text-muted-foreground">{m.relationship}</span>
+                    </div>
+                    <span className={cn('inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0', atHome ? 'bg-emerald-500/10 text-emerald-600' : 'bg-amber-500/10 text-amber-600')}>
+                      <span className={cn('h-1.5 w-1.5 rounded-full', atHome ? 'bg-emerald-500' : 'bg-amber-500')} />
+                      {atHome ? t('profile.atHome') : t('profile.outdoor')}
                     </span>
-                    {owner ? (
-                      <span className="flex items-center gap-1 rounded-full bg-[#16a34a14] px-2 py-0.5 text-[10px] font-extrabold uppercase text-[#16a34a]"><Crown className="h-3 w-3" /> Owner</span>
-                    ) : (
-                      <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase capitalize text-muted-foreground">{m.residentType}</span>
-                    )}
                   </div>
                 );
               })}

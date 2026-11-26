@@ -1,7 +1,7 @@
 import type { ApiClient } from './client';
 import type { PagedData } from './types';
 import { buildQuery, listQueryParams, type ListQuery } from './query';
-import { cacheWrap, cacheInvalidate } from '../lib/cache';
+import { cacheInvalidate } from '../lib/cache';
 
 export interface Unit {
   id: string;
@@ -115,7 +115,10 @@ export class UnitsClient {
       communityId: filters.communityId,
       organizationId: filters.organizationId,
     });
-    return cacheWrap(`units_${qs}`, () => this.api.get<PagedData<Unit>>(`/api/v1/units${qs}`, options), 15 * 60 * 1000, options?.forceRefresh);
+    if (options?.forceRefresh) {
+      cacheInvalidate('unit');
+    }
+    return this.api.get<PagedData<Unit>>(`/api/v1/units${qs}`, options);
   }
 
   async create(body: CreateUnitBody): Promise<Unit> {

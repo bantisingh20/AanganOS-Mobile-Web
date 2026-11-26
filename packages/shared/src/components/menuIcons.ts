@@ -1,5 +1,6 @@
 import {
   LayoutDashboard,
+  Database,
   Building2,
   Building,
   Home,
@@ -97,6 +98,7 @@ const MAP: Record<string, LucideIcon> = {
   mail: Mail,
 
   // Standard Lucide icon names
+  Database,
   LayoutDashboard,
   Building2,
   Building,

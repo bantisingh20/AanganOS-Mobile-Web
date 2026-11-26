@@ -49,7 +49,13 @@ export function BulkSetChargeDialog({
         : Promise.resolve([]),
     [open, targetCommunityId]
   );
-  const unitItems = useMemo(() => unitsQuery.data ?? [], [unitsQuery.data]);
+  const unitItems = useMemo(
+    () =>
+      [...(unitsQuery.data ?? [])].sort((a, b) =>
+        a.unitNumber.localeCompare(b.unitNumber, undefined, { numeric: true, sensitivity: 'base' })
+      ),
+    [unitsQuery.data]
+  );
 
   const toggleUnit = (id: string) => {
     setSelected((prev) => {

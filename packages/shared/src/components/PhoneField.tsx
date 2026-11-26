@@ -100,8 +100,10 @@ export function PhoneField({
             onContactPicked?.({ name: rawName, phone: full });
           }
         }
-      } catch {
-        // User cancelled or dismissed picker
+      } catch (err: any) {
+        if (err?.name === 'SecurityError' || err?.name === 'NotAllowedError') {
+          toast.error('Contact permission denied. Please allow contacts access in browser/device settings.');
+        }
       }
     } else {
       toast.info('Contact picker is available on mobile devices (Chrome on Android).');

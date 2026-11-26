@@ -1266,7 +1266,7 @@ export const gu: Translation = {
     editExpenseTitle: 'ખર્ચ સંપાદિત કરો',
     selectCategory: 'શ્રેણી પસંદ કરો',
     expenseTitlePlaceholder: 'દા.ત. દિવાળી શણગાર',
-    spentOn: 'ખર્ચ તારીખ',
+    spentOn: 'તારીખ',
     vendorPlaceholder: 'કોને ચૂકવ્યું',
     notes: 'નોંધ (વૈકલ્પિક)',
     notesPlaceholder: 'બિલ નં., વર્ણન…',

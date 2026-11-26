@@ -27,6 +27,7 @@ export const ADMIN_FALLBACK_MENU: MenuNode[] = [
     node('admin.adminusers', 'Admin Users', '/admin-users', 'SafetyOutlined'),
     node('admin.roles', 'Roles & Permissions', '/roles', 'KeyRound'),
     node('admin.menu', 'Menu Management', '/menu-management', 'MenuOutlined'),
+    node('admin.master-data', 'Master & Menus', '/master-data', 'Database'),
     node('admin.config', 'Configuration', '/config', 'SettingOutlined'),
     node('admin.notification-templates', 'Notification Templates', '/notification-templates', 'MailOutlined'),
     node('admin.communication-test', 'Email & SMS Testing', '/communication-test', 'SendOutlined'),

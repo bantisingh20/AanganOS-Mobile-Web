@@ -8,6 +8,7 @@ import { useAsyncAction } from '@shared/lib/useAsync';
 import { PageLayout } from '@app/components/PageLayout';
 import { TextField } from '@shared/components/TextField';
 import { PrimaryButton } from '@shared/components/PrimaryButton';
+import { requestCameraPermission } from '@shared/lib/permissionsHelper';
 
 function humanize(code: string): string {
   return code.split(/[_\s]+/).map((w) => (w ? w[0]!.toUpperCase() + w.slice(1) : w)).join(' ');
@@ -169,9 +170,24 @@ export function VerifyPassScreen() {
                 </div>
 
                 {cameraError ? (
-                  <p className="text-xs text-destructive text-center font-medium px-2">
-                    {cameraError}
-                  </p>
+                  <div className="flex flex-col items-center gap-1.5 rounded-xl border border-destructive/30 bg-destructive/5 p-2.5 text-center w-full max-w-[280px]">
+                    <p className="text-xs text-destructive font-medium">
+                      {cameraError}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const granted = await requestCameraPermission();
+                        if (granted) {
+                          setCameraError(null);
+                          void startCamera();
+                        }
+                      }}
+                      className="mt-1 rounded-[4px] bg-emerald-600 px-3 py-1 text-[11px] font-bold text-white shadow-xs hover:bg-emerald-700 active:scale-95 transition-all"
+                    >
+                      Allow Camera Permission
+                    </button>
+                  </div>
                 ) : null}
 
                 <div className="flex gap-2 w-full max-w-[280px]">

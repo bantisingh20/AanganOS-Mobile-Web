@@ -1,7 +1,7 @@
 import type { ApiClient } from './client';
 import type { PagedData } from './types';
 import { buildQuery, listQueryParams, type ListQuery } from './query';
-import { cacheWrap, cacheInvalidate } from '../lib/cache';
+import { cacheInvalidate } from '../lib/cache';
 
 export interface Community {
   id: string;
@@ -25,11 +25,17 @@ export class CommunitiesClient {
       communityType: filters.communityType,
       organizationId: filters.organizationId,
     });
-    return cacheWrap(`communities_${qs}`, () => this.api.get<PagedData<Community>>(`/api/v1/communities${qs}`, options), 15 * 60 * 1000, options?.forceRefresh);
+    if (options?.forceRefresh) {
+      cacheInvalidate('communit');
+    }
+    return this.api.get<PagedData<Community>>(`/api/v1/communities${qs}`, options);
   }
 
   get(id: string, options?: { signal?: AbortSignal; forceRefresh?: boolean }): Promise<Community> {
-    return cacheWrap(`community_${id}`, () => this.api.get<Community>(`/api/v1/communities/${id}`, options), 15 * 60 * 1000, options?.forceRefresh);
+    if (options?.forceRefresh) {
+      cacheInvalidate(`community_${id}`);
+    }
+    return this.api.get<Community>(`/api/v1/communities/${id}`, options);
   }
 
   async create(body: { organizationId: string; name: string; communityType?: string }): Promise<Community> {

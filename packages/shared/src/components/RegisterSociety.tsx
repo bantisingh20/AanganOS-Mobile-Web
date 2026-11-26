@@ -117,7 +117,11 @@ export function RegisterSociety({
       });
       onSuccess(result.message || '');
     } catch (err) {
-      setError(toFormError(err));
+      const fe = toFormError(err);
+      if (fe.message.toLowerCase().includes('organization with this name') || fe.message.toLowerCase().includes('already exists')) {
+        fe.fieldErrors = { ...fe.fieldErrors, organizationName: fe.message };
+      }
+      setError(fe);
     } finally {
       setBusy(false);
     }

@@ -65,8 +65,8 @@ export function MaintenanceBillingView({ mode = 'admin', permKey, onBack }: Main
   const canEditExpense = isAdmin || expensePerm.canEdit || perm.canEdit;
   const canDeleteExpense = isAdmin || expensePerm.canDelete || perm.canDelete;
 
-  // Active Tab & Filters
-  const [tab, setTab] = useState<Tab>('bills');
+  // Active Tab & Filters (Order: Dashboard -> Expenses -> Bills -> Charges)
+  const [tab, setTab] = useState<Tab>('dashboard');
   const [filterOrgId, setFilterOrgId] = useState<string | null>(scope.organizationId ?? null);
   const [filterCommunityId, setFilterCommunityId] = useState<string | null>(scope.scopedCommunityId ?? null);
 
@@ -86,10 +86,10 @@ export function MaintenanceBillingView({ mode = 'admin', permKey, onBack }: Main
   const showCommunityCol = !effectiveCommunityId || scope.canViewCommunity;
 
   const tabs: { key: Tab; label: string }[] = [
+    { key: 'dashboard', label: t('billing.tabDashboard') },
+    { key: 'expenses', label: t('billing.tabExpenses') },
     { key: 'bills', label: t('billing.tabBills') },
     { key: 'charges', label: t('billing.tabCharges') },
-    { key: 'expenses', label: t('billing.tabExpenses') },
-    { key: 'dashboard', label: t('billing.tabDashboard') },
   ];
 
   const doWaive = async () => {

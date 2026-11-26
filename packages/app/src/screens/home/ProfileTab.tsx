@@ -6,6 +6,8 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
+import { toFormError } from '@shared/api/errors';
 import { useAuth } from '@shared/store/AuthContext';
 import { residents } from '@shared/services';
 import { useAsync } from '@shared/lib/useAsync';
@@ -158,7 +160,7 @@ function Row({ row, first, onNavigate }: { row: NavRow; first: boolean; onNaviga
 
 function PresenceRow() {
   const { t } = useTranslation();
-  const me = useAsync((signal) => residents.me({ signal }).catch(() => null), []);
+  const me = useAsync((signal) => residents.me({ signal, forceRefresh: true }).catch(() => null), []);
   const [value, setValue] = useState<'at_home' | 'outdoor'>('at_home');
   const [busy, setBusy] = useState(false);
 
@@ -176,8 +178,13 @@ function PresenceRow() {
     setBusy(true);
     try {
       await residents.setPresence(next);
-    } catch {
+      if (me.data?.resident) {
+        me.data.resident.presenceStatus = next;
+      }
+      toast.success(next === 'at_home' ? t('profile.atHome') : t('profile.outdoor'));
+    } catch (err) {
       setValue(prev);
+      toast.error(toFormError(err).message);
     } finally {
       setBusy(false);
     }

@@ -66,7 +66,9 @@ export function UnitsPage() {
   const labelOf = (opts: Option[], code: string | null | undefined) => opts.find((o) => o.value === code)?.label ?? code ?? '—';
 
   const effectiveCommunityId = communityId ?? filterCommunityId ?? scope.scopedCommunityId ?? undefined;
-  const effectiveOrgId = !effectiveCommunityId && scope.showOrgFilter ? filterOrgId ?? undefined : undefined;
+  const effectiveOrgId = !effectiveCommunityId
+    ? (scope.showOrgFilter ? filterOrgId ?? undefined : scope.organizationId ?? undefined)
+    : undefined;
 
   const query = useAsync(
     (signal) => units.list(
@@ -177,7 +179,7 @@ export function UnitsPage() {
               className="w-36 text-xs [&>button]:h-7.5 [&>button]:rounded-md [&>button]:text-[11px] [&>button]:px-2"
               value={filterCommunityId}
               onChange={(v) => { setFilterCommunityId(v); setPage(1); }}
-              fetchPage={makeCommunityFetch(filterOrgId ?? undefined)}
+              fetchPage={makeCommunityFetch(filterOrgId ?? scope.organizationId ?? undefined)}
               resolveLabel={resolveCommunityLabel}
               placeholder={t('units.filterCommunity')}
             />

@@ -1,7 +1,7 @@
 import type { ApiClient } from './client';
 import type { PagedData } from './types';
 import { buildQuery, listQueryParams, type ListQuery } from './query';
-import { cacheGet, cacheSet } from '../lib/cache';
+import { cacheGet, cacheSet, cacheInvalidate } from '../lib/cache';
 
 export const ResidentVerificationStatus = {
   Draft: 'draft',
@@ -204,8 +204,10 @@ export class ResidentsClient {
     return this.api.post<Resident>(`/api/v1/residents/${id}/reject`, { body: { reason } });
   }
 
-  setPresence(presenceStatus: 'at_home' | 'outdoor'): Promise<Resident> {
-    return this.api.post<Resident>('/api/v1/residents/me/presence', { body: { presenceStatus } });
+  async setPresence(presenceStatus: 'at_home' | 'outdoor'): Promise<Resident> {
+    const res = await this.api.post<Resident>('/api/v1/residents/me/presence', { body: { presenceStatus } });
+    cacheInvalidate('residents_me');
+    return res;
   }
 
   submitKyc(body: SubmitKycBody): Promise<Resident> {

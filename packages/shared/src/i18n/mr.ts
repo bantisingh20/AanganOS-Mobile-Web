@@ -1266,7 +1266,7 @@ export const mr: Translation = {
     editExpenseTitle: 'खर्च संपादित करा',
     selectCategory: 'श्रेणी निवडा',
     expenseTitlePlaceholder: 'उदा. दिवाळी सजावट',
-    spentOn: 'खर्च तारीख',
+    spentOn: 'दिनांक (Date)',
     vendorPlaceholder: 'कोणाला दिले',
     notes: 'टिपा (पर्यायी)',
     notesPlaceholder: 'बिल क्र., वर्णन…',

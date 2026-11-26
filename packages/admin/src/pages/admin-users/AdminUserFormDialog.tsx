@@ -77,21 +77,43 @@ export function AdminUserFormDialog({
   };
 
   const roleChoices = useMemo(() => {
-    const base = [...creatableRoles];
-    if (admin) for (const r of admin.roles) if (!base.includes(r)) base.push(r);
-    return base;
+    const seen = new Set<string>();
+    const list: string[] = [];
+    for (const r of creatableRoles) {
+      const trimmed = r.trim();
+      if (trimmed && !seen.has(trimmed.toLowerCase())) {
+        seen.add(trimmed.toLowerCase());
+        list.push(trimmed);
+      }
+    }
+    if (admin) {
+      for (const r of admin.roles) {
+        const trimmed = r.trim();
+        if (trimmed && !seen.has(trimmed.toLowerCase())) {
+          seen.add(trimmed.toLowerCase());
+          list.push(trimmed);
+        }
+      }
+    }
+    return list;
   }, [creatableRoles, admin]);
 
   useEffect(() => {
     if (!open) return;
     setName(admin?.name ?? '');
-    setPhone('');
-    setEmail('');
+    setPhone(admin?.phone ?? '');
+    setEmail(admin?.email ?? '');
     setPassword('');
     setRoleName(admin?.roles[0] ?? creatableRoles[0] ?? '');
     setActive(admin?.status !== 'Suspended');
-    setCommunityId(admin?.assignments.find((a) => a.communityId)?.communityId ?? null);
+    const assignedCommId = admin?.assignments.find((a) => a.communityId)?.communityId ?? null;
+    setCommunityId(assignedCommId);
     setOrganizationId(null);
+    if (assignedCommId) {
+      communities.get(assignedCommId).then((c) => {
+        if (c?.organizationId) setOrganizationId(c.organizationId);
+      }).catch(() => undefined);
+    }
   }, [open, admin, creatableRoles]);
 
   const submit = async () => {

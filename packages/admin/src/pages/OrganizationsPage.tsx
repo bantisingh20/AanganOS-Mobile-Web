@@ -10,6 +10,7 @@ import { ConfirmDialog } from '@shared/components/ui/confirm-dialog';
 import { Table, THead, TBody, TR, TH, TD } from '@shared/components/ui/table';
 import { Pagination } from '@shared/components/ui/pagination';
 import { organizations, subscriptions } from '@shared/services';
+import { cacheInvalidate } from '@shared/lib/cache';
 import type { Organization } from '@shared/api/organizations';
 import type { RenewalRequest } from '@shared/api/subscriptions';
 import { useAsync } from '@shared/lib/useAsync';
@@ -35,7 +36,7 @@ export function OrganizationsPage() {
   const [reloadKey, setReloadKey] = useState(0);
 
   const orgQuery = useAsync(
-    (signal) => organizations.list({ search: search.trim() || undefined, page, pageSize }, { signal }).catch(() => null),
+    (signal) => organizations.list({ search: search.trim() || undefined, page, pageSize }, { signal, forceRefresh: true }).catch(() => null),
     [search, page, pageSize, reloadKey],
   );
   const renewalsQuery = useAsync(
@@ -45,7 +46,10 @@ export function OrganizationsPage() {
 
   const items = useMemo(() => orgQuery.data?.items ?? [], [orgQuery.data]);
   const renewals = renewalsQuery.data ?? [];
-  const reload = () => setReloadKey((k) => k + 1);
+  const reload = () => {
+    cacheInvalidate('org');
+    setReloadKey((k) => k + 1);
+  };
 
   const doActivate = async () => {
     if (!confirmActivate || confirmBusy) return;

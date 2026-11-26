@@ -49,7 +49,13 @@ export function SetChargeDialog({
     [open, targetCommunityId]
   );
   const unitOptions = useMemo<Option[]>(
-    () => (unitsQuery.data ?? []).map((u) => ({ value: u.id, label: u.unitNumber })),
+    () =>
+      [...(unitsQuery.data ?? [])]
+        .sort((a, b) => a.unitNumber.localeCompare(b.unitNumber, undefined, { numeric: true, sensitivity: 'base' }))
+        .map((u) => ({
+          value: u.id,
+          label: u.floor ? `${u.unitNumber} · Floor ${u.floor}` : u.unitNumber,
+        })),
     [unitsQuery.data]
   );
 

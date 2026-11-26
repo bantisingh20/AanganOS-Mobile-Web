@@ -37,6 +37,21 @@ export class MasterDataClient {
     return promise;
   }
 
+  listKeys(options?: { signal?: AbortSignal }): Promise<string[]> {
+    return this.api.get<string[]>('/api/v1/master-data-keys', options);
+  }
+
+  async setEntry(
+    listKey: string,
+    entry: { code: string; label: string; sortOrder: number; isActive: boolean },
+    communityId?: string | null
+  ): Promise<MasterDataEntry> {
+    const params = communityId ? `?communityId=${communityId}` : '';
+    const result = await this.api.put<MasterDataEntry>(`/api/v1/master-data/${listKey}${params}`, { body: entry });
+    this.invalidate(listKey);
+    return result;
+  }
+
   invalidate(listKey?: string): void {
     if (listKey) {
       for (const k of this.cache.keys()) {

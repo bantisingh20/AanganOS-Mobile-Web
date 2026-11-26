@@ -21,6 +21,7 @@ import { NotificationsPage } from '@admin/pages/NotificationsPage';
 import { NotificationTemplatesPage } from '@admin/pages/NotificationTemplatesPage';
 import { UsersPage } from '@admin/pages/UsersPage';
 import { MenuManagementPage } from '@admin/pages/MenuManagementPage';
+import { MasterDataMenuPage } from '@admin/pages/MasterDataMenuPage';
 import { ConfigPage } from '@admin/pages/ConfigPage';
 import { RolesPage } from '@admin/pages/RolesPage';
 import { CommunicationTestPage } from '@admin/pages/CommunicationTestPage';
@@ -67,6 +68,8 @@ export function App() {
           <Route path="/notification-templates" element={<RequireAuth><NotificationTemplatesPage /></RequireAuth>} />
           <Route path="/users" element={<RequireAuth><UsersPage /></RequireAuth>} />
           <Route path="/menu-management" element={<RequireAuth><MenuManagementPage /></RequireAuth>} />
+          <Route path="/master-data" element={<RequireAuth><MasterDataMenuPage /></RequireAuth>} />
+          <Route path="/master-menu" element={<RequireAuth><MasterDataMenuPage /></RequireAuth>} />
           <Route path="/config" element={<RequireAuth><ConfigPage /></RequireAuth>} />
           <Route path="/roles" element={<RequireAuth><RolesPage /></RequireAuth>} />
           <Route path="/communication-test" element={<RequireAuth><CommunicationTestPage /></RequireAuth>} />

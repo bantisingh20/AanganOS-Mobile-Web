@@ -1264,7 +1264,7 @@ export const en = {
     editExpenseTitle: 'Edit expense',
     selectCategory: 'Select category',
     expenseTitlePlaceholder: 'e.g. Diwali lighting & decoration',
-    spentOn: 'Spent on',
+    spentOn: 'Date',
     vendorPlaceholder: 'Who was paid',
     notes: 'Notes (optional)',
     notesPlaceholder: 'Bill no., description…',
