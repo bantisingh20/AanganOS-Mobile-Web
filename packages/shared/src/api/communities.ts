@@ -7,6 +7,8 @@ export interface Community {
   id: string;
   organizationId: string;
   name: string;
+  /** Short wing/tower code, e.g. "A" for "A Wing". Units show as {code}-{unitNumber}. */
+  code?: string | null;
   communityType?: string | null;
   organizationName: string | null;
 }
@@ -38,13 +40,13 @@ export class CommunitiesClient {
     return this.api.get<Community>(`/api/v1/communities/${id}`, options);
   }
 
-  async create(body: { organizationId: string; name: string; communityType?: string }): Promise<Community> {
+  async create(body: { organizationId: string; name: string; communityType?: string; code?: string }): Promise<Community> {
     const res = await this.api.post<Community>('/api/v1/communities', { body });
     cacheInvalidate('communit');
     return res;
   }
 
-  async update(id: string, body: { name?: string; communityType?: string }): Promise<Community> {
+  async update(id: string, body: { name?: string; communityType?: string; code?: string }): Promise<Community> {
     const res = await this.api.put<Community>(`/api/v1/communities/${id}`, { body });
     cacheInvalidate('communit');
     return res;

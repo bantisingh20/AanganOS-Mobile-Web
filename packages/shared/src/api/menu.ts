@@ -6,6 +6,10 @@ export interface MenuNode {
   icon: string | null;
   route: string | null;
   children: MenuNode[];
+  /** Permission resource of the DB menu row (MenuItems.RequiredPermissionResource). */
+  permissionResource?: string | null;
+  /** Actions that make the row visible (MenuItems.RequiredPermissionActions). */
+  permissionActions?: number[] | null;
 }
 
 export class MenuClient {

@@ -1,5 +1,24 @@
 apply plugin: 'com.android.application'
 
+import groovy.json.JsonSlurper
+
+// Single source of truth for the app version: packages/app/package.json "version" (e.g. 1.2.3).
+// versionCode = major*10000 + minor*100 + patch, so it always increases with the version.
+// build-release-apk.bat bumps the patch before every release build.
+def appVersionName = new JsonSlurper().parse(file('../../package.json')).version as String
+def appVersionParts = appVersionName.tokenize('.').collect { (it.replaceAll(/[^0-9].*/, '') ?: '0') as int }
+def appVersionCode = appVersionParts[0] * 10000 + (appVersionParts.size() > 1 ? appVersionParts[1] : 0) * 100 + (appVersionParts.size() > 2 ? appVersionParts[2] : 0)
+
+// android/keystore.properties: storeFile=../aanganos-release.jks, storePassword=…, keyAlias=aanganos, keyPassword=…
+def releaseKeystoreFile = rootProject.file('keystore.properties')
+def releaseKeystore = null
+if (releaseKeystoreFile.exists()) {
+    releaseKeystore = new Properties()
+    releaseKeystoreFile.withInputStream { releaseKeystore.load(it) }
+} else {
+    println "WARNING: android/keystore.properties not found — release APK will be signed with the DEBUG key."
+}
+
 android {
     namespace "com.aanganos.app"
     compileSdk rootProject.ext.compileSdkVersion
@@ -7,8 +26,8 @@ android {
         applicationId "com.aanganos.resident"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode appVersionCode
+        versionName appVersionName
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,9 +35,22 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // Release signing: real key from android/keystore.properties (git-ignored) when present.
+    // Without it the build falls back to the DEBUG key and prints a warning — debug-signed APKs
+    // cannot be published and anyone can sign a look-alike update. See docs/CODE-HEALTH.md.
+    signingConfigs {
+        release {
+            if (releaseKeystore != null) {
+                storeFile file(releaseKeystore['storeFile'])
+                storePassword releaseKeystore['storePassword']
+                keyAlias releaseKeystore['keyAlias']
+                keyPassword releaseKeystore['keyPassword']
+            }
+        }
+    }
     buildTypes {
         release {
-            signingConfig signingConfigs.debug
+            signingConfig releaseKeystore != null ? signingConfigs.release : signingConfigs.debug
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

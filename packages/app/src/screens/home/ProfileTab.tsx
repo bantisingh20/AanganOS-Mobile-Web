@@ -6,23 +6,16 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
-import { toFormError } from '@shared/api/errors';
 import { useAuth } from '@shared/store/AuthContext';
 import { residents } from '@shared/services';
-import { useAsync } from '@shared/lib/useAsync';
+import { useAsync } from '@shared/lib/hooks/useAsync';
 import { resolvePersona } from '@shared/lib/roles';
 import { cn } from '@shared/lib/utils';
 import { TopBar } from '@app/components/TopBar';
-import { LanguageSwitcher } from '@shared/components/LanguageSwitcher';
-import { useAppTheme } from '@shared/lib/useTheme';
-
-function initialsOf(name: string): string {
-  const parts = name.replace(/@.*$/, '').replace(/[^a-zA-Z0-9 ]/g, ' ').trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return 'U';
-  if (parts.length === 1) return parts[0]!.slice(0, 2).toUpperCase();
-  return (parts[0]![0]! + parts[1]![0]!).toUpperCase();
-}
+import { LanguageSwitcher } from '@shared/components/layout/LanguageSwitcher';
+import { useAppTheme } from '@shared/lib/hooks/useTheme';
+import { tryToast } from '@shared/lib/withToast';
+import { initialsOf } from './dashboardHelpers';
 
 interface NavRow { path?: string; icon: LucideIcon; labelKey: string; subKey: string; tint: string }
 
@@ -53,7 +46,7 @@ export function ProfileTab({
   ];
   const supportRows: NavRow[] = [
     // ...(persona === 'resident' ? [] : []),
-    { path: '/raise-ticket', icon: HelpCircle, labelKey: 'profile.support', subKey: 'profile.supportSub', tint: '#0ea5e9' },
+    { path: '/helpdesk/new', icon: HelpCircle, labelKey: 'profile.support', subKey: 'profile.supportSub', tint: '#0ea5e9' },
     { icon: FileText, labelKey: 'profile.termsPrivacy', subKey: 'profile.termsPrivacySub', tint: '#64748b' },
   ];
 
@@ -177,14 +170,9 @@ function PresenceRow() {
     setValue(next);
     setBusy(true);
     try {
-      await residents.setPresence(next);
-      if (me.data?.resident) {
-        me.data.resident.presenceStatus = next;
-      }
-      toast.success(next === 'at_home' ? t('profile.atHome') : t('profile.outdoor'));
-    } catch (err) {
-      setValue(prev);
-      toast.error(toFormError(err).message);
+      const ok = await tryToast(() => residents.setPresence(next), next === 'at_home' ? t('profile.atHome') : t('profile.outdoor'));
+      if (!ok) setValue(prev);
+      else if (me.data?.resident) me.data.resident.presenceStatus = next;
     } finally {
       setBusy(false);
     }

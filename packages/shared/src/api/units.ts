@@ -14,6 +14,8 @@ export interface Unit {
   unitStatus: string;
   communityName: string | null;
   organizationName: string | null;
+  /** The community (wing) code. Display units with unitLabel() from lib/unitLabel. */
+  communityCode?: string | null;
 }
 
 export interface UnitListFilters {

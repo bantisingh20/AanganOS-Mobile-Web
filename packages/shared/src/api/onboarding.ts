@@ -5,6 +5,7 @@ export interface PublicCommunity {
   id: string;
   name: string;
   communityType?: string | null;
+  code?: string | null;
 }
 
 export interface PublicSociety {
@@ -80,8 +81,16 @@ export interface OnboardingConfig {
 export class OnboardingClient {
   constructor(private readonly api: ApiClient) {}
 
-  getConfig(options?: { signal?: AbortSignal }): Promise<OnboardingConfig> {
-    return this.api.get<OnboardingConfig>('/api/v1/public/onboarding-config', { ...options, anonymous: true });
+  private configCache: Promise<OnboardingConfig> | null = null;
+
+  /** Public onboarding config — cached for the app session (it changes only on deploy/admin edit). */
+  getConfig(_options?: { signal?: AbortSignal }): Promise<OnboardingConfig> {
+    if (!this.configCache) {
+      this.configCache = this.api
+        .get<OnboardingConfig>('/api/v1/public/onboarding-config', { anonymous: true })
+        .catch((err) => { this.configCache = null; throw err; });
+    }
+    return this.configCache;
   }
 
   searchCommunities(search?: string,societyId?: string, options?: { signal?: AbortSignal }): Promise<PublicCommunity[]> {

@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@shared/store/AuthContext';
-import { resourceForKey } from '@shared/lib/usePermission';
-import { resolvePersona, type Persona } from '@shared/lib/roles';
-import { useMenu } from '@shared/lib/useMenu';
+import { resourceForKey } from '@shared/lib/hooks/usePermission';
+import { isAdminRole, resolvePersona, type Persona } from '@shared/lib/roles';
+import { useMenu } from '@shared/lib/hooks/useMenu';
 import type { MenuNode } from '@shared/api/menu';
 
 export type TileGroup = 'myHome' | 'community' | 'security' | 'support' | 'admin';
@@ -45,8 +45,8 @@ export const APP_TILES: AppTile[] = [
   { code: 'parcels', route: '/parcels', icon: 'Package', labelKey: 'services.myParcels', subKey: 'services.myParcelsSub', tint: '#cf5500', permKey: 'parcels', permAction: VIEW, group: 'community', personas: ['resident'], showInHome: true },
   { code: 'maintenance', route: '/maintenance', icon: 'CreditCard', labelKey: 'services.maintenance', subKey: 'services.maintenanceSub', tint: '#1a7f37', permKey: 'maintenance', permAction: VIEW, group: 'community', personas: ['resident', 'admin'], showInHome: true },
   { code: 'billing', route: '/billing', icon: 'Wallet', labelKey: 'services.billing', subKey: 'services.billingSub', tint: '#1a7f37', permKey: 'billing', permAction: VIEW, group: 'community', personas: ['admin', 'resident'], showInHome: true },
-  { code: 'helpdesk', route: '/my-tickets', icon: 'MessageCircle', labelKey: 'services.helpDesk', subKey: 'services.helpDeskSub', tint: '#16a34a', permKey: 'tickets', permAction: VIEW, group: 'community', personas: ['resident', 'admin'], showInHome: true },
-  { code: 'raise-ticket', route: '/raise-ticket', icon: 'MessageCircle', labelKey: 'services.helpDesk', subKey: 'services.helpDeskSub', tint: '#16a34a', permKey: 'tickets', permAction: VIEW, group: 'community', personas: ['resident'], showInHome: false },
+  { code: 'helpdesk', route: '/helpdesk', icon: 'MessageCircle', labelKey: 'services.helpDesk', subKey: 'services.helpDeskSub', tint: '#16a34a', permKey: 'tickets', permAction: VIEW, group: 'community', personas: ['resident', 'admin'], showInHome: true },
+  { code: 'raise-ticket', route: '/helpdesk/new', icon: 'MessageCircle', labelKey: 'services.helpDesk', subKey: 'services.helpDeskSub', tint: '#16a34a', permKey: 'tickets', permAction: VIEW, group: 'community', personas: ['resident'], showInHome: false },
   { code: 'announcements', route: '/announcements', icon: 'Megaphone', labelKey: 'services.announcements', subKey: 'services.announcementsSub', tint: '#8250df', permKey: 'announcements', permAction: VIEW, group: 'community', personas: ['resident', 'admin'], showInHome: true },
   { code: 'amenities', route: '/amenities', icon: 'Coffee', labelKey: 'services.amenities', subKey: '', tint: '#0284c7', permKey: 'amenities', permAction: VIEW, group: 'community', personas: ['resident', 'admin'], showInHome: true },
 
@@ -83,7 +83,7 @@ export function useAppTiles(): AppTilesResult {
 
   return useMemo<AppTilesResult>(() => {
     const persona = resolvePersona(roles);
-    const isAdmin = roles.some((r) => /admin|poweruser|superadmin/i.test(r));
+    const isAdmin = isAdminRole(roles);
     const granted = new Set(user?.permissions ?? []);
 
     const canSee = (permKey: string, action: number = VIEW): boolean => {
@@ -220,7 +220,7 @@ export function useDynamicTiles(): DynamicTilesResult {
   const { user, roles } = useAuth();
   const { items: menuNodes, loading } = useMenu([]);
 
-  const isAdmin = roles.some((r) => /admin|poweruser|superadmin/i.test(r));
+  const isAdmin = isAdminRole(roles);
   const granted = useMemo(() => new Set(user?.permissions ?? []), [user?.permissions]);
 
   const canSee = (permKey: string, action: number = VIEW): boolean => {

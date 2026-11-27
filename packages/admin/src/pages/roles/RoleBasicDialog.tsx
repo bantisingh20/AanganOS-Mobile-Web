@@ -1,28 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
 import { Dialog, DialogHeader } from '@shared/components/ui/dialog';
 import { Button } from '@shared/components/ui/button';
 import { Input } from '@shared/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@shared/components/ui/select';
-import { EntitySelect, type EntityPage } from '@shared/components/EntitySelect';
-import { roles, communities } from '@shared/services';
+import { EntitySelect } from '@shared/components/form/EntitySelect';
+import { roles } from '@shared/services';
 import type { Role } from '@shared/api/roles';
-import { toFormError } from '@shared/api/errors';
-
-export const SCOPE_PLATFORM = 0;
-export const SCOPE_COMMUNITY = 1;
-
-export function makeCommunityFetch(organizationId?: string) {
-  return async (search: string, page: number, pageSize: number, signal: AbortSignal): Promise<EntityPage> => {
-    const d = await communities.list({ search: search || undefined, page, pageSize }, organizationId ? { organizationId } : {}, { signal });
-    return { items: d.items.map((c) => ({ value: c.id, label: c.name })), total: d.totalCount };
-  };
-}
-
-export async function resolveCommunityLabel(id: string, signal: AbortSignal): Promise<string | null> {
-  try { return (await communities.get(id, { signal })).name; } catch { return null; }
-}
+import { withToast } from '@shared/lib/withToast';
+import { fetchCommunityPage, resolveCommunityLabel } from '@shared/lib/entityFetchers';
+import { SCOPE_PLATFORM, SCOPE_COMMUNITY } from './roleConstants';
 
 export function RoleBasicDialog({
   open, role, cloneSource, onClose, onSaved,
@@ -61,17 +48,12 @@ export function RoleBasicDialog({
         name: name.trim(), scope, communityId: scope === SCOPE_COMMUNITY ? communityId || null : null, permissions,
       };
 
-      let result: Role;
-      if (isEdit) {
-        result = await roles.update(role!.id, body);
-        toast.success(t('roles.updated'));
-      } else {
-        result = await roles.create(body);
-        toast.success(isClone ? 'Role duplicated successfully' : t('roles.created'));
-      }
-      onSaved(result);
-    } catch (err) { toast.error(toFormError(err).message); }
-    finally { setBusy(false); }
+      const result = await withToast(
+        () => (isEdit ? roles.update(role!.id, body) : roles.create(body)),
+        isEdit ? t('roles.updated') : isClone ? 'Role duplicated successfully' : t('roles.created'),
+      );
+      if (result) onSaved(result);
+    } finally { setBusy(false); }
   };
 
   return (
@@ -95,16 +77,16 @@ export function RoleBasicDialog({
         {scope === SCOPE_COMMUNITY && (
           <div>
             <label className="mb-1 block text-xs font-medium text-foreground">{t('roles.community')} *</label>
-            <EntitySelect value={communityId || null} onChange={(v) => setCommunityId(v ?? '')} fetchPage={makeCommunityFetch()} resolveLabel={resolveCommunityLabel} placeholder={t('roles.selectCommunity')}
+            <EntitySelect value={communityId || null} onChange={(v) => setCommunityId(v ?? '')} fetchPage={fetchCommunityPage} resolveLabel={resolveCommunityLabel} placeholder={t('roles.selectCommunity')}
               className="[&>button]:h-9 [&>button]:rounded-md [&>button]:text-xs [&>button]:px-3" />
           </div>
         )}
         <div className="mt-2 pt-3 border-t border-border/70 flex items-center justify-end gap-2.5">
           <Button type="button" variant="outline" onClick={onClose} disabled={busy} className="h-8.5 px-4 rounded-[4px] text-xs font-medium border-border/80">
-            {t('orgs.cancel')}
+            {t('common.cancel')}
           </Button>
           <Button type="submit" disabled={busy || !canSubmit} className="h-8.5 px-4 rounded-[4px] text-xs font-medium">
-            {busy ? 'Saving...' : isEdit ? t('roles.saveChanges') : isClone ? 'Duplicate Role' : t('roles.create')}
+            {busy ? t('common.saving', 'Saving...') : isEdit ? t('roles.saveChanges') : isClone ? 'Duplicate Role' : t('roles.create')}
           </Button>
         </div>
       </form>

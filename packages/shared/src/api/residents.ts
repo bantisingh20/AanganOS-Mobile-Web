@@ -53,6 +53,8 @@ export interface ResidentHouseholdUnit {
   floor: string | null;
   communityId?: string | null;
   organizationId?: string | null;
+  /** The community (wing) code; show with unitLabel(). */
+  communityCode?: string | null;
 
   relationship: string;
   startDate: string;
@@ -167,6 +169,11 @@ export class ResidentsClient {
     const data = await this.api.get<ResidentMe>('/api/v1/residents/me', options);
     cacheSet(key, data, 15 * 60 * 1000);
     return data;
+  }
+
+  /** Fill the 15-min profile cache from the startup bootstrap. */
+  primeMe(data: ResidentMe): void {
+    cacheSet('residents_me', data, 15 * 60 * 1000);
   }
 
   list(query: ListQuery = {}, filters: ResidentListFilters = {}, options?: { signal?: AbortSignal }): Promise<PagedData<Resident>> {

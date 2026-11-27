@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Why this file exists:
+  The API certificate (*.sharcnix.com, GoGetSSL) chains up to
+  "Sectigo Public Server Authentication Root R46". That root is NOT in the
+  built-in CA store of Android 13 and older, so native HTTPS calls
+  (CapacitorHttp -> HttpURLConnection) fail on those phones with
+  "Trust anchor for certification path not found", which the app shows as
+  "Network request failed."
+
+  We trust the system store as usual, plus the bundled R46 root
+  (res/raw/sectigo_r46_root.pem, SHA-256 7B:B6:47:A6:...:5A:06).
+  Applies on Android 7.0+ (API 24+).
+
+  Plain HTTP is blocked everywhere except local development hosts:
+  localhost / 127.0.0.1 (adb reverse tcp:5272) and 10.0.2.2 (emulator -> PC).
+  Testing against a PC on Wi-Fi by IP needs that IP added below, or use adb reverse.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="@raw/sectigo_r46_root" />
+        </trust-anchors>
+    </base-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">localhost</domain>
+        <domain includeSubdomains="false">127.0.0.1</domain>
+        <domain includeSubdomains="false">10.0.2.2</domain>
+    </domain-config>
+</network-security-config>

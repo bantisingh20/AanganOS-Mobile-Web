@@ -4,6 +4,7 @@ import { en } from './en';
 import { hi } from './hi';
 import { gu } from './gu';
 import { mr } from './mr';
+import { safeStorage } from '../lib/storage';
 
 export const SUPPORTED_LANGUAGES = [
   { code: 'en', label: 'English', native: 'English' },
@@ -18,7 +19,7 @@ const LANGUAGE_KEY = 'aanganos.language';
 
 export function initI18n(): typeof i18n {
   if (!i18n.isInitialized) {
-    const stored = (typeof localStorage !== 'undefined' && localStorage.getItem(LANGUAGE_KEY)) || 'en';
+    const stored = safeStorage.get(LANGUAGE_KEY) || 'en';
     void i18n.use(initReactI18next).init({
       resources: {
         en: { translation: en },
@@ -35,7 +36,7 @@ export function initI18n(): typeof i18n {
 }
 
 export function setLanguage(code: LanguageCode): void {
-  if (typeof localStorage !== 'undefined') localStorage.setItem(LANGUAGE_KEY, code);
+  safeStorage.set(LANGUAGE_KEY, code);
   void i18n.changeLanguage(code);
 }
 

@@ -1,4 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
+import { initials } from '@shared/lib/format';
 
 export interface QuickActionItem {
   code: string;
@@ -19,11 +20,6 @@ export const NOTICE_META: Record<string, { tint: string }> = {
   general: { tint: '#0ea5e9' },
 };
 
-export function noticeDate(iso: string): string {
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
-}
-
 export function greetingKey(): 'home.greetingMorning' | 'home.greetingAfternoon' | 'home.greetingEvening' {
   const h = new Date().getHours();
   if (h < 12) return 'home.greetingMorning';
@@ -31,11 +27,9 @@ export function greetingKey(): 'home.greetingMorning' | 'home.greetingAfternoon'
   return 'home.greetingEvening';
 }
 
+/** Initials for the signed-in user; the display name can be an e-mail, so drop the domain first. */
 export function initialsOf(name: string): string {
-  const parts = name.replace(/@.*$/, '').replace(/[^a-zA-Z0-9 ]/g, ' ').trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return 'U';
-  if (parts.length === 1) return parts[0]!.slice(0, 2).toUpperCase();
-  return (parts[0]![0]! + parts[1]![0]!).toUpperCase();
+  return initials(name.replace(/@.*$/, ''));
 }
 
 export function severityTint(sev: string): string {

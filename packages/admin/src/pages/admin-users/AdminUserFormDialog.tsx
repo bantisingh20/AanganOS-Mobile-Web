@@ -5,36 +5,18 @@ import { Button } from '@shared/components/ui/button';
 import { Input } from '@shared/components/ui/input';
 import { Dialog, DialogHeader } from '@shared/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@shared/components/ui/select';
-import { EntitySelect, type EntityPage } from '@shared/components/EntitySelect';
-import { PhoneField } from '@shared/components/PhoneField';
-import { adminUsers, organizations, communities } from '@shared/services';
+import { EntitySelect } from '@shared/components/form/EntitySelect';
+import { PhoneField } from '@shared/components/form/PhoneField';
+import { adminUsers, communities } from '@shared/services';
 import type { AdminUser } from '@shared/api/adminUsers';
 import type { Role } from '@shared/api/roles';
 import { cn } from '@shared/lib/utils';
-import { toFormError } from '@shared/api/errors';
+import { tryToast } from '@shared/lib/withToast';
+import { fetchOrgPage, makeCommunityFetch, resolveCommunityLabel, resolveOrgLabel } from '@shared/lib/entityFetchers';
 
 export const ROLE_POWER = 'PowerUser';
 export const ROLE_ORG = 'OrganizationAdmin';
 export const ROLE_COMMUNITY = 'CommunityAdmin';
-
-function fetchOrgPage(search: string, page: number, pageSize: number, signal: AbortSignal): Promise<EntityPage> {
-  return organizations.list({ search: search || undefined, page, pageSize }, { signal })
-    .then((d) => ({ items: d.items.map((o) => ({ value: o.id, label: o.name })), total: d.totalCount }));
-}
-
-function makeCommunityFetch(organizationId?: string) {
-  return (search: string, page: number, pageSize: number, signal: AbortSignal): Promise<EntityPage> =>
-    communities.list({ search: search || undefined, page, pageSize }, organizationId ? { organizationId } : {}, { signal })
-      .then((d) => ({ items: d.items.map((c) => ({ value: c.id, label: c.name })), total: d.totalCount }));
-}
-
-function resolveCommunityLabel(id: string, signal: AbortSignal) {
-  return communities.get(id, { signal }).then((c) => c.name).catch(() => null);
-}
-
-function resolveOrgLabel(id: string, signal: AbortSignal) {
-  return organizations.get(id, { signal }).then((o) => o.name).catch(() => null);
-}
 
 export function AdminUserFormDialog({
   open, admin, creatableRoles, dbRoles, onClose, onSaved,
@@ -125,29 +107,25 @@ export function AdminUserFormDialog({
     if (needsCommunity && !communityId) { toast.error(t('adminUsers.needCommunity')); return; }
     setBusy(true);
     try {
-      if (isEdit) {
-        await adminUsers.update(admin!.id, {
+      const ok = await tryToast(() => (isEdit
+        ? adminUsers.update(admin!.id, {
           name: name.trim() || null,
           password: password ? password : null,
           roleName,
           status: active ? 'Active' : 'Suspended',
           organizationId: needsOrg ? organizationId : null,
           communityId: needsCommunity ? communityId : null,
-        });
-      } else {
-        await adminUsers.create({
+        })
+        : adminUsers.create({
           name: name.trim() || null,
           identifier: loginIdentifier,
           password,
           roleName,
           organizationId: needsOrg ? organizationId : null,
           communityId: needsCommunity ? communityId : null,
-        });
-      }
-      toast.success(isEdit ? t('adminUsers.updated') : t('adminUsers.created'));
-      onSaved();
-    } catch (err) { toast.error(toFormError(err).message); }
-    finally { setBusy(false); }
+        })), isEdit ? t('adminUsers.updated') : t('adminUsers.created'));
+      if (ok) onSaved();
+    } finally { setBusy(false); }
   };
 
   return (
@@ -214,7 +192,7 @@ export function AdminUserFormDialog({
 
       <div className="mt-5 pt-3.5 border-t border-border/70 flex items-center justify-end gap-2.5">
         <Button type="button" variant="outline" onClick={onClose} className="h-8.5 px-4 rounded-[4px] text-xs font-medium border-border/80">
-          {t('orgs.cancel')}
+          {t('common.cancel')}
         </Button>
         <Button type="button" onClick={submit} disabled={busy || !roleName} className="h-8.5 px-4 rounded-[4px] text-xs font-medium">
           {isEdit ? t('adminUsers.saveChanges') : t('adminUsers.createUser')}

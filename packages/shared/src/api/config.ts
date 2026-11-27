@@ -24,8 +24,22 @@ export interface ConfigValueResponse {
   value: string | null;
 }
 
+/** Public version info used by the app's update prompt (GET /api/v1/app-version, no login). */
+export interface AppVersionInfo {
+  platform: string;
+  latestVersionCode: number;
+  latestVersionName: string;
+  minVersionCode: number;
+  updateUrl: string;
+  updateMessage: string;
+}
+
 export class ConfigClient {
   constructor(private readonly api: ApiClient) {}
+
+  appVersion(platform: 'android' | 'ios', options?: { signal?: AbortSignal }): Promise<AppVersionInfo> {
+    return this.api.get<AppVersionInfo>(`/api/v1/app-version${buildQuery({ platform })}`, { ...options, anonymous: true });
+  }
 
   list(search?: string, options?: { signal?: AbortSignal }): Promise<ConfigRow[]> {
     const qs = buildQuery({ search });

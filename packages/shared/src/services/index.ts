@@ -37,6 +37,11 @@ export const tokenStore = new WebTokenStore();
 export const api = new ApiClient({
   baseUrl,
   tokenStore,
+  // Stay signed in until the user logs out or the server ends the session (e.g. login on another
+  // device). Only a real rejection from /auth/refresh signs the user out. A temporary problem — no
+  // network, timeout, server restarting, 5xx — keeps the tokens and fails just this request, so the
+  // next call or app resume can refresh again. (Previously ANY failure cleared the session, which
+  // logged Android users out whenever they opened the app on a bad connection.)
   refreshToken: async (store) => {
     const refreshToken = store.getRefreshToken();
     if (!refreshToken) return null;
@@ -44,12 +49,18 @@ export const api = new ApiClient({
       const result = await rawRefresh(baseUrl, refreshToken);
       store.setFromLogin(result);
       return result.accessToken;
-    } catch {
-      store.clear();
-      return null;
+    } catch (err) {
+      if (err instanceof SessionRejectedError) {
+        store.clear();
+        return null;
+      }
+      throw err;
     }
   },
 });
+
+/** /auth/refresh said no (expired, revoked by another login, or logged out): the session is over. */
+class SessionRejectedError extends Error {}
 
 export const auth = new AuthService(api, tokenStore);
 export const onboarding = new OnboardingClient(api);
@@ -82,12 +93,23 @@ export const communicationTest = new CommunicationTestClient(api);
 export const errorLogs = new ErrorLogsClient(api);
 
 async function rawRefresh(base: string, refreshToken: string) {
-  const res = await fetch(`${base.replace(/\/+$/, '')}/api/v1/auth/refresh`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify({ refreshToken }),
-  });
-  const envelope = await res.json();
-  if (!res.ok || !envelope?.success) throw new Error('refresh failed');
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 20000);
+  let res: Response;
+  try {
+    res = await fetch(`${base.replace(/\/+$/, '')}/api/v1/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ refreshToken }),
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+  // 400/401/403 = the server rejected this refresh token → session is over.
+  if (res.status === 400 || res.status === 401 || res.status === 403) throw new SessionRejectedError('session ended');
+  // Anything else that isn't a valid success (5xx, proxy error page, non-JSON) is temporary.
+  const envelope = await res.json().catch(() => null);
+  if (!res.ok || !envelope?.success || !envelope.data?.accessToken) throw new Error(`refresh unavailable (HTTP ${res.status})`);
   return envelope.data as { accessToken: string; refreshToken: string; expiresAtUtc: string; user?: unknown };
 }

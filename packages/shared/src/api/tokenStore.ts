@@ -1,3 +1,5 @@
+import { safeStorage } from '../lib/storage';
+
 export interface LoginTokens {
   accessToken: string;
   refreshToken: string;
@@ -22,36 +24,30 @@ export class WebTokenStore implements TokenStore {
   private readonly listeners = new Set<() => void>();
 
   getAccessToken(): string | null {
-    return localStorage.getItem(ACCESS_KEY);
+    return safeStorage.get(ACCESS_KEY);
   }
 
   getRefreshToken(): string | null {
-    return localStorage.getItem(REFRESH_KEY);
+    return safeStorage.get(REFRESH_KEY);
   }
 
   getUser<T = unknown>(): T | null {
-    const raw = localStorage.getItem(USER_KEY);
-    if (!raw) return null;
-    try {
-      return JSON.parse(raw) as T;
-    } catch {
-      return null;
-    }
+    return safeStorage.getJson<T | null>(USER_KEY, null);
   }
 
   setFromLogin(tokens: LoginTokens): void {
-    localStorage.setItem(ACCESS_KEY, tokens.accessToken);
-    localStorage.setItem(REFRESH_KEY, tokens.refreshToken);
+    safeStorage.set(ACCESS_KEY, tokens.accessToken);
+    safeStorage.set(REFRESH_KEY, tokens.refreshToken);
     if (tokens.user != null) {
-      localStorage.setItem(USER_KEY, JSON.stringify(tokens.user));
+      safeStorage.setJson(USER_KEY, tokens.user);
     }
     this.emit();
   }
 
   clear(): void {
-    localStorage.removeItem(ACCESS_KEY);
-    localStorage.removeItem(REFRESH_KEY);
-    localStorage.removeItem(USER_KEY);
+    safeStorage.remove(ACCESS_KEY);
+    safeStorage.remove(REFRESH_KEY);
+    safeStorage.remove(USER_KEY);
     this.emit();
   }
 

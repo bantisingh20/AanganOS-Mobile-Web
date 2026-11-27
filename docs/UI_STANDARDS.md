@@ -126,4 +126,4 @@ This document establishes the official enterprise design language and UI standar
     - Inside Profile Dropdown (`UserPill`): Mobile section (`md:hidden`) with Theme toggle and Language switcher.
 
 ### F. File Line Count Constraint
-- Extract dialogs, permissions tabs, or helpers into dedicated sub-folders (e.g. `pages/units/`, `pages/orgs/`, `pages/roles/`) whenever files approach this threshold.
+- Extract dialogs, permissions tabs, or helpers into dedicated sub-folders (e.g. `pages/units/`, `pages/organizations/`, `pages/roles/`) whenever files approach this threshold.

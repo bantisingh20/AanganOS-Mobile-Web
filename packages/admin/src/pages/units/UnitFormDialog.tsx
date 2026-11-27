@@ -5,22 +5,13 @@ import { Button } from '@shared/components/ui/button';
 import { Input } from '@shared/components/ui/input';
 import { Dialog, DialogHeader } from '@shared/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@shared/components/ui/select';
-import { EntitySelect, type EntityPage } from '@shared/components/EntitySelect';
-import { units, communities } from '@shared/services';
+import { EntitySelect } from '@shared/components/form/EntitySelect';
+import { units } from '@shared/services';
+import { fetchCommunityPage, resolveCommunityLabel } from '@shared/lib/entityFetchers';
 import type { Unit } from '@shared/api/units';
-import { toFormError } from '@shared/api/errors';
+import { tryToast } from '@shared/lib/withToast';
 
 export type Option = { value: string; label: string };
-
-function makeCommunityFetch(organizationId?: string) {
-  return (search: string, page: number, pageSize: number, signal: AbortSignal): Promise<EntityPage> =>
-    communities.list({ search: search || undefined, page, pageSize }, organizationId ? { organizationId } : {}, { signal })
-      .then((d) => ({ items: d.items.map((c) => ({ value: c.id, label: c.name })), total: d.totalCount }));
-}
-
-function resolveCommunityLabel(id: string, signal: AbortSignal) {
-  return communities.get(id, { signal }).then((c) => c.name).catch(() => null);
-}
 
 export function UnitFormDialog({
   open,
@@ -67,8 +58,8 @@ export function UnitFormDialog({
     }
     setBusy(true);
     try {
-      if (isEdit) {
-        await units.update(unit!.id, {
+      const ok = await tryToast(() => (isEdit
+        ? units.update(unit!.id, {
           unitNumber: unitNumber.trim(),
           unitType,
           unitStatus,
@@ -76,21 +67,16 @@ export function UnitFormDialog({
           updateFloor: true,
           bedrooms: bedrooms.trim() ? Number(bedrooms) : null,
           updateBedrooms: true,
-        });
-      } else {
-        await units.create({
+        })
+        : units.create({
           communityId,
           unitNumber: unitNumber.trim(),
           unitType,
           unitStatus,
           floor: floor.trim() ? floor.trim() : null,
           bedrooms: bedrooms.trim() ? Number(bedrooms) : null,
-        });
-      }
-      toast.success(isEdit ? t('units.updated') : t('units.created'));
-      onSaved();
-    } catch (err) {
-      toast.error(toFormError(err).message);
+        })), isEdit ? t('units.updated') : t('units.created'));
+      if (ok) onSaved();
     } finally {
       setBusy(false);
     }
@@ -106,7 +92,7 @@ export function UnitFormDialog({
             <EntitySelect
               value={communityId || null}
               onChange={(v) => setCommunityId(v ?? '')}
-              fetchPage={makeCommunityFetch()}
+              fetchPage={fetchCommunityPage}
               resolveLabel={resolveCommunityLabel}
               placeholder={t('units.selectCommunity')}
               className="[&>button]:h-9 [&>button]:rounded-[4px] [&>button]:text-xs [&>button]:px-3"
@@ -196,7 +182,7 @@ export function UnitFormDialog({
           onClick={onClose}
           className="h-8.5 px-4 rounded-[4px] text-xs font-medium border-border/80"
         >
-          {t('orgs.cancel')}
+          {t('common.cancel')}
         </Button>
         <Button
           type="button"

@@ -1,20 +1,21 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useUnreadCount, refreshUnreadCount } from '@shared/lib/hooks/useUnreadCount';
+import { useRef, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Menu, PanelLeftClose, PanelLeft, Bell, LogOut, X, HelpCircle, KeyRound, CheckCheck, Moon, Sun, Globe, ChevronDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { MenuNode } from '@shared/api/menu';
 import logoUrl from '@shared/assets/logo.png';
 import { toast } from 'sonner';
-import { notifications } from '@shared/services';
-import { NotificationInbox, type NotificationInboxHandle } from '@shared/components/NotificationInbox';
-import { LanguageSwitcher } from '@shared/components/LanguageSwitcher';
-import { ThemeToggle } from '@shared/components/ThemeToggle';
-import { useAppTheme } from '@shared/lib/useTheme';
-import { SidebarNav } from '@shared/components/SidebarNav';
-import { menuIcon } from '@shared/components/menuIcons';
-import { useMenu } from '@shared/lib/useMenu';
+import { NotificationInbox, type NotificationInboxHandle } from '@shared/features/notifications/NotificationInbox';
+import { LanguageSwitcher } from '@shared/components/layout/LanguageSwitcher';
+import { ThemeToggle } from '@shared/components/layout/ThemeToggle';
+import { useAppTheme } from '@shared/lib/hooks/useTheme';
+import { SidebarNav } from '@shared/components/layout/SidebarNav';
+import { menuIcon } from '@shared/components/menu/menuIcons';
+import { useMenu } from '@shared/lib/hooks/useMenu';
 import { useAuth } from '@shared/store/AuthContext';
 import { cn } from '@shared/lib/utils';
+import { initials } from '@shared/lib/format';
 import { ADMIN_FALLBACK_MENU } from './nav';
 import { ChangePasswordDialog } from './ChangePasswordDialog';
 
@@ -34,15 +35,10 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
-  const [unread, setUnread] = useState(0);
+  // Shared count, polled once for the whole app (see useUnreadCount) — no separate poll here.
+  const unread = useUnreadCount();
   const inboxControls = useRef<NotificationInboxHandle | null>(null);
-
-  const refreshUnread = () => { void notifications.unreadCount().then(setUnread).catch(() => undefined); };
-  useEffect(() => {
-    refreshUnread();
-    const id = setInterval(refreshUnread, 120000);
-    return () => clearInterval(id);
-  }, []);
+  const refreshUnread = () => { void refreshUnreadCount(); };
 
   return (
     <div className="flex h-[100dvh] overflow-hidden bg-gradient-to-br from-emerald-50/70 via-teal-50/40 to-slate-50 text-slate-800 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 dark:text-slate-100">
@@ -62,7 +58,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
             <button
               type="button"
               onClick={() => setDrawerOpen(false)}
-              aria-label="Close"
+              aria-label={t('common.close')}
               className="absolute right-2 top-3 z-10 flex h-7.5 w-7.5 items-center justify-center rounded-[4px] text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
             >
               <X className="h-4.5 w-4.5" />
@@ -307,7 +303,7 @@ function UserPill() {
         className="flex h-8 w-8 sm:w-auto items-center justify-center sm:justify-start gap-1.5 sm:gap-2 rounded-[4px] border border-border/80 bg-card/60 sm:px-2 text-slate-700 hover:bg-accent/50 dark:text-slate-200 transition-colors shadow-xs"
       >
         <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-[11px] font-semibold text-white shadow-xs">
-          {name.slice(0, 1).toUpperCase()}
+          {initials(name, 1)}
         </span>
         <span className="hidden text-left leading-none sm:block">
           <span className="block max-w-[110px] truncate text-xs font-semibold text-foreground">{name}</span>
@@ -321,7 +317,7 @@ function UserPill() {
           <div className="absolute right-0 top-10 z-40 w-60 overflow-hidden rounded-[6px] border border-border bg-card p-1 shadow-lg dark:border-slate-800 dark:bg-slate-900">
             <div className="flex items-center gap-2.5 border-b border-border/60 p-2 dark:border-slate-800">
               <span className="flex h-7.5 w-7.5 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-xs font-semibold text-white shadow-xs">
-                {name.slice(0, 1).toUpperCase()}
+                {initials(name, 1)}
               </span>
               <div className="min-w-0">
                 <div className="truncate text-xs font-semibold">{name}</div>

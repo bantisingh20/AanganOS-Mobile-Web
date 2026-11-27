@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import type { ErrorLogDetail } from '@shared/api/errorLogs';
 import { cn } from '@shared/lib/utils';
+import { EMPTY } from '@shared/lib/format';
 
 interface ErrorLogDetailDrawerProps {
   log: ErrorLogDetail | null;
@@ -90,19 +91,19 @@ export function ErrorLogDetailDrawer({ log, open, onClose }: ErrorLogDetailDrawe
                 <div className="space-y-0.5">
                   <span className="text-[10.5px] text-muted-foreground">Controller / Function:</span>
                   <p className="font-mono text-xs font-semibold break-all text-foreground">
-                    {log.controllerOrFunction || '—'}
+                    {log.controllerOrFunction || EMPTY}
                   </p>
                 </div>
                 <div className="space-y-0.5">
                   <span className="text-[10.5px] text-muted-foreground">Line Number:</span>
                   <p className="font-mono text-xs font-semibold text-foreground">
-                    {log.lineNumber ? `Line ${log.lineNumber}` : '—'}
+                    {log.lineNumber ? `Line ${log.lineNumber}` : EMPTY}
                   </p>
                 </div>
                 <div className="sm:col-span-2 space-y-0.5 pt-1 border-t border-border/40">
                   <span className="text-[10.5px] text-muted-foreground">File Path:</span>
                   <p className="font-mono text-[11px] break-all text-muted-foreground select-all">
-                    {log.fileName || '—'}
+                    {log.fileName || EMPTY}
                   </p>
                 </div>
               </div>
@@ -121,23 +122,23 @@ export function ErrorLogDetailDrawer({ log, open, onClose }: ErrorLogDetailDrawe
                 </div>
                 <div className="space-y-0.5">
                   <span className="text-[10.5px] text-muted-foreground">Role:</span>
-                  <p className="font-medium text-emerald-600 dark:text-emerald-400">{log.userRole || '—'}</p>
+                  <p className="font-medium text-emerald-600 dark:text-emerald-400">{log.userRole || EMPTY}</p>
                 </div>
                 <div className="space-y-0.5">
                   <span className="text-[10.5px] text-muted-foreground">User ID:</span>
-                  <p className="font-mono text-[11px] text-muted-foreground truncate">{log.userId || '—'}</p>
+                  <p className="font-mono text-[11px] text-muted-foreground truncate">{log.userId || EMPTY}</p>
                 </div>
                 <div className="space-y-0.5">
                   <span className="text-[10.5px] text-muted-foreground">Correlation ID:</span>
-                  <p className="font-mono text-[11px] text-muted-foreground truncate">{log.correlationId || '—'}</p>
+                  <p className="font-mono text-[11px] text-muted-foreground truncate">{log.correlationId || EMPTY}</p>
                 </div>
                 <div className="space-y-0.5">
                   <span className="text-[10.5px] text-muted-foreground">Organization ID:</span>
-                  <p className="font-mono text-[11px] text-muted-foreground truncate">{log.organizationId || '—'}</p>
+                  <p className="font-mono text-[11px] text-muted-foreground truncate">{log.organizationId || EMPTY}</p>
                 </div>
                 <div className="space-y-0.5">
                   <span className="text-[10.5px] text-muted-foreground">Community ID:</span>
-                  <p className="font-mono text-[11px] text-muted-foreground truncate">{log.communityId || '—'}</p>
+                  <p className="font-mono text-[11px] text-muted-foreground truncate">{log.communityId || EMPTY}</p>
                 </div>
               </div>
             </section>
@@ -155,7 +156,7 @@ export function ErrorLogDetailDrawer({ log, open, onClose }: ErrorLogDetailDrawe
                 </div>
                 <div className="space-y-0.5">
                   <span className="text-[10.5px] text-muted-foreground">Client IP:</span>
-                  <p className="font-mono text-xs">{log.clientIp || '—'}</p>
+                  <p className="font-mono text-xs">{log.clientIp || EMPTY}</p>
                 </div>
                 {log.queryParams ? (
                   <div className="sm:col-span-2 space-y-0.5">

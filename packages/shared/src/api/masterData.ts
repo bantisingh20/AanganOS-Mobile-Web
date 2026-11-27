@@ -37,6 +37,13 @@ export class MasterDataClient {
     return promise;
   }
 
+  /** Fill the cache from the startup bootstrap so screens don't fetch these lists again. */
+  prime(listKey: string, communityId: string | null, entries: MasterDataEntry[]): void {
+    const cacheKey = `${listKey}:${communityId ?? ''}`;
+    if (this.cache.has(cacheKey)) return;
+    this.cache.set(cacheKey, Promise.resolve(entries.slice().sort((a, b) => a.sortOrder - b.sortOrder)));
+  }
+
   listKeys(options?: { signal?: AbortSignal }): Promise<string[]> {
     return this.api.get<string[]>('/api/v1/master-data-keys', options);
   }

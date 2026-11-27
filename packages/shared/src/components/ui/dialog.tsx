@@ -1,26 +1,45 @@
 import * as React from 'react';
 import { X } from 'lucide-react';
 import { cn } from '@shared/lib/utils';
+import { useIsCompact } from '@shared/lib/hooks/useMediaQuery';
 
+/**
+ * Modal used by both apps.
+ *  - Desktop: centered card.
+ *  - Phones / native app / narrow admin: bottom sheet (full width, max 92% height, scrolls),
+ *    so long forms like Add Person don't float as a tall popup. Short confirms stay short.
+ */
 export function Dialog({ open, onClose, children, className }: { open: boolean; onClose: () => void; children: React.ReactNode; className?: string }) {
+  const compact = useIsCompact();
+
   React.useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = prevOverflow; };
   }, [open, onClose]);
 
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className={cn('fixed inset-0 z-50 flex', compact ? 'items-end justify-center' : 'items-center justify-center p-4')}>
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div
         role="dialog"
         aria-modal="true"
-        className={cn('relative z-10 w-full max-w-md rounded-lg border border-border bg-card p-5 shadow-lg', className)}
+        className={cn(
+          'relative z-10 w-full max-w-md rounded-lg border border-border bg-card p-5 shadow-lg',
+          className,
+          // Applied after the caller's classes so the sheet shape always wins on phones.
+          compact && 'safe-bottom max-h-[92dvh] max-w-none overflow-y-auto rounded-b-none rounded-t-2xl border-x-0 border-b-0 px-4 pb-6 pt-5 animate-in slide-in-from-bottom duration-200',
+        )}
       >
-        <button type="button" onClick={onClose} aria-label="Close" className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-[4px] text-muted-foreground hover:bg-accent hover:text-foreground">
-          <X className="h-4 w-4" />
+        {compact ? <div className="mx-auto -mt-2 mb-3 h-1.5 w-10 rounded-full bg-muted-foreground/30" /> : null}
+        <button type="button" onClick={onClose} aria-label="Close"
+          className={cn('absolute right-3 flex items-center justify-center rounded-[4px] text-muted-foreground hover:bg-accent hover:text-foreground',
+            compact ? 'top-3 h-9 w-9 rounded-full' : 'top-3 h-7 w-7')}>
+          <X className={compact ? 'h-5 w-5' : 'h-4 w-4'} />
         </button>
         {children}
       </div>

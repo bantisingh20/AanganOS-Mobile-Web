@@ -1,3 +1,4 @@
+import { freshBootstrap } from '@shared/lib/hooks/useBootstrap';
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -9,13 +10,13 @@ import { useTranslation } from 'react-i18next';
 import { announcements, myTasks, tickets, maintenanceBilling } from '@shared/services';
 import { useDynamicTiles } from '@shared/lib/appTiles';
 import { tileIcon } from '@app/lib/tileIcons';
-import { useAsync } from '@shared/lib/useAsync';
+import { useAsync } from '@shared/lib/hooks/useAsync';
 import { cn } from '@shared/lib/utils';
+import { formatDate, formatMoney } from '@shared/lib/format';
 import {
   type QuickActionItem,
   RECENT_NOTICE_DAYS,
   NOTICE_META,
-  noticeDate,
   severityTint,
 } from './dashboardHelpers';
 import { DashboardHero, ReqStat } from './DashboardHero';
@@ -34,19 +35,45 @@ export function DashboardTab({
   const { t } = useTranslation();
   const navigate = useNavigate();
 
-  // Async queries for live dashboard widgets
-  const tasksQuery = useAsync((signal) => myTasks.summary({ signal }).catch(() => []), []);
+  // Role-based dynamic tiles from backend menu & permissions. Read FIRST so the widget queries below
+  // only run for sections this user can actually see (guards no longer fire resident-only calls).
+  const { tiles } = useDynamicTiles();
+  const permittedCodes = useMemo(() => new Set(tiles.map((t) => t.code)), [tiles]);
+
+  const canSeeMaintenance = permittedCodes.has('maintenance') || permittedCodes.has('billing');
+  const canSeeHelpdesk = permittedCodes.has('helpdesk') || permittedCodes.has('raise-ticket');
+  const canSeeNotices = permittedCodes.has('announcements');
+
+  // Filter tiles allowed for home shortcuts (showInHome is true or default)
+  const homeTiles = useMemo(() => {
+    return tiles.filter((t) => t.showInHome !== false);
+  }, [tiles]);
+
+  // Async queries for live dashboard widgets (skipped when the section is hidden)
+  // Task counts come from the startup bootstrap when it's fresh; otherwise fetched here.
+  const tasksQuery = useAsync(async (signal) => {
+    const boot = await freshBootstrap();
+    if (boot?.tasks) return boot.tasks;
+    return myTasks.summary({ signal }).catch(() => []);
+  }, []);
   const noticesQuery = useAsync((signal) => {
+    if (!canSeeNotices) return Promise.resolve(null);
     const fromDate = new Date(Date.now() - RECENT_NOTICE_DAYS * 86400000).toISOString();
     return announcements.list({ pageSize: 3, sort: 'publishedAtUtc:desc' }, { fromDate }, { signal }).catch(() => null);
-  }, []);
-  const openQuery = useAsync((signal) => tickets.list({ pageSize: 1 }, { status: 'new' }, { signal }).catch(() => null), []);
-  const progressQuery = useAsync((signal) => tickets.list({ pageSize: 1 }, { status: 'in_progress' }, { signal }).catch(() => null), []);
-  const resolvedQuery = useAsync((signal) => tickets.list({ pageSize: 1 }, { status: 'resolved' }, { signal }).catch(() => null), []);
-  const latestTicketQuery = useAsync((signal) => tickets.list({ pageSize: 1, sort: 'createdAtUtc:desc' }, {}, { signal }).catch(() => null), []);
+  }, [canSeeNotices]);
+  const ticketCount = (status: string) => (signal: AbortSignal) =>
+    canSeeHelpdesk ? tickets.list({ pageSize: 1 }, { status }, { signal }).catch(() => null) : Promise.resolve(null);
+  const openQuery = useAsync(ticketCount('new'), [canSeeHelpdesk]);
+  const progressQuery = useAsync(ticketCount('in_progress'), [canSeeHelpdesk]);
+  const resolvedQuery = useAsync(ticketCount('resolved'), [canSeeHelpdesk]);
+  const latestTicketQuery = useAsync((signal) => (canSeeHelpdesk
+    ? tickets.list({ pageSize: 1, sort: 'createdAtUtc:desc' }, {}, { signal }).catch(() => null)
+    : Promise.resolve(null)), [canSeeHelpdesk]);
 
-  // Bills & dues
-  const billsQuery = useAsync((signal) => maintenanceBilling.myBills({ pageSize: 3 }, undefined, { signal }).catch(() => null), []);
+  // Bills & dues. Up to 50 bills so the total due is right (it used to add up only the first 3).
+  const billsQuery = useAsync((signal) => (canSeeMaintenance
+    ? maintenanceBilling.myBills({ pageSize: 50 }, undefined, { signal }).catch(() => null)
+    : Promise.resolve(null)), [canSeeMaintenance]);
 
   const tasks = tasksQuery.data ?? [];
   const attentionTotal = useMemo(() => tasks.reduce((s, x) => s + x.count, 0), [tasks]);
@@ -62,18 +89,6 @@ export function DashboardTab({
 
   const latestTicket = latestTicketQuery.data?.items?.[0] ?? null;
 
-  // Role-based dynamic tiles from backend menu & permissions
-  const { tiles } = useDynamicTiles();
-  const permittedCodes = useMemo(() => new Set(tiles.map((t) => t.code)), [tiles]);
-
-  const canSeeMaintenance = permittedCodes.has('maintenance') || permittedCodes.has('billing');
-  const canSeeHelpdesk = permittedCodes.has('helpdesk') || permittedCodes.has('raise-ticket');
-  const canSeeNotices = permittedCodes.has('announcements');
-
-  // Filter tiles allowed for home shortcuts (showInHome is true or default)
-  const homeTiles = useMemo(() => {
-    return tiles.filter((t) => t.showInHome !== false);
-  }, [tiles]);
 
   // Dynamic quick actions derived strictly from the user's role rights
   const quickActions = useMemo<QuickActionItem[]>(() => {
@@ -214,7 +229,7 @@ export function DashboardTab({
                 <>
                   <div>
                     <span className="text-[11px] font-bold uppercase tracking-wider text-destructive">Payment Due</span>
-                    <p className="text-2xl font-black text-foreground">₹ {totalDue.toLocaleString('en-IN')}</p>
+                    <p className="text-2xl font-black text-foreground">{formatMoney(totalDue)}</p>
                   </div>
                   <button
                     type="button"
@@ -258,7 +273,7 @@ export function DashboardTab({
               </h2>
               <button
                 type="button"
-                onClick={() => navigate('/raise-ticket')}
+                onClick={() => navigate('/helpdesk/new')}
                 className="text-xs font-bold text-primary flex items-center gap-1"
               >
                 <Plus className="h-3.5 w-3.5" /> New Ticket
@@ -266,7 +281,7 @@ export function DashboardTab({
             </div>
 
             <div
-              onClick={() => navigate('/my-tickets')}
+              onClick={() => navigate('/helpdesk')}
               className="flex flex-col gap-3 rounded-2xl bg-card p-4 text-left shadow-sm border border-border/60 cursor-pointer active:scale-[0.99] transition-transform"
             >
               <div className="flex items-center justify-between">
@@ -334,7 +349,7 @@ export function DashboardTab({
                       <span className="min-w-0 flex-1">
                         <span className="flex items-start justify-between gap-2">
                           <span className="block truncate text-sm font-extrabold text-foreground">{notice.title}</span>
-                          <span className="shrink-0 text-[11px] text-muted-foreground">{noticeDate(notice.publishedAtUtc)}</span>
+                          <span className="shrink-0 text-[11px] text-muted-foreground">{formatDate(notice.publishedAtUtc)}</span>
                         </span>
                         <span className="mt-0.5 line-clamp-2 block text-xs text-muted-foreground">{notice.body}</span>
                       </span>

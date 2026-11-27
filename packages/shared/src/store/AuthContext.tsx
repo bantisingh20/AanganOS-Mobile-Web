@@ -1,7 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { auth, tokenStore, notifications } from '@shared/services';
+import { auth, tokenStore, masterData, roles as rolesApi, menuItems } from '@shared/services';
+import { startUnreadPolling, resetUnreadCount } from '@shared/lib/hooks/useUnreadCount';
+import { resetEntityNameCache } from '@shared/lib/entityFetchers';
+import { loadBootstrap, resetBootstrap } from '@shared/lib/hooks/useBootstrap';
 import type { LoginRequest, LoginResponse } from '@shared/api/auth';
-import { resetMenuCache } from '@shared/lib/useMenu';
+import { resetMenuCache } from '@shared/lib/hooks/useMenu';
 import { resetHomeTilesCache } from '@shared/lib/appTiles';
 import { cacheInvalidate } from '@shared/lib/cache';
 
@@ -13,6 +16,16 @@ interface AuthContextValue {
   login: (request: LoginRequest) => Promise<LoginResponse>;
   adoptSession: (result: LoginResponse) => void;
   logout: () => Promise<void>;
+}
+
+/** Per-account caches that must not leak into the next account on this device. */
+function resetSessionCaches() {
+  resetEntityNameCache();
+  resetBootstrap();
+  masterData.invalidate();
+  rolesApi.invalidate();
+  menuItems.invalidate();
+  resetUnreadCount();
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -36,53 +49,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return unsubscribe;
   }, []);
 
-  // Periodic session heartbeat & focus check: automatically logs out if session was ended on another device
+  // One unread-count poll (60 s, only while visible & online) doubles as the session check: if the
+  // session was ended on another device the call returns 401 and the API client signs the user out
+  // (tokenStore.subscribe above redirects to login). Replaces the old 3-second heartbeat.
+  // Startup data (menu, unread count, task summary, profile, version, common lists) in ONE request.
+  // Started during render, not in an effect: child effects (Home, update check, menu) run BEFORE this
+  // provider's effects and would otherwise fetch on their own. loadBootstrap() is idempotent.
+  if (isAuthenticated) void loadBootstrap();
+
   useEffect(() => {
     if (!isAuthenticated) return;
-
-    let cancelled = false;
-    const verifySession = async () => {
-      if (cancelled || !tokenStore.getAccessToken()) return;
-      try {
-        await notifications.unreadCount();
-      } catch {
-        // If 401 unauthenticated, ApiClient clears tokenStore.
-        if (!tokenStore.getAccessToken()) {
-          setIsAuthenticated(false);
-          setUser(null);
-          if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
-            const loginTarget = window.location.pathname.startsWith('/admin') ? '/admin/login' : '/login';
-            window.location.replace(loginTarget);
-          }
-        }
-      }
-    };
-
-    // Immediate check on mount/auth, then periodic heartbeat every 3 seconds
-    void verifySession();
-    const interval = setInterval(verifySession, 3000);
-
-    const onFocus = () => {
-      if (!cancelled && document.visibilityState !== 'hidden') {
-        void verifySession();
-      }
-    };
-
-    window.addEventListener('focus', onFocus);
-    document.addEventListener('visibilitychange', onFocus);
-
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-      window.removeEventListener('focus', onFocus);
-      document.removeEventListener('visibilitychange', onFocus);
-    };
+    return startUnreadPolling();
   }, [isAuthenticated]);
 
   const login = useCallback(async (request: LoginRequest) => {
     const result = await auth.login(request);
     resetMenuCache();
     resetHomeTilesCache();
+    resetSessionCaches();
     cacheInvalidate();
     setUser(result.user);
     setIsAuthenticated(true);
@@ -91,6 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const adoptSession = useCallback((result: LoginResponse) => {
     tokenStore.setFromLogin(result);
+    resetSessionCaches();
     cacheInvalidate();
     setUser(result.user);
     setIsAuthenticated(true);
@@ -104,6 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       resetMenuCache();
       resetHomeTilesCache();
+      resetSessionCaches();
       cacheInvalidate();
       setUser(null);
       setIsAuthenticated(false);

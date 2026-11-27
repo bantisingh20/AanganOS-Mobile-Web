@@ -1,15 +1,10 @@
-export function hasAdminRole(roles: readonly string[]): boolean {
-  return roles.some((role) => {
-    const r = role.toLowerCase();
-    return (
-      r.includes('admin') ||
-      r.includes('manager') ||
-      r.includes('management') ||
-      r.includes('staff') ||
-      r.includes('operator') ||
-      r.includes('committee')
-    );
-  });
+/**
+ * THE rule for "this user has full rights": PowerUser, SuperAdmin, OrganizationAdmin, CommunityAdmin
+ * (any role containing "admin"). Used by usePermission, the app tiles and anything else that needs it —
+ * do not write another role regex. (Replaces an unused hasAdminRole that also counted staff/managers.)
+ */
+export function isAdminRole(roles: readonly string[]): boolean {
+  return roles.some((r) => /admin|poweruser|superadmin/i.test(r));
 }
 
 export function hasSecurityRole(roles: readonly string[]): boolean {

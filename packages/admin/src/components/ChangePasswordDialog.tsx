@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import { PASSWORD_MIN_LENGTH, validateNewPassword } from '@shared/features/auth/passwordRules';
+import { tryToast } from '@shared/lib/withToast';
 import { Dialog, DialogHeader } from '@shared/components/ui/dialog';
 import { Button } from '@shared/components/ui/button';
 import { Input } from '@shared/components/ui/input';
 import { auth } from '@shared/services';
-import { toFormError } from '@shared/api/errors';
 
 export function ChangePasswordDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { t } = useTranslation();
@@ -21,19 +22,17 @@ export function ChangePasswordDialog({ open, onClose }: { open: boolean; onClose
     setConfirm('');
   }, [open]);
 
-  const canSubmit = current.length > 0 && next.length >= 6 && confirm.length > 0;
+  const canSubmit = current.length > 0 && next.length >= PASSWORD_MIN_LENGTH && confirm.length > 0;
 
   const submit = async () => {
     if (busy || !canSubmit) return;
     if (next !== confirm) { toast.error(t('changePwd.mismatch')); return; }
     if (next === current) { toast.error(t('changePwd.sameAsOld')); return; }
+    const pwError = validateNewPassword(next);
+    if (pwError) { toast.error(t(`forgot.${pwError}`)); return; }
     setBusy(true);
     try {
-      await auth.changePassword({ currentPassword: current, newPassword: next });
-      toast.success(t('changePwd.success'));
-      onClose();
-    } catch (err) {
-      toast.error(toFormError(err).message);
+      if (await tryToast(() => auth.changePassword({ currentPassword: current, newPassword: next }), t('changePwd.success'))) onClose();
     } finally {
       setBusy(false);
     }
@@ -57,7 +56,7 @@ export function ChangePasswordDialog({ open, onClose }: { open: boolean; onClose
         </div>
       </div>
       <div className="mt-5 pt-3.5 border-t border-border/70 flex items-center justify-end gap-2.5">
-        <Button variant="outline" onClick={onClose} className="h-8.5 px-4 rounded-[4px] text-xs font-medium border-border/80">{t('orgs.cancel')}</Button>
+        <Button variant="outline" onClick={onClose} className="h-8.5 px-4 rounded-[4px] text-xs font-medium border-border/80">{t('common.cancel')}</Button>
         <Button onClick={submit} disabled={busy || !canSubmit} className="h-8.5 px-4 rounded-[4px] text-xs font-medium bg-emerald-600 hover:bg-emerald-700">{t('changePwd.submit')}</Button>
       </div>
     </Dialog>

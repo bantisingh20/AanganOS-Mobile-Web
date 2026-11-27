@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
 import {
   KeyRound, Check, Search, X, RotateCcw, ChevronRight, ChevronsUpDown, Shield,
 } from 'lucide-react';
@@ -10,9 +9,10 @@ import { Badge } from '@shared/components/ui/badge';
 import { menuItems, roles } from '@shared/services';
 import type { Role, PermissionGrant } from '@shared/api/roles';
 import type { MenuItem } from '@shared/api/menuItems';
-import { useAsync } from '@shared/lib/useAsync';
-import { toFormError } from '@shared/api/errors';
-import { menuIcon } from '@shared/components/menuIcons';
+import { useAsync } from '@shared/lib/hooks/useAsync';
+import { tryToast } from '@shared/lib/withToast';
+import { EMPTY } from '@shared/lib/format';
+import { menuIcon } from '@shared/components/menu/menuIcons';
 import { cn } from '@shared/lib/utils';
 import {
   ACTION_VIEW, ACTION_DELETE, ACTION_EDIT,
@@ -41,21 +41,23 @@ export function InlinePermissionsTab({
 
   const catalog = useAsync((signal) => menuItems.list(undefined, { signal }).catch(() => [] as MenuItem[]), []);
 
+  // Resource names from the menu catalog plus the role's current grants (built here, not mutated in
+  // the effect below — mutating it and listing it as a dependency loaded every role twice).
   const canonicalMap = useMemo(() => {
     const map = new Map<string, string>();
     (catalog.data ?? []).filter((m) => m.isActive !== false).forEach((m) => {
       const res = m.requiredPermissionResource?.trim() || m.key?.trim();
       if (res) map.set(res.toLowerCase(), res);
     });
+    currentGrants.forEach((p) => map.set(p.resourceType.trim().toLowerCase(), p.resourceType.trim()));
     return map;
-  }, [catalog.data]);
+  }, [catalog.data, currentGrants]);
 
   useEffect(() => {
     if (!currentRole) return;
     let active = true;
     const initial = currentRole.permissions ?? [];
     setCurrentGrants(initial);
-    initial.forEach((p) => canonicalMap.set(p.resourceType.trim().toLowerCase(), p.resourceType.trim()));
     const initialKeys = new Set(initial.map((p) => permKey(p.resourceType, p.action)));
     setSelected(initialKeys);
     setSavedKeys(initialKeys);
@@ -64,13 +66,12 @@ export function InlinePermissionsTab({
       if (!active || !fresh) return;
       const fg = fresh.permissions ?? [];
       setCurrentGrants(fg);
-      fg.forEach((p) => canonicalMap.set(p.resourceType.trim().toLowerCase(), p.resourceType.trim()));
       const fk = new Set(fg.map((p) => permKey(p.resourceType, p.action)));
       setSelected(fk);
       setSavedKeys(fk);
     }).catch(() => {});
     return () => { active = false; };
-  }, [currentRole?.id, canonicalMap]);
+  }, [currentRole?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const allTreeRows = useMemo(
     () => buildTree(catalog.data ?? [], permSurface, currentGrants, canonicalMap),
@@ -176,15 +177,15 @@ export function InlinePermissionsTab({
         const lowerRes = k.slice(0, idx);
         return { resourceType: canonicalMap.get(lowerRes) ?? lowerRes, action: Number(k.slice(idx + 1)) };
       });
-      await roles.update(currentRole.id, {
+      const ok = await tryToast(() => roles.update(currentRole.id, {
         name: currentRole.name, scope: currentRole.scope,
         communityId: currentRole.communityId, permissions: perms,
-      });
-      setSavedKeys(new Set(selected));
-      toast.success(t('roles.permissionsSaved'));
-      onRoleUpdated();
-    } catch (err) { toast.error(toFormError(err).message); }
-    finally { setSavingBusy(false); }
+      }), t('roles.permissionsSaved'));
+      if (ok) {
+        setSavedKeys(new Set(selected));
+        onRoleUpdated();
+      }
+    } finally { setSavingBusy(false); }
   };
 
   if (!currentRole) return <div className="p-8 text-center text-xs text-muted-foreground">{t('roles.noRoles')}</div>;
@@ -224,7 +225,7 @@ export function InlinePermissionsTab({
         <div className="flex items-center gap-1.5 shrink-0">
           {hasUnsavedChanges && (
             <Button variant="outline" size="sm" onClick={() => setSelected(new Set(savedKeys))} className="h-7 px-2 rounded-[4px] text-[11px]">
-              <RotateCcw className="h-3 w-3 mr-1" />{t('orgs.reset')}
+              <RotateCcw className="h-3 w-3 mr-1" />{t('common.reset')}
             </Button>
           )}
           <Button size="sm" onClick={saveRolePermissions} disabled={savingBusy} className="h-7 px-3 rounded-[4px] text-[11px] font-medium">
@@ -330,7 +331,7 @@ export function InlinePermissionsTab({
                               )}
                             </div>
                             <span className="block font-mono text-[9px] text-muted-foreground leading-tight mt-0.5">
-                              {row.resource || (row.hasChildren ? 'Parent Group' : '—')}
+                              {row.resource || (row.hasChildren ? 'Parent Group' : EMPTY)}
                             </span>
                           </div>
                         </div>

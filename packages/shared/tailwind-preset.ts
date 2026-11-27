@@ -41,6 +41,18 @@ export const aanganosPreset = {
           foreground: 'hsl(var(--card-foreground))',
         },
       },
+      // Half steps Tailwind 3 doesn't ship (it only has 0.5/1.5/2.5/3.5). ~200 class uses such as
+      // h-7.5 / h-8.5 across shared, app and admin were silently ignored until these existed.
+      spacing: {
+        '4.5': '1.125rem',
+        '5.5': '1.375rem',
+        '6.5': '1.625rem',
+        '7.5': '1.875rem',
+        '8.5': '2.125rem',
+        '9.5': '2.375rem',
+        '13': '3.25rem',
+        '18': '4.5rem',
+      },
       borderRadius: {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',

@@ -8,8 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { communities, organizations } from '@shared/services';
 import type { Community } from '@shared/api/communities';
 import type { Organization } from '@shared/api/organizations';
-import { useAsync } from '@shared/lib/useAsync';
-import { toFormError } from '@shared/api/errors';
+import { useAsync } from '@shared/lib/hooks/useAsync';
+import { tryToast } from '@shared/lib/withToast';
 
 export function CommunityFormDialog({
   open,
@@ -27,6 +27,7 @@ export function CommunityFormDialog({
   const { t } = useTranslation();
   const isEdit = !!community;
   const [name, setName] = useState('');
+  const [code, setCode] = useState('');
   const [orgId, setOrgId] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -42,6 +43,7 @@ export function CommunityFormDialog({
   useEffect(() => {
     if (!open) return;
     setName(community?.name ?? '');
+    setCode(community?.code ?? '');
     setOrgId(presetOrgId ?? '');
   }, [open, community, presetOrgId]);
 
@@ -53,12 +55,14 @@ export function CommunityFormDialog({
     }
     setBusy(true);
     try {
-      if (isEdit) await communities.update(community!.id, { name: name.trim() });
-      else await communities.create({ organizationId: orgId, name: name.trim() });
-      toast.success(isEdit ? t('communities.updated') : t('communities.created'));
-      onSaved();
-    } catch (err) {
-      toast.error(toFormError(err).message);
+      const ok = await tryToast(
+        () => (isEdit
+          // '' clears the code on edit; on create a blank code is simply not sent.
+          ? communities.update(community!.id, { name: name.trim(), code: code.trim() })
+          : communities.create({ organizationId: orgId, name: name.trim(), ...(code.trim() ? { code: code.trim() } : {}) })),
+        isEdit ? t('communities.updated') : t('communities.created'),
+      );
+      if (ok) onSaved();
     } finally {
       setBusy(false);
     }
@@ -100,6 +104,21 @@ export function CommunityFormDialog({
             className="h-9 text-xs rounded-[4px]"
           />
         </div>
+
+        <div>
+          <label className="mb-1 block text-xs font-medium text-foreground">{t('communities.code')}</label>
+          <Input
+            value={code}
+            onChange={(e) => setCode(e.target.value.replace(/\s+/g, ''))}
+            placeholder={t('communities.codePlaceholder')}
+            maxLength={20}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') submit();
+            }}
+            className="h-9 text-xs rounded-[4px]"
+          />
+          <p className="mt-1 text-[11px] text-muted-foreground">{t('communities.codeHint')}</p>
+        </div>
       </div>
 
       <div className="mt-5 pt-3.5 border-t border-border/70 flex items-center justify-end gap-2.5">
@@ -109,7 +128,7 @@ export function CommunityFormDialog({
           onClick={onClose}
           className="h-8.5 px-4 rounded-[4px] text-xs font-medium border-border/80"
         >
-          {t('orgs.cancel')}
+          {t('common.cancel')}
         </Button>
         <Button
           type="button"

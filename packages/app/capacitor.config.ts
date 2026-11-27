@@ -5,7 +5,8 @@ const config: CapacitorConfig = {
   appName: 'AanganOS',
   webDir: 'dist',
   android: {
-    allowMixedContent: true,
+    // HTTPS app must never load http:// content (cleartext is also blocked in network_security_config.xml).
+    allowMixedContent: false,
   },
   plugins: {
     CapacitorHttp: {

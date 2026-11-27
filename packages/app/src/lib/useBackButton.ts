@@ -1,26 +1,27 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Capacitor } from '@capacitor/core';
 import { App } from '@capacitor/app';
-import type { PluginListenerHandle } from '@capacitor/core';
 
 const ROOT_PATHS = new Set(['/', '/home', '/login', '/splash']);
 
+/**
+ * Android hardware back button. Registered ONCE; the current path is read from a ref.
+ * (Previously the listener was re-added on every navigation and the async handle could be missed
+ * in cleanup, stacking listeners so one press went back several pages.)
+ */
 export function useBackButton(): void {
   const navigate = useNavigate();
   const location = useLocation();
+  const pathRef = useRef(location.pathname);
+  pathRef.current = location.pathname;
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
-    let handle: PluginListenerHandle | undefined;
-    void App.addListener('backButton', ({ canGoBack }) => {
-      const atRoot = ROOT_PATHS.has(location.pathname);
-      if (atRoot || !canGoBack) {
-        void App.minimizeApp();
-      } else {
-        navigate(-1);
-      }
-    }).then((h) => { handle = h; });
-    return () => { void handle?.remove(); };
-  }, [navigate, location.pathname]);
+    const registration = App.addListener('backButton', ({ canGoBack }) => {
+      if (ROOT_PATHS.has(pathRef.current) || !canGoBack) void App.minimizeApp();
+      else navigate(-1);
+    });
+    return () => { void registration.then((h) => h.remove()); };
+  }, [navigate]);
 }

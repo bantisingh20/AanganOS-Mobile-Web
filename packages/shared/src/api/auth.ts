@@ -1,5 +1,10 @@
 import type { ApiClient } from './client';
 import type { TokenStore } from './tokenStore';
+import type { MenuNode } from './menu';
+import type { MyTaskSummaryItem } from './myTasks';
+import type { ResidentMe } from './residents';
+import type { AppVersionInfo } from './config';
+import type { MasterDataEntry } from './masterData';
 
 export interface LoginUser {
   id: string;
@@ -53,6 +58,28 @@ export interface ChangePasswordRequest {
   newPassword: string;
 }
 
+/** GET /auth/me?include=bootstrap — see AuthController.Me on the backend. */
+export interface BootstrapResponse {
+  me: {
+    userId: string | null;
+    communityId: string | null;
+    unitId: string | null;
+    organizationId: string | null;
+    residentId: string | null;
+    residentType: string | null;
+    role: string | null;
+    roles: string[];
+    isSuperAdmin: boolean;
+    isResident: boolean;
+  };
+  menu: MenuNode[] | null;
+  unreadCount: number | null;
+  tasks: MyTaskSummaryItem[] | null;
+  resident: ResidentMe | null;
+  appVersion: AppVersionInfo | null;
+  masterData: Record<string, MasterDataEntry[]>;
+}
+
 export class AuthService {
   constructor(
     private readonly api: ApiClient,
@@ -66,6 +93,18 @@ export class AuthService {
     });
     this.tokenStore.setFromLogin(login);
     return login;
+  }
+
+  /**
+   * One call after login / on app start: GET /auth/me?include=bootstrap. Returns the menu, unread
+   * count, task summary, resident profile, app-version info and the requested master-data lists.
+   * Sections that fail on the server come back null.
+   */
+  bootstrap(opts: { platform?: 'android' | 'ios'; masterData?: string[] } = {}): Promise<BootstrapResponse> {
+    const params = new URLSearchParams({ include: 'bootstrap' });
+    if (opts.platform) params.set('platform', opts.platform);
+    if (opts.masterData?.length) params.set('masterData', opts.masterData.join(','));
+    return this.api.get<BootstrapResponse>(`/api/v1/auth/me?${params.toString()}`);
   }
 
   async logout(): Promise<void> {

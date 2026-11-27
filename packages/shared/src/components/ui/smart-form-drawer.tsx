@@ -2,7 +2,7 @@ import { useEffect, type ReactNode } from 'react';
 import { X, Check, Loader2 } from 'lucide-react';
 import { Dialog, DialogHeader, DialogFooter } from './dialog';
 import { Button } from './button';
-import { useIsSmallScreen } from '@shared/lib/useMediaQuery';
+import { useIsSmallScreen } from '@shared/lib/hooks/useMediaQuery';
 import { cn } from '@shared/lib/utils';
 
 export interface SmartFormDrawerProps {

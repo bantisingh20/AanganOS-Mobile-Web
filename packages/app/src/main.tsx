@@ -5,6 +5,9 @@ import { App } from '@app/App';
 import { initPush } from '@app/lib/push';
 import { initTheme } from '@app/lib/theme';
 import '@shared/index.css';
+import { ErrorBoundary } from '@shared/components/layout/ErrorBoundary';
+
+const HOME_PATH = '/home';
 
 initTheme();
 initI18n();
@@ -12,7 +15,9 @@ initPush();
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <App />
+    <ErrorBoundary homePath={HOME_PATH}>
+      <App />
+    </ErrorBoundary>
   </React.StrictMode>,
 );
 

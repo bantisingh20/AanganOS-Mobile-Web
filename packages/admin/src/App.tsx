@@ -1,32 +1,34 @@
 import type { ReactElement } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
-import { ThemeProvider } from '@shared/lib/useTheme';
+import { ThemeProvider } from '@shared/lib/hooks/useTheme';
 import { AuthProvider, useAuth } from '@shared/store/AuthContext';
 import { Toaster } from '@shared/components/ui/sonner';
 import { AdminShell } from '@admin/components/AdminShell';
-import { LoginPage } from '@admin/pages/LoginPage';
-import { ForgotPasswordPage } from '@admin/pages/ForgotPasswordPage';
-import { DashboardPage } from '@admin/pages/DashboardPage';
-import { OrganizationsPage } from '@admin/pages/OrganizationsPage';
-import { CommunitiesPage } from '@admin/pages/CommunitiesPage';
-import { UnitsPage } from '@admin/pages/UnitsPage';
-import { ResidentsPage } from '@admin/pages/ResidentsPage';
-import { AnnouncementsPage } from '@shared/components/AnnouncementsPage';
-import { AdminUsersPage } from '@admin/pages/AdminUsersPage';
-import { TicketsListPage, SubmitTicketPage, TicketDetailsPage } from '@shared/help-desk';
-import { AmenitiesPage } from '@admin/pages/AmenitiesPage';
-import { MaintenanceBillingPage } from '@admin/pages/MaintenanceBillingPage';
-import { VisitorsPage } from '@admin/pages/VisitorsPage';
-import { NotificationsPage } from '@admin/pages/NotificationsPage';
-import { NotificationTemplatesPage } from '@admin/pages/NotificationTemplatesPage';
-import { UsersPage } from '@admin/pages/UsersPage';
-import { MenuManagementPage } from '@admin/pages/MenuManagementPage';
-import { MasterDataMenuPage } from '@admin/pages/MasterDataMenuPage';
-import { ConfigPage } from '@admin/pages/ConfigPage';
-import { RolesPage } from '@admin/pages/RolesPage';
-import { CommunicationTestPage } from '@admin/pages/CommunicationTestPage';
-import { ErrorLogsPage } from '@admin/pages/ErrorLogsPage';
-import { PlaceholderPage } from '@admin/pages/PlaceholderPage';
+import { LoginPage } from '@admin/pages/auth/LoginPage';
+import { ForgotPasswordPage, RegisterAccountPage, RegisterSocietyPage } from '@shared/features/auth';
+import { DashboardPage } from '@admin/pages/dashboard/DashboardPage';
+import { OrganizationsPage } from '@admin/pages/organizations/OrganizationsPage';
+import { CommunitiesPage } from '@admin/pages/communities/CommunitiesPage';
+import { UnitsPage } from '@admin/pages/units/UnitsPage';
+
+import { AnnouncementsPage } from '@shared/features/announcements/AnnouncementsPage';
+import { AdminUsersPage } from '@admin/pages/admin-users/AdminUsersPage';
+import { TicketsListPage, SubmitTicketPage, TicketDetailsPage } from '@shared/features/helpdesk';
+import { SurfaceProvider } from '@shared/lib/surface';
+import { RedirectTo } from '@shared/lib/routing';
+import { AmenitiesPage } from '@admin/pages/amenities/AmenitiesPage';
+import { MaintenanceBillingView } from '@shared/features/billing/MaintenanceBillingView';
+import { VisitorsPage } from '@admin/pages/visitors/VisitorsPage';
+import { NotificationsPage } from '@admin/pages/notifications/NotificationsPage';
+import { NotificationTemplatesPage } from '@admin/pages/notifications/NotificationTemplatesPage';
+import { PeopleManagementView } from '@shared/features/people/PeopleManagementView';
+import { MenuManagementPage } from '@admin/pages/menus/MenuManagementPage';
+import { MasterDataMenuPage } from '@admin/pages/master-data/MasterDataMenuPage';
+import { ConfigPage } from '@admin/pages/config/ConfigPage';
+import { RolesPage } from '@admin/pages/roles/RolesPage';
+import { CommunicationTestPage } from '@admin/pages/communication-test/CommunicationTestPage';
+import { ErrorLogsPage } from '@admin/pages/error-logs/ErrorLogsPage';
+import { PlaceholderPage } from '@admin/components/PlaceholderPage';
 
 function RequireAuth({ children }: { children: ReactElement }) {
   const { isAuthenticated } = useAuth();
@@ -42,31 +44,39 @@ export function App() {
   return (
     <ThemeProvider>
     <AuthProvider>
+    <SurfaceProvider value="admin">
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<RequireAuth><DashboardPage /></RequireAuth>} />
 
           <Route path="/login" element={<LoginPage />} />
           <Route path="/forgot" element={<ForgotPasswordPage />} />
+          <Route path="/register" element={<RegisterAccountPage />} />
+          <Route path="/register-society" element={<RegisterSocietyPage />} />
           <Route path="/dashboard" element={<RequireAuth><DashboardPage /></RequireAuth>} />
           <Route path="/organizations" element={<RequireAuth><OrganizationsPage /></RequireAuth>} />
           <Route path="/communities" element={<RequireAuth><CommunitiesPage /></RequireAuth>} />
           <Route path="/units" element={<RequireAuth><UnitsPage /></RequireAuth>} />
-          <Route path="/residents" element={<RequireAuth><ResidentsPage /></RequireAuth>} />
-          <Route path="/announcements" element={<RequireAuth><AnnouncementsPage mode="admin" /></RequireAuth>} />
+          <Route path="/residents" element={<RequireAuth><PeopleManagementView /></RequireAuth>} />
+          <Route path="/announcements" element={<RequireAuth><AnnouncementsPage /></RequireAuth>} />
           <Route path="/admin-users" element={<RequireAuth><AdminUsersPage /></RequireAuth>} />
-          <Route path="/maintenance" element={<RequireAuth><TicketsListPage mode="admin" submitPath="/maintenance/new" detailsPathPrefix="/maintenance/" /></RequireAuth>} />
-          <Route path="/maintenance/new" element={<RequireAuth><SubmitTicketPage mode="admin" listPath="/maintenance" /></RequireAuth>} />
-          <Route path="/maintenance/:id" element={<RequireAuth><TicketDetailsPage mode="admin" listPath="/maintenance" /></RequireAuth>} />
-          <Route path="/tickets" element={<RequireAuth><TicketsListPage mode="admin" submitPath="/tickets/new" detailsPathPrefix="/tickets/" /></RequireAuth>} />
-          <Route path="/tickets/new" element={<RequireAuth><SubmitTicketPage mode="admin" listPath="/tickets" /></RequireAuth>} />
-          <Route path="/tickets/:id" element={<RequireAuth><TicketDetailsPage mode="admin" listPath="/tickets" /></RequireAuth>} />
+          {/* Help Desk — same shared pages and URLs as the app */}
+          <Route path="/helpdesk" element={<RequireAuth><TicketsListPage /></RequireAuth>} />
+          <Route path="/helpdesk/new" element={<RequireAuth><SubmitTicketPage /></RequireAuth>} />
+          <Route path="/helpdesk/:id" element={<RequireAuth><TicketDetailsPage /></RequireAuth>} />
+          {/* Old Help Desk URLs ("/maintenance" now means resident bills in the app) */}
+          <Route path="/maintenance" element={<RedirectTo to="/helpdesk" />} />
+          <Route path="/maintenance/new" element={<RedirectTo to="/helpdesk/new" />} />
+          <Route path="/maintenance/:id" element={<RedirectTo to="/helpdesk/:id" />} />
+          <Route path="/tickets" element={<RedirectTo to="/helpdesk" />} />
+          <Route path="/tickets/new" element={<RedirectTo to="/helpdesk/new" />} />
+          <Route path="/tickets/:id" element={<RedirectTo to="/helpdesk/:id" />} />
           <Route path="/amenities" element={<RequireAuth><AmenitiesPage /></RequireAuth>} />
-          <Route path="/billing" element={<RequireAuth><MaintenanceBillingPage /></RequireAuth>} />
+          <Route path="/billing" element={<RequireAuth><MaintenanceBillingView /></RequireAuth>} />
           <Route path="/visitors" element={<RequireAuth><VisitorsPage /></RequireAuth>} />
           <Route path="/notifications" element={<RequireAuth><NotificationsPage /></RequireAuth>} />
           <Route path="/notification-templates" element={<RequireAuth><NotificationTemplatesPage /></RequireAuth>} />
-          <Route path="/users" element={<RequireAuth><UsersPage /></RequireAuth>} />
+          <Route path="/users" element={<RequireAuth><PeopleManagementView /></RequireAuth>} />
           <Route path="/menu-management" element={<RequireAuth><MenuManagementPage /></RequireAuth>} />
           <Route path="/master-data" element={<RequireAuth><MasterDataMenuPage /></RequireAuth>} />
           <Route path="/master-menu" element={<RequireAuth><MasterDataMenuPage /></RequireAuth>} />
@@ -81,6 +91,7 @@ export function App() {
         </Routes>
         <Toaster position="top-right" richColors />
       </BrowserRouter>
+    </SurfaceProvider>
     </AuthProvider>
     </ThemeProvider>
   );
